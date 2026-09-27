@@ -26,6 +26,22 @@ repos:
         language: system
         pass_filenames: true
 
+      # oxfmt / oxlint は package.json で管理するため pnpm exec で呼ぶ（node_modules が無ければ pnpm が先にインストールする）。
+      # 複数プロセスで同時に実行されると自動インストールが競合するため、require_serial で1プロセスに限る
+      - id: oxfmt
+        name: oxfmt
+        entry: pnpm exec oxfmt --no-error-on-unmatched-pattern
+        language: system
+        require_serial: true
+        files: \.(c|m)?[jt]sx?$|\.jsonc?$|\.json5$|\.ya?ml$|\.html$|\.css$
+
+      - id: oxlint
+        name: oxlint
+        entry: pnpm exec oxlint --deny-warnings
+        language: system
+        require_serial: true
+        files: \.(c|m)?[jt]sx?$
+
       - id: actionlint
         name: actionlint
         entry: actionlint

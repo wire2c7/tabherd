@@ -1,0 +1,18 @@
+# pnpm の設定。pnpm 12 の既定値と異なる項目のみ書く
+# （strictDepBuilds・blockExoticSubdeps・dangerouslyAllowAllBuilds 等は既定値で安全側になっている）
+
+# 公開から3日（既定は1日）経ったバージョンのみインストールする。
+# Renovate の security:minimumReleaseAgeNpm（3日）と揃え、Renovate の更新PRが pnpm の検査で失敗しないようにする
+minimumReleaseAge: 4320
+
+# パッケージの公開元の信頼レベル（Trusted Publishing・provenance）が過去のバージョンより下がったら失敗させる
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  # 3.2.0・3.2.1 と同じメンテナが provenance なしで公開した版で、乗っ取りではない（誤検知）
+  - why-is-node-running@3.2.2
+
+# 依存パッケージの engines（Node.js のバージョン等）が合わない場合にインストールを失敗させる
+engineStrict: true
+
+# pnpm add で package.json にバージョンを範囲（^）ではなく完全一致で書き込む。更新は Renovate の PR で行う
+savePrefix: ""

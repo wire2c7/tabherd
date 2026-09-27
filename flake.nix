@@ -1,5 +1,5 @@
 {
-  description = "template-repo";
+  description = "TabHerd - Auto Tab Groups";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -55,6 +55,9 @@
               pkgs.betterleaks
               pkgs.commitlint
               pkgs.jq
+              # WXT は Node.js >= 22 を要求する。LTS の 24 系に固定する
+              pkgs.nodejs_24
+              pkgs.pnpm
               pkgs.prek
             ];
 
