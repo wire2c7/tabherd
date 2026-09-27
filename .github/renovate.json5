@@ -1,4 +1,10 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  extends: ["github>wire2c7/workflows#v1.0.0"],
+  extends: [
+    "github>wire2c7/workflows#v1.0.0",
+    // pnpm-workspace.yaml の minimumReleaseAge（3日）と揃える
+    "security:minimumReleaseAgeNpm",
+    // package.json のバージョンは完全一致で固定する（pnpm-workspace.yaml の savePrefix と揃える）
+    ":pinAllExceptPeerDependencies",
+  ],
 }

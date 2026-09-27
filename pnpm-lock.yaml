@@ -9,23 +9,23 @@ importers:
   .:
     dependencies:
       preact:
-        specifier: ^10.29.8
+        specifier: 10.29.8
         version: 10.29.8
     devDependencies:
       '@types/node':
-        specifier: ^24.0.0
+        specifier: 24.13.6
         version: 24.13.6
       typescript:
-        specifier: ^7.0.2
+        specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: ^8.3.1
+        specifier: 8.3.1
         version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)
       vitest:
-        specifier: ^5.0.0
+        specifier: 5.0.1
         version: 5.0.1(@types/node@24.13.6)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0))
       wxt:
-        specifier: ^0.21.4
+        specifier: 0.21.4
         version: 0.21.4(rolldown@1.2.11)(typescript@7.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0))
 
 packages:
