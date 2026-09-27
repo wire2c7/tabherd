@@ -1,0 +1,15 @@
+[global]
+# 日本語の文章は折り返さないため、行長のルール（MD013）は無効化
+disable = ["MD013"]
+
+# 見出しはATX形式（`#`）に統一する
+[MD003]
+style = "atx"
+
+# コードブロックはフェンス形式に統一する
+[MD046]
+style = "fenced"
+
+[per-file-ignores]
+# PR本文に挿入されるテンプレートのため、見出しレベル1で始めない
+".github/pull_request_template.md" = ["MD041"]

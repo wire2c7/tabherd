@@ -1,0 +1,38 @@
+name: バグ報告
+description: 不具合を報告する
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 概要
+      description: どのような不具合か
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+      description: エラーメッセージやログがあれば貼り付ける
+      render: text
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境
+      description: OS、バージョン、コミットSHAなど

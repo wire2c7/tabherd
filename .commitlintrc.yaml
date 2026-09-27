@@ -1,0 +1,5 @@
+extends:
+  - "@commitlint/config-conventional"
+rules:
+  # 日本語の主語（ファイル名等の英字を含む）を誤ってcase違反と判定するため無効化
+  subject-case: [0]

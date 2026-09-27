@@ -1,0 +1,17 @@
+# .env
+.env
+.env.*
+!.env.example
+
+# direnv
+.direnv/
+.envrc
+!.envrc.example
+
+# Claude Code（個人用の設定・指示）
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Nix (`nix build` の出力はシンボリックリンクのため末尾スラッシュを付けない)
+result
+result-*

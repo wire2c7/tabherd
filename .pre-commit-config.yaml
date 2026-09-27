@@ -1,0 +1,46 @@
+# prek (https://github.com/j178/prek) で実行する。ツールはNix devShellから供給されるため language: system を使う
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: builtin
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-json
+      - id: check-json5
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: local
+    hooks:
+      - id: treefmt
+        name: treefmt
+        entry: treefmt --fail-on-change --no-cache
+        language: system
+        pass_filenames: true
+
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+
+      - id: betterleaks
+        name: betterleaks
+        entry: betterleaks git --staged --no-banner --redact
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: commitlint
+        name: commitlint
+        entry: commitlint --edit
+        language: system
+        stages: [commit-msg]

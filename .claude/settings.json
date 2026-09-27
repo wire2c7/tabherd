@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(nix flake check*)",
+      "Bash(nix fmt*)",
+      "Bash(treefmt*)",
+      "Bash(prek run*)",
+      "Bash(actionlint*)"
+    ],
+    "ask": [
+      "Bash(direnv allow*)",
+      "Bash(nix flake update*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "direnv export bash > \"$CLAUDE_ENV_FILE\" 2>/dev/null || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "direnv export bash > \"$CLAUDE_ENV_FILE\" 2>/dev/null || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/doc-ssot-reminder.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
