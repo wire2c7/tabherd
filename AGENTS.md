@@ -49,11 +49,19 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - 設定ファイルには原則ツールのデフォルトと異なる項目のみを書く。デフォルトと同じ値をあえて書く場合は、その理由をコメントで残す
 - 変更は依頼された範囲に留め、無関係なリファクタリングを混ぜない
 
+## ブランチ・マージ
+
+- `main` はリリース済みの状態、`develop`（デフォルトブランチ）は開発の統合先。どちらにも直接 push しない
+- 作業ブランチは `develop` から切り、PR で `develop` にマージする。リリースは `develop` → `main` の PR で行う
+- hotfix は `main` から切って `main` へ PR し、マージ後に `main` → `develop` の PR で取り込む
+- 作業ブランチ名は `<type>/<Issue番号>-<説明>`（`type` は Conventional Commits の type、説明は英小文字の kebab-case。例: `feat/12-auto-grouping`）。作業前に Issue を作る。Renovate が作るブランチ（`renovate/`）は対象外
+- マージはマージコミットのみ（スカッシュ・リベースはリポジトリ設定で無効）。PR 内のコミットがそのまま `develop`・`main` の履歴に残るため、PR を出す前にコミットを整理する
+
 ## コミット・PR
 
 - [Conventional Commits](https://www.conventionalcommits.org/ja/) に従う。ルールは `.commitlintrc.yaml` を参照（commitlint で検証される）
 - 1コミット1論理変更を基本とする。依存パッケージの追加（`flake.nix`）と、それを使う設定変更・ドキュメント更新は別コミットにする
-- PRは `.github/pull_request_template.md` に沿って記述し、PRタイトルも Conventional Commits の形式にする
+- PRは `.github/pull_request_template.md` に沿って記述し、PRタイトルも Conventional Commits の形式にする（リポジトリ設定により、PR のタイトル・本文がマージコミットのメッセージになるため）
 - `--no-verify` でフックを回避しない。フックが失敗したら原因を修正する
 
 ## 禁止事項
