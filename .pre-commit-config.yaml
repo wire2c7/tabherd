@@ -26,6 +26,19 @@ repos:
         language: system
         pass_filenames: true
 
+      # oxfmt / oxlint は package.json で管理するため pnpm exec で呼ぶ（node_modules が無ければ pnpm が先にインストールする）
+      - id: oxfmt
+        name: oxfmt
+        entry: pnpm exec oxfmt --no-error-on-unmatched-pattern
+        language: system
+        files: \.(c|m)?[jt]sx?$|\.jsonc?$|\.json5$|\.ya?ml$|\.html$|\.css$
+
+      - id: oxlint
+        name: oxlint
+        entry: pnpm exec oxlint --deny-warnings
+        language: system
+        files: \.(c|m)?[jt]sx?$
+
       - id: actionlint
         name: actionlint
         entry: actionlint

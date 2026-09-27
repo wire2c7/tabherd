@@ -1,17 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
-    "allow": [
-      "Bash(nix flake check*)",
-      "Bash(nix fmt*)",
-      "Bash(treefmt*)",
-      "Bash(prek run*)",
-      "Bash(actionlint*)"
-    ],
-    "ask": [
-      "Bash(direnv allow*)",
-      "Bash(nix flake update*)"
-    ]
+    "allow": ["Bash(nix flake check*)", "Bash(nix fmt*)", "Bash(treefmt*)", "Bash(prek run*)", "Bash(actionlint*)"],
+    "ask": ["Bash(direnv allow*)", "Bash(nix flake update*)"]
   },
   "hooks": {
     "SessionStart": [

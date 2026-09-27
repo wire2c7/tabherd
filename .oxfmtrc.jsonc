@@ -1,0 +1,5 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  // Markdown は rumdl の担当、pnpm-lock.yaml は pnpm の生成物のため整形しない
+  "ignorePatterns": ["*.md", "pnpm-lock.yaml"],
+}

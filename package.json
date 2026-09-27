@@ -9,6 +9,9 @@
     "build": "wxt build",
     "zip": "wxt zip",
     "typecheck": "tsc -b",
+    "lint": "oxlint --deny-warnings",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
     "test": "vitest run --passWithNoTests",
     "postinstall": "wxt prepare"
   },
@@ -17,6 +20,8 @@
   },
   "devDependencies": {
     "@types/node": "24.13.6",
+    "oxfmt": "0.70.0",
+    "oxlint": "1.85.0",
     "typescript": "7.0.2",
     "vite": "8.3.1",
     "vitest": "5.0.1",
