@@ -15,3 +15,10 @@ CLAUDE.local.md
 # Nix (`nix build` の出力はシンボリックリンクのため末尾スラッシュを付けない)
 result
 result-*
+
+# Node.js
+node_modules/
+
+# WXT（`wxt prepare` / `wxt build` の生成物）
+.output/
+.wxt/
