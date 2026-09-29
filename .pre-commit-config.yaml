@@ -25,6 +25,8 @@ repos:
         entry: treefmt --fail-on-change --no-cache
         language: system
         pass_filenames: true
+        # commit-msg の段階ではメッセージのファイルが渡される。git worktree ではそれがツリーの外（共通の .git/worktrees/）にあり、treefmt がエラーになる
+        stages: [pre-commit]
 
       # oxfmt / oxlint は package.json で管理するため pnpm exec で呼ぶ（node_modules が無ければ pnpm が先にインストールする）。
       # 複数プロセスで同時に実行されると自動インストールが競合するため、require_serial で1プロセスに限る
