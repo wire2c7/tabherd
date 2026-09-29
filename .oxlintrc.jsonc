@@ -93,6 +93,8 @@
     "react-perf/jsx-no-new-array-as-prop": ["error", { "nativeAllowList": "all" }],
     "react-perf/jsx-no-new-function-as-prop": ["error", { "nativeAllowList": "all" }],
     "react-perf/jsx-no-new-object-as-prop": ["error", { "nativeAllowList": "all" }],
+    // CSS は Vite がバンドルに含めるため、値を受け取らない import で読み込む
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
     // TSX のみを JSX のファイルとして扱う
     "react/jsx-filename-extension": ["error", { "extensions": [".tsx"] }],
 
