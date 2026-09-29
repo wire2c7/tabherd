@@ -38,7 +38,7 @@
 
 ### ブラウザは nixpkgs の Chromium を E2E 用の devShell にだけ入れる
 
-`flake.nix` に `devShells.e2e` を追加する。既定の devShell のパッケージと `shellHook` を `inputsFrom` で引き継ぎ、Chromium を加える。環境変数（`OPENSPEC_TELEMETRY` 等）は `inputsFrom` では引き継がれないはずなので、実装時に確かめ、必要なら共通の値として両方の devShell に渡す。Chromium の実行ファイルの場所は環境変数（`TABHERD_E2E_CHROMIUM`）で渡し、Playwright の `launchOptions.executablePath` に使う。実行ファイルのディレクトリ名はアーキテクチャで異なり（`chrome-linux64`・`chrome-linux-arm64`）、nixpkgs はこの名前を公開していないため、`shellHook` で探して設定する。
+`flake.nix` に `devShells.e2e` を追加する。既定の devShell のパッケージと `shellHook` を `inputsFrom` で引き継ぎ、Chromium を加える。環境変数（`OPENSPEC_TELEMETRY` 等）は `inputsFrom` では引き継がれないため、`inherit (config.devShells.default)` で重ねて渡す。Chromium の実行ファイルの場所は環境変数（`TABHERD_E2E_CHROMIUM`）で渡し、Playwright の `launchOptions.executablePath` に使う。実行ファイルのディレクトリ名はアーキテクチャで異なり（`chrome-linux64`・`chrome-linux-arm64`）、nixpkgs はこの名前を公開していないため、`shellHook` で探して設定する。
 
 - 採用理由: Chromium は依存を含めて約 690 MiB あり、既定の devShell に入れると、普段の `nix develop` と CI のすべてのジョブで取得することになる。全ブラウザを含む `playwright-driver.browsers`（約 2.2 GiB）ではなく、Chromium の component だけを使う
 - `PLAYWRIGHT_BROWSERS_PATH` でブラウザの置き場所を教える方法は採らない。npm の `@playwright/test` と nixpkgs の `playwright-driver` の版が完全に一致しないとブラウザを見つけられず、nixpkgs の更新と npm の更新（Renovate）を常に同時に行う必要が出るため。`executablePath` なら、版が多少ずれても動く（Playwright MCP で確かめた）。それでも CDP の互換性のため、`@playwright/test` は nixpkgs の `playwright-driver` と同じ版を基本とし、ずれたら揃える
@@ -100,7 +100,7 @@ E2E テストで確かめられない既知の制約は、`test.fixme` のテス
 
 - 手順: `nix develop .#e2e --command pnpm install --frozen-lockfile` → `nix develop .#e2e --command pnpm e2e`
 - 失敗したときは Playwright のレポートとトレースを artifact として残す（`actions/upload-artifact` をコミットハッシュで固定）
-- 毎回 Chromium を cache.nixos.org から取得するため数分かかる。遅さが問題になったら、Nix のキャッシュの導入を別に検討する
+- 毎回 Chromium を cache.nixos.org から取得する。それを含めても、ジョブ全体で 45〜80 秒程度（#31・#35 の時点）。遅さが問題になったら、Nix のキャッシュの導入を別に検討する
 - 採用理由: `build` ジョブに含めると、E2E のためだけに `build` ジョブが重くなり、失敗の原因も切り分けにくくなる。手動・定期の実行だけにすると、壊れたことに PR の時点で気づけない
 
 #### Playwright MCP
@@ -127,7 +127,7 @@ E2E テストで確かめられない既知の制約は、`test.fixme` のテス
 ### Risks / Trade-offs
 
 - [nixpkgs の更新で Chromium の版が上がり、`@playwright/test` と CDP の互換性が崩れる] → Renovate の nixpkgs の更新 PR で E2E のジョブが落ちるので、そこで `@playwright/test` の版を揃える
-- [CI の E2E のジョブが、Chromium の取得で毎回数分かかる] → 当面は許容する。問題になったら Nix のキャッシュを別に検討する
+- [CI の E2E のジョブが、毎回 Chromium を取得する（今は全体で 45〜80 秒程度）] → 当面は許容する。テストが増えて遅くなったら Nix のキャッシュを別に検討する
 - [Playwright MCP は 1.0 前で更新が頻繁、かつ alpha 版の Playwright に依存する] → 版を固定し、Renovate の更新で壊れたら固定を戻す。E2E テストは Playwright MCP に依存しないため、壊れても CI は止まらない
 - [`--allowed-origins` はセキュリティの境界ではない] → 任意のコードを実行するツールは権限設定で禁じる。Playwright MCP を使うのは、ローカルのサーバーと拡張機能のページを確かめるときに限る
 - [テストごとに Chromium を起動するため、テストが増えると遅くなる] → 必要になったらワーカー単位の起動に切り替える
