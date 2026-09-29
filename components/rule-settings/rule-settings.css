@@ -1,0 +1,235 @@
+/* ライト・ダークはブラウザの設定に従う。背景・文字・フォームの部品の色は color-scheme とシステムカラーに任せる */
+:root {
+  color-scheme: light dark;
+  --border: color-mix(in srgb, CanvasText 20%, transparent);
+  --muted: color-mix(in srgb, CanvasText 65%, transparent);
+  --surface: color-mix(in srgb, CanvasText 4%, Canvas);
+  --accent: #1a73e8;
+  --danger: #c5221f;
+  --error: #c5221f;
+
+  /* Chrome のタブグループの色（ライト） */
+  --group-grey: #5f6368;
+  --group-blue: #1a73e8;
+  --group-red: #d93025;
+  --group-yellow: #f9ab00;
+  --group-green: #1e8e3e;
+  --group-pink: #d01884;
+  --group-purple: #9334e6;
+  --group-cyan: #007b83;
+  --group-orange: #fa903e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #8ab4f8;
+    --danger: #f28b82;
+    --error: #f28b82;
+
+    /* Chrome のタブグループの色（ダーク） */
+    --group-grey: #dadce0;
+    --group-blue: #8ab4f8;
+    --group-red: #f28b82;
+    --group-yellow: #fdd663;
+    --group-green: #81c995;
+    --group-pink: #ff8bcb;
+    --group-purple: #c58af9;
+    --group-cyan: #78d9ec;
+    --group-orange: #fcad70;
+  }
+}
+
+body {
+  margin: 0;
+  background: Canvas;
+  color: CanvasText;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input[type="text"] {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: Canvas;
+  color: CanvasText;
+}
+
+input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+select {
+  padding: 2px 4px;
+}
+
+button {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: Canvas;
+  color: CanvasText;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+button.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+button.danger {
+  color: var(--danger);
+}
+
+.icon-button {
+  padding: 0 6px;
+  line-height: 1.6;
+}
+
+.error {
+  margin: 2px 0 0;
+  color: var(--error);
+  font-size: 12px;
+}
+
+.hint {
+  margin: 4px 0;
+  color: var(--muted);
+}
+
+.rule-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rule-settings__description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rule-settings__empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.rule-settings__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rule {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.rule__header {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.rule__name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.rule__caption {
+  margin: 8px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rule__actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.swatch[data-color="grey"] {
+  background: var(--group-grey);
+}
+
+.swatch[data-color="blue"] {
+  background: var(--group-blue);
+}
+
+.swatch[data-color="red"] {
+  background: var(--group-red);
+}
+
+.swatch[data-color="yellow"] {
+  background: var(--group-yellow);
+}
+
+.swatch[data-color="green"] {
+  background: var(--group-green);
+}
+
+.swatch[data-color="pink"] {
+  background: var(--group-pink);
+}
+
+.swatch[data-color="purple"] {
+  background: var(--group-purple);
+}
+
+.swatch[data-color="cyan"] {
+  background: var(--group-cyan);
+}
+
+.swatch[data-color="orange"] {
+  background: var(--group-orange);
+}
+
+.conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.condition__row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.condition__value {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+}

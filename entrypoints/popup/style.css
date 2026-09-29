@@ -1,0 +1,23 @@
+/* Chrome のポップアップは最大で幅 800px・高さ 600px。幅を固定し、ルールの一覧だけを縦にスクロールさせる */
+.page {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  max-height: 600px;
+  padding: 12px;
+}
+
+.page__title {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.page .rule-settings {
+  min-height: 0;
+}
+
+.page .rule-settings__list {
+  min-height: 0;
+  overflow-y: auto;
+}
