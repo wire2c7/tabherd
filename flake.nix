@@ -46,6 +46,12 @@
             # direnv の DSL はシェルスクリプトとして解釈できないため除外
             settings.formatter.shellcheck.excludes = [ ".envrc*" ];
             settings.formatter.shfmt.excludes = [ ".envrc*" ];
+            # OpenSpec の生成物（`openspec init` / `openspec update` で上書きされる）は整形しない
+            settings.global.excludes = [
+              ".agents/skills/openspec-*/*"
+              ".claude/skills/openspec-*/*"
+              ".claude/commands/opsx/*"
+            ];
           };
 
           devShells.default = pkgs.mkShellNoCC {
@@ -61,7 +67,13 @@
               pkgs.prek
             ];
 
+            # OpenSpec のテレメトリと npm への更新確認を無効化（更新は Renovate の PR で行う）
+            OPENSPEC_TELEMETRY = "0";
+
             shellHook = ''
+              # OpenSpec のスキルは `openspec` を直接呼ぶため、devDependencies の CLI を PATH に通す
+              export PATH="$PWD/node_modules/.bin:$PATH"
+
               # ローカルではGitフックを冪等にインストール（フック種別は .pre-commit-config.yaml の default_install_hook_types）
               if [ -z "''${CI:-}" ] && git rev-parse --git-dir >/dev/null 2>&1; then
                 prek install --quiet

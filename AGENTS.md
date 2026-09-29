@@ -37,6 +37,7 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 
 - `flake.nix` — `flake-parts` による単一の flake。フォーマッタ・リンタは `treefmt-nix` の `treefmt.programs` に集約し、`nix flake check` にも組み込まれる
 - CI の共通の検査（`ci` ジョブ）と Renovate の共通設定は [wire2c7/workflows](https://github.com/wire2c7/workflows) で管理しており、このリポジトリはそれを参照するだけ。共通の検査を変える場合はそちらを変更する。このリポジトリ固有の整形・lint・型チェック・テスト・ビルドは `.github/workflows/ci.yaml` の `build` ジョブで実行する
+- `openspec/` — OpenSpec で管理する Spec。`.claude/skills/openspec-*`・`.claude/commands/opsx/`・`.agents/skills/openspec-*` は `openspec init` / `openspec update` の生成物のため、手で編集しない
 - `entrypoints/` — WXT のエントリポイント。ファイル構成から `manifest.json` が生成される。manifest の追加項目（権限等）は `wxt.config.ts` に書く
 - Oxfmt・Oxlint は `node_modules` を必要とするため、`nix flake check`（treefmt）ではなく prek のフックと CI の `build` ジョブで実行する。prek のフックは `pnpm exec` 経由のため、`node_modules` が無ければ pnpm が先に自動でインストールする（`ci` ジョブの prek もこれで動く）
 - Node.js・pnpm は Nix devShell から供給する。`package.json` に `packageManager` を書かない（corepack や pnpm 自身のバージョン管理と二重管理になるため）
