@@ -26,6 +26,7 @@
       perSystem =
         {
           config,
+          lib,
           pkgs,
           ...
         }:
@@ -54,31 +55,49 @@
             ];
           };
 
-          devShells.default = pkgs.mkShellNoCC {
-            packages = [
-              config.treefmt.build.wrapper
-              pkgs.actionlint
-              pkgs.betterleaks
-              pkgs.commitlint
-              pkgs.jq
-              # WXT は Node.js >= 22 を要求する。LTS の 24 系に固定する
-              pkgs.nodejs_24
-              pkgs.pnpm
-              pkgs.prek
-            ];
+          devShells = {
+            default = pkgs.mkShellNoCC {
+              packages = [
+                config.treefmt.build.wrapper
+                pkgs.actionlint
+                pkgs.betterleaks
+                pkgs.commitlint
+                pkgs.jq
+                # WXT は Node.js >= 22 を要求する。LTS の 24 系に固定する
+                pkgs.nodejs_24
+                pkgs.pnpm
+                pkgs.prek
+              ];
 
-            # OpenSpec のテレメトリと npm への更新確認を無効化（更新は Renovate の PR で行う）
-            OPENSPEC_TELEMETRY = "0";
+              # OpenSpec のテレメトリと npm への更新確認を無効化（更新は Renovate の PR で行う）
+              OPENSPEC_TELEMETRY = "0";
 
-            shellHook = ''
-              # OpenSpec のスキルは `openspec` を直接呼ぶため、devDependencies の CLI を PATH に通す
-              export PATH="$PWD/node_modules/.bin:$PATH"
+              shellHook = ''
+                # OpenSpec のスキルは `openspec` を直接呼ぶため、devDependencies の CLI を PATH に通す
+                export PATH="$PWD/node_modules/.bin:$PATH"
 
-              # ローカルではGitフックを冪等にインストール（フック種別は .pre-commit-config.yaml の default_install_hook_types）
-              if [ -z "''${CI:-}" ] && git rev-parse --git-dir >/dev/null 2>&1; then
-                prek install --quiet
-              fi
-            '';
+                # ローカルではGitフックを冪等にインストール（フック種別は .pre-commit-config.yaml の default_install_hook_types）
+                if [ -z "''${CI:-}" ] && git rev-parse --git-dir >/dev/null 2>&1; then
+                  prek install --quiet
+                fi
+              '';
+            };
+          }
+          # E2E テスト用。Chromium（依存を含めて約 690 MiB）を既定の devShell に入れないよう分ける。
+          # nixpkgs の Playwright のブラウザは Linux 向けのみ。devShells は lazyAttrsOf のため、
+          # mkIf ではなく optionalAttrs で Linux 以外の属性そのものを作らない
+          // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+            e2e = pkgs.mkShellNoCC {
+              # パッケージと shellHook を引き継ぐ。環境変数は引き継がれないため重ねて渡す
+              inputsFrom = [ config.devShells.default ];
+              inherit (config.devShells.default) OPENSPEC_TELEMETRY;
+
+              # 実行ファイルのディレクトリ名がアーキテクチャで異なる（chrome-linux64・chrome-linux-arm64）ため、shell で探す
+              shellHook = ''
+                TABHERD_E2E_CHROMIUM="$(echo ${pkgs.playwright-driver.passthru.components.chromium}/chrome-linux*/chrome)"
+                export TABHERD_E2E_CHROMIUM
+              '';
+            };
           };
         };
     };
