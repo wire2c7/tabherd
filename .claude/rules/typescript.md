@@ -17,6 +17,12 @@ paths:
 
 - Babel と `@preact/preset-vite` は使わない。JSX は `tsconfig.base.json` の `jsxImportSource: "preact"` に従って Vite（Oxc）が変換する
 
+## lint（Oxlint）
+
+- 設定は `.oxlintrc.jsonc`。カテゴリ単位で有効にし、合わないルールだけを理由のコメント付きで無効にしている（方針は `docs/adr/0010-strict-oxlint-rules.md`）
+- 違反はコードを直して解消する。どうしても無効化コメント（`// oxlint-disable-next-line <ルール名>`）を使う場合は、ルール名を指定して理由を併記する。不要になった無効化コメントはエラーになる
+- 型情報を使うルールは `.wxt/tsconfig.json` を読むため、`pnpm install`（postinstall の `wxt prepare`）の後でないと動かない
+
 ## 自動チェック
 
 - 型チェック: `pnpm typecheck`

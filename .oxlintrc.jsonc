@@ -1,0 +1,182 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // plugins を書くとデフォルト（eslint・typescript・unicorn・oxc）が置き換わるため、デフォルトの分も並べる。
+  // vitest はテストファイルだけで有効にする（下の overrides を参照）
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "promise", "react", "react-perf", "jsx-a11y"],
+  // 厳しめの方針として restriction・nursery 以外のカテゴリをすべて有効にし、合わないルールを rules で個別に無効にする
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error",
+    "style": "error",
+  },
+  "options": {
+    // 型情報を使うルール（no-floating-promises 等）を oxlint-tsgolint で実行する
+    "typeAware": true,
+    "reportUnusedDisableDirectives": "error",
+  },
+  "rules": {
+    // --- 役割が重なるルール（片方だけ残す） ---
+    // typescript/require-await（型情報で Promise を返す関数を除外できる）を使う
+    "eslint/require-await": "off",
+    // typescript/prefer-promise-reject-errors（型情報で Error の派生を判定できる）を使う
+    "eslint/prefer-promise-reject-errors": "off",
+    // import/no-duplicates を使う（eslint の方は import type と値の import を分けて書くと違反になる）
+    "eslint/no-duplicate-imports": "off",
+    // eslint の同名ルールを使う
+    "unicorn/no-nested-ternary": "off",
+    "unicorn/no-negated-condition": "off",
+    "unicorn/no-lonely-if": "off",
+
+    // --- 互いに矛盾するルール（片方を無効にする） ---
+    // 三項演算子は eslint/no-nested-ternary で入れ子だけを禁じる
+    "eslint/no-ternary": "off",
+    // WXT のエントリポイントは default export が必須のため、それ以外は named export に揃える（下の overrides を参照）
+    "import/prefer-default-export": "off",
+    "import/no-named-export": "off",
+
+    // --- Oxfmt と役割が重なるルール ---
+    // 数値リテラル・空の波括弧の書き方は Oxfmt に任せる（大文字・小文字の扱いが Oxfmt と異なる）
+    "unicorn/number-literal-case": "off",
+    "unicorn/empty-brace-spaces": "off",
+    // import 文の並び順は扱わず、1文の中の名前の並び順だけを検査する
+    "eslint/sort-imports": ["error", { "ignoreDeclarationSort": true }],
+
+    // --- このプロジェクトに合わないルール ---
+    // コメントは日本語で書くため、先頭の大文字は意味を持たない
+    "eslint/capitalized-comments": "off",
+    // DOM・Chrome 拡張の API・Preact のコンポーネントは null を使う
+    "unicorn/no-null": "off",
+    // オブジェクトのキーは意味のまとまりで並べる（manifest の項目等）
+    "eslint/sort-keys": "off",
+    // 添字・時間などの数値まで定数にすると、かえって読みにくくなる
+    "eslint/no-magic-numbers": "off",
+    // (e) => … のような短い名前を許す
+    "eslint/id-length": "off",
+    "eslint/init-declarations": "off",
+    // 1関数あたりの文の数は eslint/max-lines-per-function で抑える
+    "eslint/max-statements": "off",
+    // 行末のコメント・TODO コメントは禁じない
+    "eslint/no-inline-comments": "off",
+    "eslint/no-warning-comments": "off",
+    // export 文の位置・まとめ方は制限しない（export function と書く）
+    "import/exports-last": "off",
+    "import/group-exports": "off",
+    // コールバックを Promise にくるむ際に new Promise が必要
+    "promise/avoid-new": "off",
+    // JSX の入れ子の深さは制限しない
+    "react/jsx-max-depth": "off",
+    // 引数の型をすべて Readonly にするのは過剰
+    "typescript/prefer-readonly-parameter-types": "off",
+    // const との使い分けではなく、複数宣言をまとめない方に揃える
+    "eslint/one-var": ["error", "never"],
+    // 配列の分割代入を強いると const first = items[0] が書けないため、オブジェクトだけに適用する
+    "eslint/prefer-destructuring": ["error", { "array": false, "object": true }],
+    // onClick={() => setValue(x)} のような戻り値を持たないアロー関数の省略形を許す
+    "typescript/no-confusing-void-expression": ["error", { "ignoreArrowShorthand": true }],
+    // void は Promise を意図して待たないとき（no-floating-promises の回避）の文に限る
+    "eslint/no-void": ["error", { "allowAsStatement": true }],
+    // 関数は宣言（function）で書く。コールバック等の式は対象外
+    "eslint/func-style": ["error", "declaration"],
+    "react/function-component-definition": [
+      "error",
+      { "namedComponents": "function-declaration", "unnamedComponents": "arrow-function" },
+    ],
+    // Preact の JSX は自動ランタイム（jsxImportSource）で変換するため、React を import しない
+    "react/react-in-jsx-scope": "off",
+    // WxtVitest() 等、ライブラリが大文字で始まる関数を提供している
+    "eslint/new-cap": ["error", { "capIsNewExceptions": ["WxtVitest"] }],
+    // DOM 要素に渡す関数・オブジェクトは再描画の原因にならない（Preact はイベントハンドラーを差し替えても再登録しない）ため、
+    // memo を壊すコンポーネントへの props だけを検出する
+    "react-perf/jsx-no-jsx-as-prop": ["error", { "nativeAllowList": "all" }],
+    "react-perf/jsx-no-new-array-as-prop": ["error", { "nativeAllowList": "all" }],
+    "react-perf/jsx-no-new-function-as-prop": ["error", { "nativeAllowList": "all" }],
+    "react-perf/jsx-no-new-object-as-prop": ["error", { "nativeAllowList": "all" }],
+    // TSX のみを JSX のファイルとして扱う
+    "react/jsx-filename-extension": ["error", { "extensions": [".tsx"] }],
+
+    // --- restriction から個別に有効にするルール ---
+    "eslint/no-alert": "error",
+    "eslint/no-bitwise": "error",
+    "eslint/no-console": ["error", { "allow": ["warn", "error"] }],
+    "eslint/no-empty": "error",
+    "eslint/no-empty-function": "error",
+    "eslint/no-param-reassign": "error",
+    "eslint/no-proto": "error",
+    "eslint/no-regex-spaces": "error",
+    "eslint/no-sequences": "error",
+    "eslint/no-var": "error",
+    "eslint/unicode-bom": "error",
+    "import/no-amd": "error",
+    "import/no-commonjs": "error",
+    "import/no-cycle": "error",
+    "import/no-default-export": "error",
+    "import/no-dynamic-require": "error",
+    "import/no-webpack-loader-syntax": "error",
+    // barrel ファイル（index.ts での再 export）は、ビルド・テストで不要なモジュールまで読み込ませる
+    "oxc/no-barrel-file": "error",
+    "oxc/bad-bitwise-operator": "error",
+    "oxc/no-const-enum": "error",
+    "promise/spec-only": "error",
+    "react/button-has-type": "error",
+    "react/no-danger": "error",
+    "react/only-export-components": "error",
+    "react/prefer-function-component": "error",
+    "typescript/explicit-module-boundary-types": "error",
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-import-type-side-effects": "error",
+    "typescript/no-invalid-void-type": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-asserted-nullish-coalescing": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/prefer-literal-enum-member": "error",
+    "typescript/promise-function-async": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-array-for-each": "error",
+    "unicorn/no-array-reduce": "error",
+    "unicorn/no-document-cookie": "error",
+    "unicorn/no-length-as-slice-end": "error",
+    "unicorn/no-magic-array-flat-depth": "error",
+    "unicorn/no-useless-error-capture-stack-trace": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    "unicorn/prefer-module": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-number-properties": "error",
+  },
+  "overrides": [
+    {
+      // WXT のエントリポイントと各ツールの設定ファイルは default export が必須
+      "files": ["entrypoints/*.ts", "entrypoints/*/index.ts", "*.config.ts"],
+      "rules": {
+        "import/no-default-export": "off",
+      },
+    },
+    {
+      // 設定ファイルとテストは Node.js 上で動く
+      "files": ["*.config.ts", "**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "import/no-nodejs-modules": "off",
+      },
+    },
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "plugins": ["vitest"],
+      "rules": {
+        // vitest の関数は明示的に import する（vitest.config.ts で globals を有効にしていない）
+        "vitest/no-importing-vitest-globals": "off",
+        // 呼び出し回数は toHaveBeenCalledTimes に揃える
+        "vitest/prefer-called-once": "off",
+        // 真偽値の検査は toBe(true) / toBe(false) に揃える（vitest/prefer-strict-boolean-matchers）
+        "vitest/prefer-to-be-truthy": "off",
+        "vitest/prefer-to-be-falsy": "off",
+        // テストごとに expect.assertions() を書かせるのは過剰（非同期の検査漏れは no-floating-promises で防ぐ）
+        "vitest/prefer-expect-assertions": "off",
+      },
+    },
+  ],
+}
