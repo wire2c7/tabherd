@@ -38,18 +38,19 @@
 
 ### ブラウザは nixpkgs の Chromium を E2E 用の devShell にだけ入れる
 
-`flake.nix` に `devShells.e2e` を追加する。既定の devShell のパッケージと `shellHook` を `inputsFrom` で引き継ぎ、Chromium を加える。環境変数（`OPENSPEC_TELEMETRY` 等）は `inputsFrom` では引き継がれないはずなので、実装時に確かめ、必要なら共通の値として両方の devShell に渡す。Chromium の実行ファイルの場所は環境変数（`TABHERD_E2E_CHROMIUM`）で渡し、Playwright の `launchOptions.executablePath` に使う。
+`flake.nix` に `devShells.e2e` を追加する。既定の devShell のパッケージと `shellHook` を `inputsFrom` で引き継ぎ、Chromium を加える。環境変数（`OPENSPEC_TELEMETRY` 等）は `inputsFrom` では引き継がれないはずなので、実装時に確かめ、必要なら共通の値として両方の devShell に渡す。Chromium の実行ファイルの場所は環境変数（`TABHERD_E2E_CHROMIUM`）で渡し、Playwright の `launchOptions.executablePath` に使う。実行ファイルのディレクトリ名はアーキテクチャで異なり（`chrome-linux64`・`chrome-linux-arm64`）、nixpkgs はこの名前を公開していないため、`shellHook` で探して設定する。
 
 - 採用理由: Chromium は依存を含めて約 690 MiB あり、既定の devShell に入れると、普段の `nix develop` と CI のすべてのジョブで取得することになる。全ブラウザを含む `playwright-driver.browsers`（約 2.2 GiB）ではなく、Chromium の component だけを使う
 - `PLAYWRIGHT_BROWSERS_PATH` でブラウザの置き場所を教える方法は採らない。npm の `@playwright/test` と nixpkgs の `playwright-driver` の版が完全に一致しないとブラウザを見つけられず、nixpkgs の更新と npm の更新（Renovate）を常に同時に行う必要が出るため。`executablePath` なら、版が多少ずれても動く（Playwright MCP で確かめた）。それでも CDP の互換性のため、`@playwright/test` は nixpkgs の `playwright-driver` と同じ版を基本とし、ずれたら揃える
 - Playwright が npm 経由でブラウザをダウンロードする案（`playwright install`）は、Nix で管理する方針（AGENTS.md）から外れ、NixOS 等では共有ライブラリが足りず動かないため採らない
-- `devShells.e2e` は Linux（`x86_64-linux`・`aarch64-linux`）のみで定義する
+- `devShells.e2e` は Linux（`x86_64-linux`・`aarch64-linux`）のみで定義する。flake-parts の `devShells` は `lazyAttrsOf` で、`lib.mkIf` では Linux 以外にも属性が残るため、`lib.optionalAttrs` で Linux 以外の属性そのものを作らない
 
 ### テストの配置と実行
 
 - `e2e/` に、`playwright.config.ts`・fixture（`fixtures.ts`）・テスト（`*.e2e.ts`）を置く。拡張子を `*.e2e.ts` にし、Vitest の既定の対象（`*.test.ts`・`*.spec.ts`）と重ならないようにする。念のため `vitest.config.ts` の `exclude` にも `e2e/**` を加える
 - `package.json` に `e2e` スクリプト（`wxt build && playwright test`）を加える。テストはビルドの出力（`.output/chrome-mv3/`）を読み込む
-- `TABHERD_E2E_CHROMIUM` がないとき（E2E の devShell の外）は、fixture が「`nix develop .#e2e` の中で実行する」旨のエラーで止める
+- `TABHERD_E2E_CHROMIUM` がないとき（E2E の devShell の外）は、`playwright.config.ts` が「`nix develop .#e2e --command pnpm e2e` で実行する」旨のエラーで最初に止める。テストごとではなく1回だけ止まり、原因が分かりやすいため
+- Playwright の出力（`test-results/`・`playwright-report/`）は、設定ファイルのある `e2e/` ではなくリポジトリの直下にできる
 - E2E のファイルは Node.js で動くため `tsconfig.node.json` の `include` に加える。`sw.evaluate` に渡す関数の中の `chrome.*` の型は、`@types/chrome` を足さずに WXT の `browser` の型で書けるかを実装時に確かめ、無理なら型注釈を最小限にする
 - 既定はヘッドレス。WSLg 等で表示して確かめるときは Playwright の `--headed` を使う
 

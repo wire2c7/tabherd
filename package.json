@@ -13,6 +13,7 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "vitest run --passWithNoTests",
+    "e2e": "wxt build && playwright test -c e2e",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@fission-ai/openspec": "1.13.2",
+    "@playwright/test": "1.63.0",
     "@types/node": "24.13.6",
     "oxfmt": "0.70.0",
     "oxlint": "1.85.0",

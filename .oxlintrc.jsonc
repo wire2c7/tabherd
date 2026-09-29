@@ -160,14 +160,14 @@
   "overrides": [
     {
       // WXT のエントリポイントと各ツールの設定ファイルは default export が必須
-      "files": ["entrypoints/*.ts", "entrypoints/*/index.ts", "*.config.ts"],
+      "files": ["entrypoints/*.ts", "entrypoints/*/index.ts", "*.config.ts", "e2e/playwright.config.ts"],
       "rules": {
         "import/no-default-export": "off",
       },
     },
     {
-      // 設定ファイルとテストは Node.js 上で動く
-      "files": ["*.config.ts", "**/*.test.ts", "**/*.test.tsx"],
+      // 設定ファイルとテスト（E2E を含む）は Node.js 上で動く
+      "files": ["*.config.ts", "**/*.test.ts", "**/*.test.tsx", "e2e/**"],
       "rules": {
         "import/no-nodejs-modules": "off",
       },

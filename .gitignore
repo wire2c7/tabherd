@@ -22,3 +22,7 @@ node_modules/
 # WXT（`wxt prepare` / `wxt build` の生成物）
 .output/
 .wxt/
+
+# Playwright（E2E テスト）の出力
+test-results/
+playwright-report/

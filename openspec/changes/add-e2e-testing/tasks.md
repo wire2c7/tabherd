@@ -2,14 +2,14 @@
 
 ## 1. E2E テストの基盤と CI（#27）
 
-- [ ] 1.1 `flake.nix` に Linux のみの `devShells.e2e` を追加し（既定の devShell を `inputsFrom` で引き継ぎ、nixpkgs の Chromium の component を加え、`TABHERD_E2E_CHROMIUM` を設定する）、`nix develop .#e2e --command bash -c '"$TABHERD_E2E_CHROMIUM" --version'` が Chromium の版を表示し、`nix develop` の依存に Chromium が含まれないことを確かめる
-- [ ] 1.2 `@playwright/test` を nixpkgs の `playwright-driver` と同じ版で `pnpm add -D` し、`pnpm install` が `minimumReleaseAge`・`trustPolicy` に通ることを確かめる
-- [ ] 1.3 `e2e/playwright.config.ts` と、`context`・`serviceWorker`・`extensionId`・`server` とエラーのログの確認を持つ fixture（`e2e/fixtures.ts`）を作り、`TABHERD_E2E_CHROMIUM` がないときに E2E の devShell で実行するよう促すエラーになることを確かめる
-- [ ] 1.4 `tsconfig.node.json` の `include` に `e2e` を加え、`vitest.config.ts` の `exclude` に `e2e/**` を加えて、`pnpm typecheck`・`pnpm test` が通り、Vitest が E2E のファイルを実行しないことを確かめる
-- [ ] 1.5 `package.json` に `e2e` スクリプト（`wxt build && playwright test`）を加え、拡張機能が読み込まれ Service Worker が起動することだけを確かめるテストを1つ書き、`nix develop .#e2e --command pnpm e2e` がヘッドレスで通ることを確かめる
-- [ ] 1.6 `.github/workflows/ci.yaml` に `e2e` ジョブ（`nix develop .#e2e` で `pnpm install`・`pnpm e2e`、失敗時にレポートを artifact に残す）を追加し、actionlint が通り、PR で `e2e` ジョブが通ることを確かめる
-- [ ] 1.7 ツール・ブラウザの供給元・依存の置き場所・CI での実行・Playwright MCP の判断を `docs/adr/` に ADR として残す
-- [ ] 1.8 `AGENTS.md` のコマンドに `nix develop .#e2e --command pnpm e2e` を加え、`.gitignore` に Playwright の出力（`test-results/`・`playwright-report/`）を加えて、`prek run --all-files`・`nix flake check` が通ることを確かめる
+- [x] 1.1 `flake.nix` に Linux のみの `devShells.e2e` を追加し（既定の devShell を `inputsFrom` で引き継ぎ、nixpkgs の Chromium の component を加え、`TABHERD_E2E_CHROMIUM` を設定する）、`nix develop .#e2e --command bash -c '"$TABHERD_E2E_CHROMIUM" --version'` が Chromium の版を表示し、`nix develop` の依存に Chromium が含まれないことを確かめる
+- [x] 1.2 `@playwright/test` を nixpkgs の `playwright-driver` と同じ版で `pnpm add -D` し、`pnpm install` が `minimumReleaseAge`・`trustPolicy` に通ることを確かめる
+- [x] 1.3 `e2e/playwright.config.ts` と、`context`・`serviceWorker`・`extensionId`・`server` とエラーのログの確認を持つ fixture（`e2e/fixtures.ts`）を作り、`TABHERD_E2E_CHROMIUM` がないときに E2E の devShell で実行するよう促すエラーになることを確かめる
+- [x] 1.4 `tsconfig.node.json` の `include` に `e2e` を加え、`vitest.config.ts` の `exclude` に `e2e/**` を加えて、`pnpm typecheck`・`pnpm test` が通り、Vitest が E2E のファイルを実行しないことを確かめる
+- [x] 1.5 `package.json` に `e2e` スクリプト（`wxt build && playwright test`）を加え、拡張機能が読み込まれ Service Worker が起動することだけを確かめるテストを1つ書き、`nix develop .#e2e --command pnpm e2e` がヘッドレスで通ることを確かめる
+- [x] 1.6 `.github/workflows/ci.yaml` に `e2e` ジョブ（`nix develop .#e2e` で `pnpm install`・`pnpm e2e`、失敗時にレポートを artifact に残す）を追加し、actionlint が通り、PR で `e2e` ジョブが通ることを確かめる
+- [x] 1.7 ツール・ブラウザの供給元・依存の置き場所・CI での実行・Playwright MCP の判断を `docs/adr/` に ADR として残す
+- [x] 1.8 `AGENTS.md` のコマンドに `nix develop .#e2e --command pnpm e2e` を加え、`.gitignore` に Playwright の出力（`test-results/`・`playwright-report/`）を加えて、`prek run --all-files`・`nix flake check` が通ることを確かめる
 
 ## 2. 手順の E2E テスト化（#28）
 
