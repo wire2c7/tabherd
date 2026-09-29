@@ -11,6 +11,7 @@
 
 - ステータス：Proposed
 - 日付：YYYY-MM-DD
+- 関連 Issue：#N
 
 ## コンテキスト
 
