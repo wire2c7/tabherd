@@ -137,7 +137,8 @@ button.danger {
   flex-direction: column;
   gap: 8px;
   margin: 0;
-  padding: 0;
+  /* 先頭・末尾の差し込み先の線が、ポップアップのスクロール領域で切れないようにする */
+  padding: 4px 0;
   list-style: none;
 }
 
@@ -232,4 +233,53 @@ button.danger {
 .condition__value {
   flex: 1;
   font-family: ui-monospace, monospace;
+}
+
+.rule-settings__item {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.rule-settings__item > .rule {
+  flex: 1;
+  min-width: 0;
+}
+
+.rule-settings__item.is-dragging {
+  opacity: 0.5;
+}
+
+/* 差し込み先を、ルールの間の隙間（.rule-settings__list の gap: 8px）の中央に線で示す */
+.rule-settings__item.drop-before::before,
+.rule-settings__item.drop-after::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  content: "";
+}
+
+.rule-settings__item.drop-before::before {
+  top: -5px;
+}
+
+.rule-settings__item.drop-after::after {
+  bottom: -5px;
+}
+
+.drag-handle {
+  flex: none;
+  padding: 6px 2px;
+  color: var(--muted);
+  cursor: grab;
+  user-select: none;
+}
+
+.rule__buttons {
+  display: flex;
+  gap: 4px;
 }
