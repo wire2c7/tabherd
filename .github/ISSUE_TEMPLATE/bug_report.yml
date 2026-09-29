@@ -36,3 +36,8 @@ body:
     attributes:
       label: 環境
       description: OS、バージョン、コミットSHAなど
+  - type: textarea
+    id: related
+    attributes:
+      label: 関連
+      description: 関連する Issue・PR・Spec（openspec/）・ADR（docs/adr/）
