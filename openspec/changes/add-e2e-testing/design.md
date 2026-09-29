@@ -61,25 +61,36 @@
 - `context`: `launchPersistentContext` に `--disable-extensions-except`・`--load-extension` を渡して起動する
 - `serviceWorker`・`extensionId`: Service Worker を待ち、その URL から ID を得る
 - `server`: どのパスにもパスを表示するだけの HTML を返すローカルの HTTP サーバー（`127.0.0.1` の空いているポート）。外部のネットワークに依存しない
-- 状態の確認と操作の補助（ルールの保存、ウィンドウごとのタブとグループの一覧）は、`serviceWorker.evaluate` で `chrome.storage`・`chrome.tabs`・`chrome.tabGroups` を呼ぶ関数にまとめる
+- 状態の確認と操作の補助は、`serviceWorker.evaluate` で `chrome.storage`・`chrome.tabs`・`chrome.tabGroups` を呼ぶ関数の fixture にまとめる
+  - ルールの保存・読み出し（`setRules`・`storedRules`・`storedNames`）。`chrome.storage.local` の `rules`（WXT の storage の `local:rules`）に直接書くため、設定画面での保存と同じくバックグラウンドの `watch` に通知される
+  - ウィンドウごとのタブとグループの一覧（`windows`）と、そこからパスでタブ・グループ・並びを引く関数（`findTab`・`tabIdOf`・`groupOf`・`groupOrders`・`tabLayouts`）。タブはテスト用のサーバーの URL のパスで区別する
+  - 操作の補助: テスト用のサーバーのページを開く（`openTab`）、ルールと関係なくタブグループを作る（`groupTabsManually`）、設定画面をタブで開く（`openSettings`。ポップアップは幅 400px・高さ 600px）
 - Service Worker とページのエラーのログを集め、各テストの最後に空であることを確かめる
 - 採用理由: テストごとに起動すると1回 1 秒程度かかるが、ルール・タブ・グループの状態がテストをまたいで残らない。テストの数が増えて遅くなったら、ワーカー単位の起動と状態のリセットに切り替える
 
 ### E2E テストにする手順
 
-## 13 の一時的な検証の 52 項目を、次のファイルに分ける。各テストの名前は Spec（`openspec/specs/`）のシナリオに対応させる。
+一時的な検証（#13）の 52 項目を、次のファイルに分ける。各テストの名前は Spec（`openspec/specs/`）に対応させ、`describe` を Requirement、`test` を Scenario の名前にする。Scenario のない確認（画面間の同期・連続入力・幅等）は、対応する Requirement の `describe` に置く。
 
-- `auto-grouping.e2e.ts`: タスク 2.5・3.2（グループ化・移動・解除・別ウィンドウ・名前と色の変更・削除・ピン留め・手動のグループ・並び）
+- `auto-grouping.e2e.ts`: タスク 2.5（グループ化・移動・解除・別ウィンドウ・名前と色の変更・削除・ピン留め・手動のグループ）
+- `group-order.e2e.ts`: タスク 3.2（並び・並びが正しいときに移動しない）。Oxlint の `max-lines`（300 行）に収まるよう、`auto-grouping.e2e.ts` から Requirement「タブバー上のグループの並び」を分けた
 - `rule-settings.e2e.ts`: タスク 4.4（追加・編集・削除・検証・保存・画面間の同期・幅）。ポップアップは `popup.html` をタブで開き、幅を 400px にして確かめる
 - `reorder.e2e.ts`: タスク 5.5（ドラッグ・キーボード・フォーカス・タブバーへの反映）
 
-待ち合わせは固定の待ち時間ではなく、Playwright の `expect.poll` で状態が変わるまで待つ。ルールの変更のデバウンス（300ms）をまたぐ確認も同じ。
+待ち合わせは固定の待ち時間ではなく、Playwright の `expect.poll` で状態が変わるまで待つ。ルールの変更のデバウンス（300ms）をまたぐ確認も同じ。状態が変わらないことの確認と、待ち方に注意が要る確認は次のようにする。
+
+- 「タブが動かない」ことは、バックグラウンドがタブのイベントを直列に処理することを使い、後から別のタブを開いてそれがグループに入るのを待ってから確かめる（前のイベントの処理も終わっている）
+- ルールを保存してから 300ms 以内に次の変更をすると、デバウンスで1つの変更にまとまり、差分が「ルールなし → 変更後」になる。その間に `tabs.onUpdated` で作られたグループはタイトル・色が変わらない。ルールの変更を確かめるテストは、タブを先に開いてからルールを保存し、全体の判定し直しでグループに入るのを待ってから次の変更をする
+- 「並びがすでに正しい」ときにグループを移動しないことは、`chrome.tabGroups.onMoved` ではなく `chrome.tabGroups.move` の呼び出しを Service Worker の中で記録して確かめる。同じ位置への `move` では `onMoved` が来ず、無駄な呼び出しを検出できないため
+- 連続入力で文字が消えないことは、ページの中で1文字ごとに `setTimeout(0)` でタスクを譲りながら `input` イベントを送って確かめる。Playwright のキー入力は1文字ごとに往復するため保存の通知より遅く、通知が次の入力より後に届く順番にならない
+- Spec の「インストール直後」（拡張機能の更新）は、#13 の手順になく、Service Worker が入れ替わって fixture を作り直す必要があるため、E2E テストにしていない
 
 ### 自動で確かめられない確認
 
 E2E テストで確かめられない既知の制約は、`test.fixme` のテストとして E2E のテストの中に残す。details の `annotation`（`type: "manual"`）に、手で確かめる手順を書く。
 
-- 対象: ツールバーから開く本物のポップアップ（大きさ・一覧のスクロール）、タブのドラッグ中の API のリトライ
+- 対象: ツールバーから開く本物のポップアップ（大きさ・一覧のスクロール。`rule-settings.e2e.ts` の「ポップアップから開く」）、タブのドラッグ中の API のリトライ（`auto-grouping.e2e.ts`）
+- `list` のレポーターでは skipped（`-`）として、HTML・JSON のレポートでは annotation の手順とともに表示される
 - 採用理由: 確かめていないことがテストの一覧とレポートに残り、手で確かめる手順もそこから分かる。design.md や Issue に書くだけだと、テストを読む人から見えない
 - `test.fail` は使わない。`test.fail` はテストを実行して失敗することを確かめるもので、Playwright から行えない操作では、中身が「わざと失敗させる」だけの意味のないテストになる。`test.fail` は、今のコードで失敗すると分かっている振る舞い（未対応の機能・既知のバグ）を残すときに使う
 
