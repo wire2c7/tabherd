@@ -13,6 +13,7 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "vitest run --passWithNoTests",
+    "e2e": "wxt build && playwright test -c e2e",
     "postinstall": "wxt prepare"
   },
   "dependencies": {

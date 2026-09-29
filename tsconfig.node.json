@@ -4,6 +4,6 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "types": ["node"]
   },
-  "include": ["*.config.ts", "**/*.test.ts", "**/*.test.tsx", ".wxt/wxt.d.ts"],
+  "include": ["*.config.ts", "**/*.test.ts", "**/*.test.tsx", "e2e", ".wxt/wxt.d.ts"],
   "exclude": ["node_modules", ".output"]
 }
