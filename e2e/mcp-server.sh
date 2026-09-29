@@ -9,6 +9,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "$0")" && pwd -P)"
 repo_root="$(dirname "${script_dir}")"
 extension_dir="${repo_root}/.output/chrome-mv3"
+extension_id="$("${script_dir}/mcp-extension-id.sh")"
 
 if [[ -z ${TABHERD_E2E_CHROMIUM:-} ]]; then
   echo "TABHERD_E2E_CHROMIUM がありません。" \
@@ -33,10 +34,14 @@ work_dir="$(mktemp -d -t tabherd-playwright-mcp.XXXXXX)"
 trap 'rm -rf "${work_dir}"' EXIT
 
 # 拡張機能を読み込む引数（--load-extension 等）は CLI のオプションでは渡せないため、
-# 設定ファイルに書く
+# 設定ファイルに書く。
+# 開けるオリジンは、ローカルのサーバー（ポートは任意）と拡張機能のページに絞る。
+# chrome-extension://<ID> と書くと URL の origin が "null" になり照合できないため、
+# ホスト名（ID）だけを書く（*://<ID>/** として照合される）
 jq -n \
   --arg chromium "${TABHERD_E2E_CHROMIUM}" \
   --arg extension "${extension_dir}" \
+  --arg extension_id "${extension_id}" \
   --arg profile "${work_dir}/profile" \
   --argjson headless "${headless}" \
   '{
@@ -51,6 +56,9 @@ jq -n \
           "--load-extension=\($extension)"
         ]
       }
+    },
+    network: {
+      allowedOrigins: ["http://127.0.0.1:*", $extension_id]
     }
   }' >"${work_dir}/config.json"
 
