@@ -2,7 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": ["Bash(nix flake check*)", "Bash(nix fmt*)", "Bash(treefmt*)", "Bash(prek run*)", "Bash(actionlint*)"],
-    "ask": ["Bash(direnv allow*)", "Bash(nix flake update*)"]
+    "ask": ["Bash(direnv allow*)", "Bash(nix flake update*)"],
+    "deny": ["mcp__playwright__browser_run_code_unsafe"]
   },
   "hooks": {
     "SessionStart": [

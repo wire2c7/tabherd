@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "nix",
+      "args": ["develop", ".#e2e", "--command", "e2e/mcp-server.sh"]
+    }
+  }
+}

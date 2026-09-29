@@ -105,13 +105,20 @@ E2E テストで確かめられない既知の制約は、`test.fixme` のテス
 
 #### Playwright MCP
 
-- `@playwright/mcp` を devDependencies に版を固定して追加する（`minimumReleaseAge` を満たす版。2026-09-30 時点では 0.0.82 以前）。README の `npx @playwright/mcp@latest` は ADR 0006 の審査を通らないため使わない
-- 起動用のスクリプト（`e2e/mcp-server.sh`）が、E2E の devShell の Chromium と、ビルドの出力（`.output/chrome-mv3/`）の絶対パスで設定ファイルを組み立て、`pnpm exec` で Playwright MCP を起動する。`.mcp.json` からは `nix develop .#e2e --command e2e/mcp-server.sh` で呼ぶ
-- ブラウザは `--isolated`（プロフィールを保存しない）・ヘッドレスで起動する。表示して見たいときの切り替えは環境変数で行う
-- 拡張機能の ID は、パッケージ化していない拡張機能ではフォルダの絶対パスから決まる（SHA-256 の先頭 32 桁を a〜p に置き換えたもの）。エージェントが ID を得られるよう、ID を表示するスクリプト（`pnpm e2e:extension-id`）を用意する
+- `@playwright/mcp` を devDependencies に版を固定して追加する（`minimumReleaseAge` を満たす 0.0.82。Playwright 1.64 の alpha 版に依存するが、`@playwright/test` とは別に入る）。README の `npx @playwright/mcp@latest` は ADR 0006 の審査を通らないため使わない
+- 起動用のスクリプト（`e2e/mcp-server.sh`）が、E2E の devShell の Chromium と、ビルドの出力（`.output/chrome-mv3/`）の絶対パスで設定ファイルを組み立て、`pnpm exec` で Playwright MCP を起動する。`--load-extension` 等の Chromium の引数は CLI のオプションでは渡せないため、設定ファイルの `launchOptions.args` に書く。`.mcp.json` からは `nix develop .#e2e --command e2e/mcp-server.sh` で呼ぶ。`.mcp.json` のサーバーは、Claude Code で各自が承認してから使える
+- `--isolated` は使えない。`launch()` と `newContext()` で起動し、拡張機能が無効なコンテキストになるため、拡張機能のページが `ERR_BLOCKED_BY_CLIENT` で開けない。代わりに、起動ごとの一時ディレクトリ（設定ファイルも置く）を永続コンテキストのプロフィール（`userDataDir`）にし、スクリプトの終了時に消す。`userDataDir` を渡さないと `~/.cache/ms-playwright-mcp/` の worktree ごとのプロフィールに状態が残る。このため、ルール等の状態は `browser_close` の後も残り、Playwright MCP を起動し直すと消える。終了時に消すため、スクリプトは Playwright MCP を `exec` せず子プロセスとして起動する
+- 既定はヘッドレス。表示して見たいときは `TABHERD_MCP_HEADED=1` で切り替える
+- 拡張機能の ID は、パッケージ化していない拡張機能ではフォルダの絶対パスから決まる（SHA-256 の先頭 32 桁を a〜p に置き換えたもの）。エージェントが ID を得られるよう、ID を表示するスクリプト（`pnpm e2e:extension-id`、`e2e/mcp-extension-id.sh`）を用意する。`e2e/mcp-server.sh` もこれでオリジンの制限に使う ID を求める
 - Playwright MCP には個々のツールを無効にするオプションがないため、任意のコードを Playwright のサーバーのプロセスで実行する `browser_run_code_unsafe` は、`.claude/settings.json` の `permissions.deny` で使えないようにする。ページの中で JavaScript を実行する `browser_evaluate` は、拡張機能のページから `chrome.*` を呼んで状態を確かめるのに使うため許す
-- 開くオリジンは `--allowed-origins` で `http://127.0.0.1` と拡張機能のページに絞る。README のとおりこれはセキュリティの境界ではなく、エージェントが意図せず外部のサイトを開かないようにするためのもの。`chrome-extension://` とポートの指定がこのオプションで書けるかは実装時に確かめ、書けなければ絞らず、その旨をこの design.md に残す（ADR には、オリジンの制限は補助でありセキュリティの境界ではないという判断だけを書く）
-- ビルドは自動で行わない。エージェントは `pnpm build` の後に Playwright MCP を使う
+  - この拒否は Claude Code の権限設定によるもので、Playwright MCP のサーバーではこのツールは有効なまま。`deny` に入れたツールは Claude Code のツールの一覧にも載らない。`.claude/settings.json` を読まないエージェント（Codex 等）にこのサーバーを登録すると呼べてしまうため、登録しない
+- 開くオリジンは、設定ファイルの `network.allowedOrigins`（`--allowed-origins` と同じ）で `http://127.0.0.1:*` と拡張機能のページに絞る。README のとおりこれはセキュリティの境界ではなく、リダイレクトにも効かない。エージェントが意図せず外部のサイトを開かないようにするためのもの
+  - 制限はコンテキストの `route` で行われ、各項目は `new URL()` の origin からグロブ（`<origin>/**`）に変換される。`http(s)://<host>:*` の形だけはポートを任意にできる
+  - `chrome-extension://<ID>` と書くと origin が `"null"` になり、ホスト名とみなされて `*://chrome-extension://<ID>/**` という一致しないグロブになる。このとき `popup.html` の文書は開けるが、JS・CSS が遮断されて何も表示されない
+  - そこで拡張機能はホスト名（ID）だけを書く。`*://<ID>/**` として照合され、拡張機能のページとそのサブリソースが開ける
+  - `https://example.com` と `http://localhost:<port>` が `ERR_BLOCKED_BY_CLIENT` で開けず、`http://127.0.0.1:<port>` と拡張機能のページが開けることを確かめた
+- ビルドは自動で行わない。エージェントは `pnpm build` の後に Playwright MCP を使う。読み込み済みの拡張機能はビルドし直しても更新されないため、`browser_close` で閉じて次のツールの呼び出しで起動し直す
+- Playwright MCP の出力（スナップショット等。`browser_navigate` の結果にはスナップショットが含まれずファイルに保存される）は、リポジトリの直下の `.playwright-mcp/` にでき、Git の管理から外す
 
 #### ADR
 
