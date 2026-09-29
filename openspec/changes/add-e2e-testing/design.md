@@ -100,6 +100,7 @@ E2E テストで確かめられない既知の制約は、`test.fixme` のテス
 - 既定はヘッドレス。表示して見たいときは `TABHERD_MCP_HEADED=1` で切り替える
 - 拡張機能の ID は、パッケージ化していない拡張機能ではフォルダの絶対パスから決まる（SHA-256 の先頭 32 桁を a〜p に置き換えたもの）。エージェントが ID を得られるよう、ID を表示するスクリプト（`pnpm e2e:extension-id`、`e2e/mcp-extension-id.sh`）を用意する。`e2e/mcp-server.sh` もこれでオリジンの制限に使う ID を求める
 - Playwright MCP には個々のツールを無効にするオプションがないため、任意のコードを Playwright のサーバーのプロセスで実行する `browser_run_code_unsafe` は、`.claude/settings.json` の `permissions.deny` で使えないようにする。ページの中で JavaScript を実行する `browser_evaluate` は、拡張機能のページから `chrome.*` を呼んで状態を確かめるのに使うため許す
+  - この拒否は Claude Code の権限設定によるもので、Playwright MCP のサーバーではこのツールは有効なまま。`deny` に入れたツールは Claude Code のツールの一覧にも載らない。`.claude/settings.json` を読まないエージェント（Codex 等）にこのサーバーを登録すると呼べてしまうため、登録しない
 - 開くオリジンは、設定ファイルの `network.allowedOrigins`（`--allowed-origins` と同じ）で `http://127.0.0.1:*` と拡張機能のページに絞る。README のとおりこれはセキュリティの境界ではなく、リダイレクトにも効かない。エージェントが意図せず外部のサイトを開かないようにするためのもの
   - 制限はコンテキストの `route` で行われ、各項目は `new URL()` の origin からグロブ（`<origin>/**`）に変換される。`http(s)://<host>:*` の形だけはポートを任意にできる
   - `chrome-extension://<ID>` と書くと origin が `"null"` になり、ホスト名とみなされて `*://chrome-extension://<ID>/**` という一致しないグロブになる。このとき `popup.html` の文書は開けるが、JS・CSS が遮断されて何も表示されない
