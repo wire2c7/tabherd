@@ -31,5 +31,5 @@
 
 ## 4. 全体の確認（#26）
 
-- [ ] 4.1 `pnpm lint`・`pnpm typecheck`・`pnpm test`・`pnpm build`・`nix develop .#e2e --command pnpm e2e`・`prek run --all-files`・`nix flake check` が通ることを確かめる
-- [ ] 4.2 実装と design.md の食い違いを見直し、あれば design.md を実装に合わせて直す
+- [x] 4.1 `pnpm lint`・`pnpm typecheck`・`pnpm test`・`pnpm build`・`nix develop .#e2e --command pnpm e2e`・`prek run --all-files`・`nix flake check` が通ることを確かめる
+- [x] 4.2 実装と design.md の食い違いを見直し、あれば design.md を実装に合わせて直す
