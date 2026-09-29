@@ -36,4 +36,6 @@ export type GroupOperation =
   /** グループから外す */
   | { type: "ungroup"; tabIds: TabIds }
   /** グループのタイトル・色を変える */
-  | { type: "update-group"; groupId: number; title: string; color: GroupColor };
+  | { type: "update-group"; groupId: number; title: string; color: GroupColor }
+  /** グループを、先頭のタブが index の位置に来るよう移動する */
+  | { type: "move-group"; groupId: number; index: number };
