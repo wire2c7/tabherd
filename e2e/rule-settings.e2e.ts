@@ -10,6 +10,24 @@ const docs = rule("docs", "資料", "green");
 const pageNames: readonly SettingsPageName[] = ["popup", "options"];
 
 test.describe("設定画面の表示場所", () => {
+  test.fixme(
+    "ポップアップから開く",
+    {
+      annotation: {
+        type: "manual",
+        description: [
+          "Playwright からツールバーのアイコンのポップアップを開けないため、E2E テストでは popup.html をタブで開いて確かめている。本物のポップアップの大きさとスクロールは手で確かめる。",
+          "1. `pnpm dev` で起動したブラウザで、ツールバーの TabHerd のアイコンをクリックする",
+          "2. ポップアップにルールの一覧が表示され、幅がポップアップに収まって横にはみ出さないことを確かめる",
+          "3. 「ルールを追加」でルールを増やし、ポップアップの高さ（最大 600px）を超えると、ルールの一覧だけが縦にスクロールし、「ルールを追加」のボタンが見えたままであることを確かめる",
+        ].join("\n"),
+      },
+    },
+    () => {
+      // 手で確かめる手順は annotation を参照
+    },
+  );
+
   test("オプションページから開く", async ({ setRules, openSettings }) => {
     await setRules([dev, docs]);
 

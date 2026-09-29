@@ -202,3 +202,22 @@ test.describe("ルールの変更の反映", () => {
     await expect.poll(async () => groupOf("/dev/1")).toBeNull();
   });
 });
+
+test.fixme(
+  "タブをドラッグしているあいだの操作のやり直し",
+  {
+    annotation: {
+      type: "manual",
+      description: [
+        "Playwright からタブバーのタブをドラッグできず、ドラッグ中に Chrome がタブの操作を拒む状態（Tabs cannot be edited right now）を再現できないため、手で確かめる。",
+        "1. `pnpm dev` で起動したブラウザで、ルール「開発」（部分一致 `github.com`）を作る",
+        '2. `https://example.com/` 等のタブの DevTools のコンソールで `setTimeout(() => { location.href = "https://github.com/"; }, 3000)` を実行する',
+        "3. 3秒以内に別のタブをタブバーの上でドラッグし始め、2 のタブの URL が変わるまで掴んだままにし、変わってから2秒以内に離す（やり直すのは合わせて約3秒）",
+        "4. 2 のタブが「開発」のグループに入り、Service Worker のコンソールに「グループの操作に失敗しました」のエラーが出ていないことを確かめる",
+      ].join("\n"),
+    },
+  },
+  () => {
+    // 手で確かめる手順は annotation を参照
+  },
+);
