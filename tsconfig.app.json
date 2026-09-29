@@ -3,6 +3,6 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
   },
-  "include": ["entrypoints", ".wxt/wxt.d.ts"],
+  "include": ["entrypoints", "utils", "components", ".wxt/wxt.d.ts"],
   "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }
