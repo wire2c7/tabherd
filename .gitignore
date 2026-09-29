@@ -26,3 +26,6 @@ node_modules/
 # Playwright（E2E テスト）の出力
 test-results/
 playwright-report/
+
+# Playwright MCP の出力（スナップショット・スクリーンショット等）
+.playwright-mcp/
