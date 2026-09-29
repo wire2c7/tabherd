@@ -32,6 +32,7 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - `pnpm lint`: lint（Oxlint）
 - `pnpm typecheck`: 型チェック（`tsc -b`）
 - `pnpm test`: テスト（Vitest）
+- `nix develop .#e2e --command pnpm e2e`: E2E テスト（Playwright）。Chromium は E2E 用の devShell（Linux のみ）にだけあり、既定の devShell では実行できない
 
 ## アーキテクチャ
 

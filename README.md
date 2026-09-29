@@ -38,6 +38,7 @@ pnpm fmt         # 整形（Oxfmt）
 pnpm lint        # lint（Oxlint）
 pnpm typecheck   # 型チェック
 pnpm test        # テスト
+nix develop .#e2e --command pnpm e2e  # E2E テスト（Linux のみ）
 treefmt          # Nix・シェル・Markdown の整形・lint
 nix flake check  # フォーマット検査など flake のチェック
 ```
