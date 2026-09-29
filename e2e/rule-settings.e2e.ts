@@ -69,7 +69,6 @@ test.describe("ルールの一覧", () => {
   }
 });
 
-// oxlint-disable-next-line eslint/max-lines-per-function -- describe は Spec の Requirement ごとにテストをまとめるもので、行数で分けると Spec との対応が崩れる
 test.describe("ルールの追加・編集・削除", () => {
   for (const name of pageNames) {
     test(`ルールを追加する（${name}）`, async ({ setRules, storedRules, openSettings }) => {

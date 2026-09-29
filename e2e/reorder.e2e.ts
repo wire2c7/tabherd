@@ -7,7 +7,6 @@ const dev = rule("dev", "開発", "blue");
 const docs = rule("docs", "資料", "green");
 const work = rule("work", "業務", "red");
 
-// oxlint-disable-next-line eslint/max-lines-per-function -- describe は Spec の Requirement ごとにテストをまとめるもので、行数で分けると Spec との対応が崩れる
 test.describe("ルールの並び替え", () => {
   test("ドラッグで並び替える", async ({ setRules, storedNames, openSettings }) => {
     await setRules([dev, docs, work]);

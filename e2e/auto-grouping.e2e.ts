@@ -146,7 +146,6 @@ test.describe("全体の判定し直し", () => {
   });
 });
 
-// oxlint-disable-next-line eslint/max-lines-per-function -- describe は Spec の Requirement ごとにテストをまとめるもので、行数で分けると Spec との対応が崩れる
 test.describe("ルールの変更の反映", () => {
   // ルールの変更は 300ms のデバウンスでまとめて反映され、その差分でグループのタイトル・色を変える。
   // 最初のルールの保存と次の変更がまとまらないよう、タブを先に開いておき、全体の判定し直しでグループに入るのを待ってから変える

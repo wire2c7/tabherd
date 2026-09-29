@@ -6,7 +6,6 @@ import { expect, rule, test } from "./fixtures";
 const dev = rule("dev", "開発", "blue");
 const work = rule("work", "業務", "red");
 
-// oxlint-disable-next-line eslint/max-lines-per-function -- describe は Spec の Requirement ごとにテストをまとめるもので、行数で分けると Spec との対応が崩れる
 test.describe("タブバー上のグループの並び", () => {
   test("ルールの順に並ぶ", async ({ setRules, groupOrders, openTab }) => {
     await setRules([work, dev]);

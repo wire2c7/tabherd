@@ -173,6 +173,13 @@
       },
     },
     {
+      "files": ["e2e/*.e2e.ts"],
+      "rules": {
+        // test.describe は Spec の Requirement ごとにテストをまとめるもので、行数で分けると Spec との対応が崩れる
+        "eslint/max-lines-per-function": "off",
+      },
+    },
+    {
       "files": ["**/*.test.ts", "**/*.test.tsx"],
       "plugins": ["vitest"],
       "rules": {
