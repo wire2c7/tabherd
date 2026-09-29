@@ -1,0 +1,9 @@
+schema: spec-driven
+
+# アーティファクトの作成時に AI へ渡される前提。プロジェクト全体の規約は AGENTS.md を参照させる
+context: |
+  プロジェクトの規約は AGENTS.md に従う。
+  アーティファクトの本文は日本語で書く。ただし OpenSpec が解析する見出し・キーワード
+  （## Purpose、## Requirements、### Requirement:、#### Scenario:、**WHEN**、**THEN**、
+  ## ADDED Requirements 等）は英語のまま使い、要件の本文には SHALL または MUST を含める。
+  背景と受入条件は GitHub の Issue に書き、proposal.md からは Issue 番号（#N）を参照する。
