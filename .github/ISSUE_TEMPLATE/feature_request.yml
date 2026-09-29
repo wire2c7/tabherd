@@ -3,19 +3,32 @@ description: 新機能や改善を提案する
 labels: [enhancement]
 body:
   - type: textarea
-    id: problem
+    id: background
     attributes:
-      label: 背景・課題
-      description: 何に困っているか、なぜ必要か
+      label: 背景・現状
+      description: なぜ必要か、今どうなっているか
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: tasks
     attributes:
-      label: 提案内容
+      label: やること
+      description: 1つの変更を1行で書く。1つの PR で閉じられない量になるなら、親 Issue にして子 Issue（Sub-issue）に分ける
+      placeholder: |
+        -
     validations:
       required: true
   - type: textarea
-    id: alternatives
+    id: acceptance
     attributes:
-      label: 検討した代替案
+      label: 受入条件
+      description: 何をもって完了とするかを、観測できる条件で書く
+      placeholder: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: related
+    attributes:
+      label: 関連
+      description: 関連する Issue・PR・Spec（openspec/）・ADR（docs/adr/）

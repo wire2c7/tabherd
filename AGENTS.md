@@ -51,6 +51,13 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - 変更は依頼された範囲に留め、無関係なリファクタリングを混ぜない
 - 設計判断（技術の採用・不採用、構成・運用方針の変更等）をしたら、`docs/adr/` に ADR を追加する（書き方は `.claude/rules/adr.md`）
 
+## 作業の進め方
+
+- 作業は Issue（範囲と受入条件）→ Spec（OpenSpec で、何を・どうやって作るか）→ 実装の順に進め、判断を下したら ADR を書く。役割の分け方は `docs/adr/0009-issue-spec-adr-workflow.md` を参照
+- Issue は1つの PR で閉じられる粒度にする。大きい場合は親 Issue を作り、子 Issue を Sub-issue として紐付ける
+- Spec は実装と食い違ったら実装を正として直す。背景と受入条件は Issue に書き、Spec からは Issue 番号を参照する
+- PR の宛先は Stacked PR でも `develop` にする（`Closes #N` はデフォルトブランチへのマージでしか効かない）
+
 ## ブランチ・マージ
 
 - `main` はリリース済みの状態、`develop`（デフォルトブランチ）は開発の統合先。どちらにも直接 push しない
