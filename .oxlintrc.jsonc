@@ -98,6 +98,13 @@
 
     // --- restriction から個別に有効にするルール ---
     "eslint/no-alert": "error",
+    // WXT が生成する .wxt/tsconfig.json のパスのエイリアス（@・~）は使わず、相対パスで import する
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "patterns": [{ "regex": "^[@~](/|$)", "message": "パスのエイリアスは使わず、相対パスで import してください" }],
+      },
+    ],
     "eslint/no-bitwise": "error",
     "eslint/no-console": ["error", { "allow": ["warn", "error"] }],
     "eslint/no-empty": "error",
