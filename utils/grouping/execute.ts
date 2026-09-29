@@ -59,6 +59,10 @@ async function executeOperation(operation: GroupOperation): Promise<void> {
       );
       return;
     }
+    case "move-group": {
+      await retryWhileTabsBusy(async () => browser.tabGroups.move(operation.groupId, { index: operation.index }));
+      return;
+    }
     default: {
       operation satisfies never;
     }

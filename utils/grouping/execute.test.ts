@@ -96,6 +96,12 @@ describe("リトライの待ち時間", () => {
   });
 });
 
+function mockTabGroupsMove() {
+  const move = vi.fn<(groupId: number, properties: Browser.tabGroups.MoveProperties) => Promise<undefined>>();
+  fakeBrowser.tabGroups.move = move;
+  return move;
+}
+
 describe("計画の実行", () => {
   it("グループを作ってから、タイトル・色を付ける", async () => {
     const group = mockTabsGroup(100);
@@ -121,6 +127,14 @@ describe("計画の実行", () => {
     expect(ungroup).toHaveBeenCalledWith([12]);
     expect(group).toHaveBeenCalledWith({ groupId: 100, tabIds: [10] });
     expect(update).toHaveBeenCalledWith(200, { title: "Dev", color: "red" });
+  });
+
+  it("グループを移動する", async () => {
+    const move = mockTabGroupsMove();
+
+    await executeOperations([{ type: "move-group", groupId: 200, index: 2 }]);
+
+    expect(move).toHaveBeenCalledWith(200, { index: 2 });
   });
 
   it("操作が失敗しても、ログに出して残りの操作を続ける", async () => {
