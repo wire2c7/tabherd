@@ -33,6 +33,7 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - `pnpm typecheck`: 型チェック（`tsc -b`）
 - `pnpm test`: テスト（Vitest）
 - `nix develop .#e2e --command pnpm e2e`: E2E テスト（Playwright）。Chromium は E2E 用の devShell（Linux のみ）にだけあり、既定の devShell では実行できない
+- `pnpm e2e:extension-id`: Playwright MCP で読み込む拡張機能の ID の表示。ID はフォルダの絶対パスから決まるため、worktree ごとに異なる
 
 ## アーキテクチャ
 
@@ -43,6 +44,11 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - Oxfmt・Oxlint は `node_modules` を必要とするため、`nix flake check`（treefmt）ではなく prek のフックと CI の `build` ジョブで実行する。prek のフックは `pnpm exec` 経由のため、`node_modules` が無ければ pnpm が先に自動でインストールする（`ci` ジョブの prek もこれで動く）
 - Node.js・pnpm は Nix devShell から供給する。`package.json` に `packageManager` を書かない（corepack や pnpm 自身のバージョン管理と二重管理になるため）
 - `.pre-commit-config.yaml` — Gitフックのエントリポイント（prek）。フックはNix devShellのツールを使う（`language: system`）ため、devShell 外では動かない。devShell に入ると自動でインストールされる
+- `.mcp.json` の Playwright MCP — E2E の devShell の Chromium に `.output/chrome-mv3/` を読み込ませて操作する（起動は `e2e/mcp-server.sh`）
+  - ビルドは自動で行わない。`pnpm build` の後に使い、ビルドし直したら `browser_close` で閉じる（読み込み済みの拡張機能は更新されず、次のツールの呼び出しで起動し直す）
+  - 拡張機能のページは `chrome-extension://<pnpm e2e:extension-id の出力>/popup.html` 等で開く。開けるのは `http://127.0.0.1` と拡張機能のページだけ
+  - `browser_navigate` の結果にはスナップショットが含まれない（ファイルに保存される）ため、要素の ref は `browser_snapshot` で得る
+  - ルール等の状態はブラウザを閉じても残り、Playwright MCP を起動し直すと消える
 
 ## 規約
 
