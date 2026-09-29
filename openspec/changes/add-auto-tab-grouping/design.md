@@ -48,7 +48,7 @@ type Rule = { id: string; name: string; color: GroupColor; conditions: Condition
 - `id` は `crypto.randomUUID()` で作る。ルールの名前変更・削除の検出と、UI の `key` に使う
 - 保存は WXT の `storage.defineItem<Rule[]>("local:rules", { fallback: [], version: 1 })`。後でデータの形を変えるときは WXT の `migrations` で移行する
 - `storage.sync` は1アイテム 8KB の上限があり、正規表現の多いルールで超えうるため使わない。同期は Non-Goals
-- 新しいルールの色は、既存のルールで使われていない色を `GroupColor` の順に選ぶ（すべて使われていれば grey）
+- 新しいルールの色は、既存のルールで使われていない色を `GroupColor` の順に選ぶ。grey は目立たないため候補から外し、ほかの色がすべて使われているときだけ使う
 
 ### 管理対象のグループはタイトルで識別する
 
