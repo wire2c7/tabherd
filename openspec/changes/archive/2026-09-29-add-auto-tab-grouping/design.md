@@ -35,7 +35,7 @@ WXT の規約のディレクトリに置く。
 - `components/rule-settings/`: 設定画面の Preact コンポーネント。`entrypoints/popup/` と `entrypoints/options/` の両方から描画する
 - `entrypoints/background.ts`: イベントの購読と、処理の直列化だけを受け持つ
 
-WXT の auto-import には頼らず、明示的に import する（既存の `entrypoints/options/main.tsx` と同じ）。`tsconfig.app.json` の `include` に `utils`・`components` を加える。
+WXT の auto-import には頼らず、明示的に import する（既存の `entrypoints/options/main.tsx` と同じ）。パスのエイリアスは使わず、相対パスで書く（ADR 0012）。`tsconfig.app.json` の `include` に `utils`・`components` を加える。
 
 ### ルールのデータ
 

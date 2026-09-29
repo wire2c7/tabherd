@@ -39,5 +39,5 @@
 
 ## 6. 全体の確認（#13）
 
-- [ ] 6.1 `pnpm lint`・`pnpm typecheck`・`pnpm test`・`pnpm build`・`prek run --all-files`・`nix flake check` が通ることを確かめる
-- [ ] 6.2 実装と Spec の食い違いを見直し、あれば Spec を実装に合わせて直す
+- [x] 6.1 `pnpm lint`・`pnpm typecheck`・`pnpm test`・`pnpm build`・`prek run --all-files`・`nix flake check` が通ることを確かめる
+- [x] 6.2 実装と Spec の食い違いを見直し、あれば Spec を実装に合わせて直す
