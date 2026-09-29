@@ -13,6 +13,10 @@ paths:
 - 共通の厳格な設定は `tsconfig.base.json` にあり、WXT が生成する `.wxt/tsconfig.json` を継承する。`.wxt/tsconfig.json` にある項目は重ねて書かない
 - `skipLibCheck` は `.wxt/tsconfig.json` の `true` のままにする。`false` にすると WXT の生成物（`.wxt/types/`）と依存パッケージの型定義が TypeScript 7 でエラーになる。`browser.*` の型検査はこの設定でも有効
 
+## import
+
+- import は相対パスで書く。WXT が `.wxt/tsconfig.json` に定義するパスのエイリアス（`@`・`~`）は使わない（`docs/adr/0012-no-path-aliases.md`。`pnpm lint` の `eslint/no-restricted-imports` で検出される）
+
 ## JSX
 
 - Babel と `@preact/preset-vite` は使わない。JSX は `tsconfig.base.json` の `jsxImportSource: "preact"` に従って Vite（Oxc）が変換する
