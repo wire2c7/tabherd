@@ -1,0 +1,10 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.page__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
