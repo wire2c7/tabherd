@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Rule } from "../../utils/rules/types";
 
-import { addCondition, addRule, removeCondition, removeRule, updateCondition, updateRule } from "./edit";
+import { addCondition, addRule, moveRule, removeCondition, removeRule, updateCondition, updateRule } from "./edit";
 
 const dev: Rule = {
   id: "dev",
@@ -57,5 +57,32 @@ describe("条件の追加・編集・削除", () => {
 
   it("index 番目の条件を除く", () => {
     expect(removeCondition(dev, 0).conditions).toStrictEqual([{ type: "regex", value: "gitlab" }]);
+  });
+});
+
+describe("ルールの並び替え", () => {
+  const work: Rule = { id: "work", name: "業務", color: "green", conditions: [] };
+
+  it("下のルールを上へ動かす", () => {
+    expect(moveRule([dev, docs, work], 2, 0)).toStrictEqual([work, dev, docs]);
+  });
+
+  it("上のルールを下へ動かす", () => {
+    expect(moveRule([dev, docs, work], 0, 2)).toStrictEqual([docs, work, dev]);
+  });
+
+  it("移動元と移動先が同じなら並びは変わらない", () => {
+    expect(moveRule([dev, docs], 1, 1)).toStrictEqual([dev, docs]);
+  });
+
+  it("範囲外の位置は無視する", () => {
+    expect(moveRule([dev, docs], 0, 2)).toStrictEqual([dev, docs]);
+    expect(moveRule([dev, docs], -1, 0)).toStrictEqual([dev, docs]);
+  });
+
+  it("元の一覧を変えない", () => {
+    const rules = [dev, docs];
+    moveRule(rules, 1, 0);
+    expect(rules).toStrictEqual([dev, docs]);
   });
 });

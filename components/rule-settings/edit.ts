@@ -32,3 +32,13 @@ export function updateCondition(rule: Rule, index: number, condition: Condition)
 export function removeCondition(rule: Rule, index: number): Rule {
   return { ...rule, conditions: rule.conditions.filter((_, i) => i !== index) };
 }
+
+/** from 番目のルールを、移動後の位置が to 番目になるよう動かす。どちらかが範囲外なら元の並びのまま返す */
+export function moveRule(rules: readonly Rule[], from: number, to: number): Rule[] {
+  const moved = rules[from];
+  if (moved === undefined || to < 0 || to >= rules.length) {
+    return [...rules];
+  }
+  const rest = rules.filter((_, i) => i !== from);
+  return [...rest.slice(0, to), moved, ...rest.slice(to)];
+}
