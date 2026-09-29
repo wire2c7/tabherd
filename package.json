@@ -19,6 +19,7 @@
     "preact": "10.29.8"
   },
   "devDependencies": {
+    "@fission-ai/openspec": "1.13.2",
     "@types/node": "24.13.6",
     "oxfmt": "0.70.0",
     "oxlint": "1.85.0",
