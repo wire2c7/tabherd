@@ -23,11 +23,11 @@
 
 ## 3. Playwright MCP（#29）
 
-- [ ] 3.1 `@playwright/mcp` を `minimumReleaseAge` を満たす版で `pnpm add -D` し、`pnpm install` が通ることを確かめる
-- [ ] 3.2 `e2e/mcp-server.sh`（E2E の devShell の Chromium とビルドの出力の絶対パスで設定を組み立てて起動する）と、拡張機能の ID を表示する `pnpm e2e:extension-id` を作り、`pnpm build` の後に MCP のクライアントから `popup.html` を開いて `browser_snapshot` でルールの一覧が読めることを確かめる
-- [ ] 3.3 `--allowed-origins` で `http://127.0.0.1` と拡張機能のページだけに絞れるかを確かめ、絞れればそのように設定し、外部のサイトを開けないことを確かめる。絞れなければ設定せず、その旨を design.md に残す
+- [x] 3.1 `@playwright/mcp` を `minimumReleaseAge` を満たす版で `pnpm add -D` し、`pnpm install` が通ることを確かめる
+- [x] 3.2 `e2e/mcp-server.sh`（E2E の devShell の Chromium とビルドの出力の絶対パスで設定を組み立てて起動する）と、拡張機能の ID を表示する `pnpm e2e:extension-id` を作り、`pnpm build` の後に MCP のクライアントから `popup.html` を開いて `browser_snapshot` でルールの一覧が読めることを確かめる
+- [x] 3.3 `--allowed-origins` で `http://127.0.0.1` と拡張機能のページだけに絞れるかを確かめ、絞れればそのように設定し、外部のサイトを開けないことを確かめる。絞れなければ設定せず、その旨を design.md に残す
 - [ ] 3.4 `.mcp.json` に Playwright MCP を登録し、`.claude/settings.json` の `permissions.deny` に `browser_run_code_unsafe` を加えて、Claude Code から Playwright MCP のツールが使え、`browser_run_code_unsafe` が拒否されることを確かめる
-- [ ] 3.5 `AGENTS.md` に Playwright MCP の使い方（`pnpm build` の後に使う、拡張機能の ID の求め方）を書き、`prek run --all-files`・`nix flake check` が通ることを確かめる
+- [x] 3.5 `AGENTS.md` に Playwright MCP の使い方（`pnpm build` の後に使う、拡張機能の ID の求め方）を書き、`prek run --all-files`・`nix flake check` が通ることを確かめる
 
 ## 4. 全体の確認（#26）
 
