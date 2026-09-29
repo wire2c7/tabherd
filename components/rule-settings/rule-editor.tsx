@@ -7,6 +7,7 @@ import { GROUP_COLORS } from "../../utils/rules/types";
 
 import { ConditionEditor } from "./condition-editor";
 import { addCondition, removeCondition, updateCondition } from "./edit";
+import type { MoveDirection } from "./reorder";
 
 /** Chrome の日本語の表示に合わせた色の名前 */
 const GROUP_COLOR_LABELS: Record<GroupColor, string> = {
@@ -35,9 +36,13 @@ interface Props {
   isNew: boolean;
   onUpdate: RuleUpdate;
   onRemove: (id: string) => void;
+  /** 一覧の先頭・末尾か。「上へ」「下へ」のボタンを無効にする */
+  isFirst: boolean;
+  isLast: boolean;
+  onStep: (id: string, direction: MoveDirection) => void;
 }
 
-export function RuleEditor({ rule, problem, isNew, onUpdate, onRemove }: Props): JSX.Element {
+export function RuleEditor({ rule, problem, isNew, onUpdate, onRemove, isFirst, isLast, onStep }: Props): JSX.Element {
   const { id } = rule;
 
   const handleConditionChange = useCallback(
@@ -71,14 +76,15 @@ export function RuleEditor({ rule, problem, isNew, onUpdate, onRemove }: Props):
           ))}
         </ul>
       )}
-      <div class="rule__actions">
-        <button type="button" onClick={() => onUpdate(id, addCondition)}>
-          ＋ 条件を追加
-        </button>
-        <button type="button" class="danger" onClick={() => onRemove(id)}>
-          ルールを削除
-        </button>
-      </div>
+      <RuleActions
+        id={id}
+        name={rule.name}
+        isFirst={isFirst}
+        isLast={isLast}
+        onUpdate={onUpdate}
+        onRemove={onRemove}
+        onStep={onStep}
+      />
     </article>
   );
 }
@@ -158,5 +164,54 @@ function ColorSelect({ color, onChange }: ColorSelectProps): JSX.Element {
         </option>
       ))}
     </select>
+  );
+}
+
+interface RuleActionsProps {
+  id: string;
+  name: string;
+  isFirst: boolean;
+  isLast: boolean;
+  onUpdate: RuleUpdate;
+  onRemove: (id: string) => void;
+  onStep: (id: string, direction: MoveDirection) => void;
+}
+
+/** 条件の追加・並び替え・削除のボタン。並び替えのボタンは、移動後にフォーカスを戻すため data-move で探す */
+function RuleActions({ id, name, isFirst, isLast, onUpdate, onRemove, onStep }: RuleActionsProps): JSX.Element {
+  const target = name === "" ? "名前のないルール" : `「${name}」`;
+  return (
+    <div class="rule__actions">
+      <button type="button" onClick={() => onUpdate(id, addCondition)}>
+        ＋ 条件を追加
+      </button>
+      <div class="rule__buttons">
+        <button
+          type="button"
+          class="icon-button"
+          data-move="up"
+          aria-label={`${target}を上へ移動`}
+          title="上へ移動"
+          disabled={isFirst}
+          onClick={() => onStep(id, "up")}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          class="icon-button"
+          data-move="down"
+          aria-label={`${target}を下へ移動`}
+          title="下へ移動"
+          disabled={isLast}
+          onClick={() => onStep(id, "down")}
+        >
+          ↓
+        </button>
+        <button type="button" class="danger" onClick={() => onRemove(id)}>
+          ルールを削除
+        </button>
+      </div>
+    </div>
   );
 }

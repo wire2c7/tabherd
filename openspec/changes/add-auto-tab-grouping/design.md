@@ -125,7 +125,11 @@ type Rule = { id: string; name: string; color: GroupColor; conditions: Condition
 
 - 採用理由: 縦1列の並び替えだけで足り、依存を増やさない（ADR 0006 のサプライチェーンの方針とも合う）
 - 却下した案: dnd-kit は React 向けで `preact/compat` の設定が要る。SortableJS は DOM を直接並べ替えるため、Preact の仮想 DOM と食い違う
-- 判断は #18 で ADR に残す
+- 判断は `docs/adr/0011-reorder-rules-with-html5-drag-and-drop.md` に残した
+- ドラッグは各ルールの左端のハンドルから始め、ドラッグ中の画像はルール全体にする。ルール全体を `draggable` にすると、入力欄の文字をマウスで選択できなくなるため
+- `dragover`・`drop` は各ルールではなく一覧（`ol`）で受け、ポインターの位置と各ルールの縦の中心から差し込み先を決める。ルールの間の隙間でもドロップできるようにするため。移動しても並びが変わらない位置では差し込み先の線を出さない
+- ドラッグのデータは独自の種類（`application/x-tabherd-rule-id`）にする。`text/plain` にすると、入力欄やページの外へのドロップで id が貼り付くため
+- 「上へ」「下へ」で動かした後は、移動したルールの同じ向きのボタンにフォーカスを戻す（先頭・末尾に着いて無効になったときはもう一方のボタン）。Preact が要素を並べ替えるとフォーカスが外れることがあるため
 
 ## Risks / Trade-offs
 
