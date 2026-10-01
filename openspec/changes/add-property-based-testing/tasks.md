@@ -12,7 +12,7 @@
 
 ## 3. 性質のテスト
 
-- [ ] 3.1 `utils/grouping/plan.property.test.ts` に `planGrouping` の性質（適用後の所属、触れないタブ、正しいタブに操作を出さない・各タブは高々1つの操作、冪等）のテストを書き、`pnpm test` で通ることを確かめる
+- [x] 3.1 `utils/grouping/plan.property.test.ts` に `planGrouping` の性質（適用後の所属、触れないタブ、正しいタブに操作を出さない・各タブは高々1つの操作、冪等）のテストを書き、`pnpm test` で通ることを確かめる。見つかったバグ（#47）の反例で失敗する性質は、反例を `examples` に入れて `it.fails` にする
 - [ ] 3.2 `utils/grouping/order.property.test.ts` に `planGroupOrder` の性質（適用後の並び、移動が左向きで `index` がピン留めのタブの数以上、タブの集合と所属が変わらない、冪等）のテストを書き、`pnpm test` で通ることを確かめる
 - [ ] 3.3 実装をわざと壊し（`planGrouping` でピン留めのタブを判定する、`planGroupOrder` で `index` を1つずらす・同じルールのグループの順を崩す等）、それぞれ性質のテストが失敗して反例が出ることを確かめてから元に戻す
 
