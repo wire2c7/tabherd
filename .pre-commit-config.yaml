@@ -62,3 +62,10 @@ repos:
         entry: commitlint --edit
         language: system
         stages: [commit-msg]
+
+      - id: playwright-mcp-file-guard-test
+        name: playwright-mcp-file-guard test
+        entry: .claude/hooks/playwright-mcp-file-guard.test.sh
+        language: system
+        pass_filenames: false
+        files: ^\.claude/hooks/playwright-mcp-file-guard
