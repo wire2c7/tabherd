@@ -25,5 +25,6 @@
 ## Impact
 
 - `package.json`・`pnpm-lock.yaml`: devDependencies に `fast-check` を追加する
-- `utils/grouping/properties.test.ts`（新規）: 性質のテストと、テスト用の arbitrary・モデル
+- `utils/grouping/testing/`（新規）: テスト用の arbitrary・モデルとそのテスト
+- `utils/grouping/plan.property.test.ts`・`utils/grouping/order.property.test.ts`（新規）: 性質のテスト
 - `docs/adr/`: Property Based Testing と fast-check の採用についての ADR

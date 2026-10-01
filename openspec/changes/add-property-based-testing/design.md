@@ -6,7 +6,7 @@
 - `planGrouping` は、ピン留めされたタブ・管理対象でないグループ（タイトルが有効なルールの名前でも `retiredNames` でもない）のタブ・スナップショットに無いグループのタブには操作を出さない。同名のグループが複数あるときは、左のグループへ入れる
 - `planGroupOrder` は、管理対象のグループをピン留めのタブの直後からルールの順に並べる `move-group` を出す。並びを追いながら、移動は常に今より左（または同じ位置）になる
 - Chrome では、ピン留めされたタブは常に左端にあり、グループには入らない。グループのタブは連続して並ぶ
-- 単体テストは Vitest（`*.test.ts`）。`tsconfig.node.json`・`.oxlintrc.jsonc` はテストを `*.test.ts` で見分ける
+- 単体テストは Vitest（`*.test.ts`）。`tsconfig.node.json`・`.oxlintrc.jsonc` はテストを `*.test.ts` で見分ける。Oxlint はファイルを 300 行、関数を 50 行までに制限している
 
 ## Goals / Non-Goals
 
@@ -32,11 +32,12 @@
 - 却下した案: 範囲を決めて小さな入力をすべて試す方法は、依存は増えないが、生成器を自前で書いて保守する手間は fast-check と変わらず、反例の縮小が無い。StrykerJS（ミューテーションテスト）はテストの質を測るもので入力を増やさないため、今回は入れない
 - 実行の回数は既定（100 回）、seed は固定しない。CI で失敗したら、出力の seed と path で再現する
 
-### 性質のテストは1つのファイルにまとめる
+### arbitrary とモデルを `utils/grouping/testing/` に分ける
 
-`utils/grouping/properties.test.ts` に、arbitrary・モデル・両方の関数の性質を置く。
+arbitrary を `utils/grouping/testing/arbitraries.ts` に、モデルを `utils/grouping/testing/model.ts` に置き、それぞれのテストを同じディレクトリの `*.test.ts` に置く。性質のテストは対象の関数ごとに `utils/grouping/plan.property.test.ts`・`utils/grouping/order.property.test.ts` に置く。
 
-- 採用理由: arbitrary とモデルは両方の関数で共有する。補助を別のファイル（`*.test.ts` 以外）に分けると、`tsconfig.node.json`・`tsconfig.app.json`・`.oxlintrc.jsonc` でテスト用のファイルとして扱う設定を足す必要がある
+- 採用理由: arbitrary とモデルは両方の関数のテストで共有する。1つのテストファイルにまとめると、Oxlint の `eslint/max-lines`（300 行）を超える
+- 補助のファイルは `*.test.ts` でないため、`tsconfig.app.json`（`utils` を含む）で型チェックされ、テスト用の Oxlint の設定（vitest のプラグイン等）は効かない。vitest を import しないため問題は無い。どこからも import しないため、拡張機能のビルドにも含まれない。WXT の auto-import は `utils/` のサブディレクトリを対象にしない
 - 例を挙げて確かめる既存のテスト（`plan.test.ts`・`order.test.ts`）は残す。仕様の読みやすい例として役に立つため
 
 ### arbitrary
@@ -51,7 +52,7 @@ Chrome が作りうるウィンドウだけを生成する。
 
 ### 計画を適用するモデル
 
-テストの中に、計画の操作をスナップショットに適用する関数を書く。
+計画の操作をスナップショットに適用する関数を書く。
 
 - `ungroup`・`add-to-group`・`create-group` はタブの所属だけを変える（`create-group` は新しい ID のグループを加える）。Chrome はこれらの操作でタブの位置も変えるが、`planGrouping` の判定は所属とタイトルで決まり、位置は同名のグループのどれを選ぶかにしか使わないため、所属だけで性質を確かめられる。タブがなくなったグループは一覧から除く
 - `move-group` は、グループのタブを取り出し、先頭が `index` に来るように差し込む。今より左（または同じ位置）への移動だけを受け付け、右への移動は例外にする。右への移動は Chrome の `index` の解釈が取り出した後か前かで変わるうえ、`planGroupOrder` は左にしか動かさない設計のため
