@@ -1,12 +1,12 @@
-import { array, assert, constant, constantFrom, oneof, option, property, record, subarray, tuple } from "fast-check";
+// タブの操作の計画の性質のテストに使う入力の arbitrary。Chrome が作りうるウィンドウだけを生成する
+import { array, constant, constantFrom, oneof, option, record, subarray, tuple } from "fast-check";
 import type { Arbitrary } from "fast-check";
-import { describe, expect, it } from "vitest";
 
-import { GROUP_COLORS } from "../rules/types";
-import type { Condition, GroupColor, Rule } from "../rules/types";
-import { TAB_GROUP_ID_NONE } from "./plan";
-import type { PlanGroupingOptions } from "./plan";
-import type { GroupSnapshot, TabSnapshot, WindowSnapshot } from "./types";
+import { GROUP_COLORS } from "../../rules/types";
+import type { Condition, GroupColor, Rule } from "../../rules/types";
+import { TAB_GROUP_ID_NONE } from "../plan";
+import type { PlanGroupingOptions } from "../plan";
+import type { GroupSnapshot, TabSnapshot, WindowSnapshot } from "../types";
 
 // 同名のグループ・管理対象でないグループ・無効なルールが頻繁に現れるよう、名前は少数の候補から選ぶ。
 // 「手動」はルールの名前にならないため、retiredNames に入らない限り管理対象でないグループになる
@@ -36,7 +36,7 @@ const ruleSpecArb = record({
   color: colorArb,
   conditions: array(conditionArb, { maxLength: 3 }),
 });
-const rulesArb: Arbitrary<Rule[]> = array(ruleSpecArb, { maxLength: 5 }).map((specs) =>
+export const rulesArb: Arbitrary<Rule[]> = array(ruleSpecArb, { maxLength: 5 }).map((specs) =>
   specs.map((spec, index) => ({ id: `rule-${index}`, ...spec })),
 );
 
@@ -84,12 +84,12 @@ function buildWindow(pinnedUrls: readonly string[], blocks: readonly BlockSpec[]
   return { id: 1, tabs, groups };
 }
 
-const windowArb: Arbitrary<WindowSnapshot> = tuple(
+export const windowArb: Arbitrary<WindowSnapshot> = tuple(
   array(urlArb, { maxLength: 2 }),
   array(blockArb, { maxLength: 6 }),
 ).map(([pinnedUrls, blocks]) => buildWindow(pinnedUrls, blocks));
 
-interface GroupingInput {
+export interface GroupingInput {
   window: WindowSnapshot;
   rules: Rule[];
   options: PlanGroupingOptions;
@@ -106,57 +106,6 @@ function groupingInputArbFor(window: WindowSnapshot, rules: Rule[]): Arbitrary<G
   }));
 }
 
-const groupingInputArb: Arbitrary<GroupingInput> = tuple(windowArb, rulesArb).chain(([window, rules]) =>
+export const groupingInputArb: Arbitrary<GroupingInput> = tuple(windowArb, rulesArb).chain(([window, rules]) =>
   groupingInputArbFor(window, rules),
 );
-
-/** スナップショットが Chrome の制約を満たさない点を返す */
-function snapshotProblems(window: WindowSnapshot): string[] {
-  const problems: string[] = [];
-  const ids = window.tabs.map((tab) => tab.id);
-  if (new Set(ids).size !== ids.length) {
-    problems.push("タブの ID が重複している");
-  }
-  const pinnedCount = window.tabs.filter((tab) => tab.pinned).length;
-  if (window.tabs.slice(0, pinnedCount).some((tab) => !tab.pinned || tab.groupId !== TAB_GROUP_ID_NONE)) {
-    problems.push("ピン留めされたタブが先頭に並んでいないか、グループに入っている");
-  }
-  const groupIds = new Set(window.tabs.map((tab) => tab.groupId));
-  groupIds.delete(TAB_GROUP_ID_NONE);
-  for (const groupId of groupIds) {
-    const indexes = window.tabs.flatMap((tab, index) => (tab.groupId === groupId ? [index] : []));
-    if ((indexes.at(-1) ?? 0) - (indexes.at(0) ?? 0) + 1 !== indexes.length) {
-      problems.push(`グループ ${groupId} のタブが連続していない`);
-    }
-  }
-  for (const group of window.groups) {
-    if (!groupIds.has(group.id)) {
-      problems.push(`グループ ${group.id} にタブが無い`);
-    }
-  }
-  return problems;
-}
-
-/** 判定の対象のうち、ウィンドウに無いタブの ID を返す */
-function foreignTargetIds({ window, options }: GroupingInput): number[] {
-  const ids = new Set(window.tabs.map((tab) => tab.id));
-  return [...(options.targetTabIds ?? [])].filter((id) => !ids.has(id));
-}
-
-describe("性質のテストの入力", () => {
-  it("スナップショットは Chrome の制約を満たす", () => {
-    assert(
-      property(windowArb, (window) => {
-        expect(snapshotProblems(window)).toStrictEqual([]);
-      }),
-    );
-  });
-
-  it("planGrouping の判定の対象は、ウィンドウのタブから選ばれる", () => {
-    assert(
-      property(groupingInputArb, (input) => {
-        expect(foreignTargetIds(input)).toStrictEqual([]);
-      }),
-    );
-  });
-});
