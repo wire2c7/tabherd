@@ -7,6 +7,11 @@ function withGroupId(window: WindowSnapshot, tabIds: readonly number[], groupId:
   return window.tabs.map((tab) => (ids.has(tab.id) ? { ...tab, groupId } : tab));
 }
 
+// スナップショットに載っていないグループ（取得の途中で変わったもの）も、タブがあれば Chrome には存在する
+function groupExists(window: WindowSnapshot, groupId: number): boolean {
+  return window.groups.some(({ id }) => id === groupId) || window.tabs.some((tab) => tab.groupId === groupId);
+}
+
 // Chrome はタブが無くなったグループを消す
 function withoutEmptyGroups(window: WindowSnapshot): WindowSnapshot {
   const usedIds = new Set(window.tabs.map((tab) => tab.groupId));
@@ -35,6 +40,10 @@ function applyOperation(window: WindowSnapshot, operation: GroupOperation): Wind
       return withoutEmptyGroups({ ...window, tabs: withGroupId(window, operation.tabIds, TAB_GROUP_ID_NONE) });
     }
     case "add-to-group": {
+      // Chrome では、無くなったグループへ入れる操作は失敗し、executeOperations はそのまま次の操作へ進む
+      if (!groupExists(window, operation.groupId)) {
+        return window;
+      }
       const tabs = withGroupId(window, operation.tabIds, operation.groupId);
       return withoutEmptyGroups({ ...window, tabs });
     }

@@ -73,6 +73,23 @@ describe("グループに入れる・外す計画の適用", () => {
     });
   });
 
+  it("無くなったグループへ入れる操作は、Chrome と同じく失敗して何も変えない", () => {
+    const window: WindowSnapshot = {
+      id: 1,
+      tabs: [exampleTab(1, 100), exampleTab(2)],
+      groups: [exampleGroup(100, "開発")],
+    };
+    const operations: GroupOperation[] = [
+      { type: "ungroup", tabIds: [1] },
+      { type: "add-to-group", groupId: 100, tabIds: [2] },
+    ];
+    expect(applyOperations(window, operations)).toStrictEqual({
+      id: 1,
+      tabs: [exampleTab(1), exampleTab(2)],
+      groups: [],
+    });
+  });
+
   it("新しいグループを作ると、既存のグループと重ならない ID でタブが入る", () => {
     const window: WindowSnapshot = {
       id: 1,
