@@ -88,14 +88,35 @@ const EMPTIED_GROUP_EXAMPLE: GroupingInput = {
   options: {},
 };
 
+// #47 の反例。「資料」のグループの元のタブを「開発」のグループへ移し、空になった「資料」のグループへ .org のタブを入れる
+const EMPTIED_BY_MOVE_EXAMPLE: GroupingInput = {
+  window: {
+    id: 1,
+    tabs: [
+      { id: 1, url: "https://github.com/a", pinned: false, groupId: 100 },
+      { id: 2, url: "https://EXAMPLE.org/b", pinned: false, groupId: TAB_GROUP_ID_NONE },
+      { id: 3, url: "https://github.com/b", pinned: false, groupId: 101 },
+    ],
+    groups: [
+      { id: 100, title: "資料", color: "cyan" },
+      { id: 101, title: "開発", color: "blue" },
+    ],
+  },
+  rules: [
+    { id: "rule-0", name: "開発", color: "blue", conditions: [{ type: "contains", value: "github" }] },
+    { id: "rule-1", name: "資料", color: "cyan", conditions: [{ type: "contains", value: ".org" }] },
+  ],
+  options: {},
+};
+
 describe("planGrouping の性質", () => {
-  // #47 を直すまで、EMPTIED_GROUP_EXAMPLE で失敗する。直したら it に戻す
+  // #47 を直すまで、EMPTIED_GROUP_EXAMPLE・EMPTIED_BY_MOVE_EXAMPLE で失敗する。直したら it に戻す
   it.fails("計画を適用すると、操作してよいタブは一致したルールのグループに入り、ほかのタブの所属は変わらない", () => {
     assert(
       property(groupingInputArb, (input) => {
         expect(membershipProblems(input)).toStrictEqual([]);
       }),
-      { examples: [[EMPTIED_GROUP_EXAMPLE]] },
+      { examples: [[EMPTIED_GROUP_EXAMPLE], [EMPTIED_BY_MOVE_EXAMPLE]] },
     );
   });
 
@@ -104,17 +125,17 @@ describe("planGrouping の性質", () => {
       property(groupingInputArb, (input) => {
         expect(operationProblems(input)).toStrictEqual([]);
       }),
-      { examples: [[EMPTIED_GROUP_EXAMPLE]] },
+      { examples: [[EMPTIED_GROUP_EXAMPLE], [EMPTIED_BY_MOVE_EXAMPLE]] },
     );
   });
 
-  // #47 を直すまで、EMPTIED_GROUP_EXAMPLE で失敗する。直したら it に戻す
+  // #47 を直すまで、EMPTIED_GROUP_EXAMPLE・EMPTIED_BY_MOVE_EXAMPLE で失敗する。直したら it に戻す
   it.fails("計画を適用した後にもう一度計画すると、操作は空になる", () => {
     assert(
       property(groupingInputArb, (input) => {
         expect(replanAfterApplying(input)).toStrictEqual([]);
       }),
-      { examples: [[EMPTIED_GROUP_EXAMPLE]] },
+      { examples: [[EMPTIED_GROUP_EXAMPLE], [EMPTIED_BY_MOVE_EXAMPLE]] },
     );
   });
 });
