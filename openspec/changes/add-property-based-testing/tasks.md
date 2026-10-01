@@ -2,7 +2,7 @@
 
 ## 1. 依存と判断の記録
 
-- [ ] 1.1 `fast-check` を `minimumReleaseAge` を満たす版で `pnpm add -D` し、`pnpm install` が `minimumReleaseAge`・`trustPolicy` に通ることを確かめる
+- [x] 1.1 `fast-check` を `minimumReleaseAge` を満たす版で `pnpm add -D` し、`pnpm install` が `minimumReleaseAge`・`trustPolicy` に通ることを確かめる
 - [ ] 1.2 Property Based Testing と fast-check の採用（`@fast-check/vitest`・小さな入力をすべて試す方法・StrykerJS を採らない理由を含む）を `docs/adr/` に ADR として残す
 
 ## 2. arbitrary とモデル
