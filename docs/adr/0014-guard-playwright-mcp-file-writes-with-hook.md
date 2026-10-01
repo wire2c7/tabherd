@@ -1,6 +1,6 @@
 # 0014. Playwright MCP のファイルの書き込み先を PreToolUse フックで `.playwright-mcp/` に制限する
 
-- ステータス：Accepted
+- ステータス：Superseded by 0015
 - 日付：2026-10-02
 - 関連 Issue：#42
 
