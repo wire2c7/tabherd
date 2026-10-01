@@ -49,7 +49,8 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
   - 拡張機能のページは `chrome-extension://<pnpm e2e:extension-id の出力>/popup.html` 等で開く。開けるのは `http://127.0.0.1` と拡張機能のページだけ
   - `browser_navigate` の結果にはスナップショットが含まれない（ファイルに保存される）ため、要素の ref は `browser_snapshot` で得る
   - ルール等の状態はブラウザを閉じても残り、Playwright MCP を起動し直すと消える
-  - 任意のコードを実行する `browser_run_code_unsafe` は `.claude/settings.json` の `permissions.deny` で禁じているだけで、サーバーでは有効なまま（ADR 0013）。deny のルールは `.mcp.json` のサーバー名に結び付くため、別の名前で登録しない。Claude Code 以外のエージェント（Codex 等）は `.claude/settings.json` を読まないため、登録する場合は、そのエージェントでこのツールを禁じる方法を決めてここに書いてから登録する
+  - ツールの `filename` に指定できるのは `.playwright-mcp/` の中だけ。サーバーはリポジトリの任意のファイルへの書き込みを許すため、PreToolUse フックで外を指す呼び出しを拒否している（ADR 0014）
+  - 任意のコードを実行する `browser_run_code_unsafe` は `.claude/settings.json` の `permissions.deny` で禁じているだけで、サーバーでは有効なまま（ADR 0013）。deny のルールとフックは `.mcp.json` のサーバー名に結び付くため、別の名前で登録しない。Claude Code 以外のエージェント（Codex 等）は `.claude/settings.json` を読まないため、登録する場合は、そのエージェントでこのツールと `filename` の書き込み先を制限する方法を決めてここに書いてから登録する
 
 ## 規約
 
