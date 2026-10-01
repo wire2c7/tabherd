@@ -105,7 +105,7 @@ E2E テストで確かめられない既知の制約は、`test.fixme` のテス
 
 #### Playwright MCP
 
-- `@playwright/mcp` を devDependencies に版を固定して追加する（`minimumReleaseAge` を満たす 0.0.82。Playwright 1.64 の alpha 版に依存するが、`@playwright/test` とは別に入る）。README の `npx @playwright/mcp@latest` は ADR 0006 の審査を通らないため使わない
+- `@playwright/mcp` を devDependencies に版を固定して追加する（`minimumReleaseAge` を満たす 0.0.82。Playwright 1.64 の alpha 版に依存するが、`@playwright/test` とは別に入る）。#13 の検証は 0.0.83 で行ったが、0.0.82 でも拡張機能を読み込んで操作できることをタスク 3.2〜3.4 で確かめた。README の `npx @playwright/mcp@latest` は ADR 0006 の審査を通らないため使わない
 - 起動用のスクリプト（`e2e/mcp-server.sh`）が、E2E の devShell の Chromium と、ビルドの出力（`.output/chrome-mv3/`）の絶対パスで設定ファイルを組み立て、`pnpm exec` で Playwright MCP を起動する。`--load-extension` 等の Chromium の引数は CLI のオプションでは渡せないため、設定ファイルの `launchOptions.args` に書く。`.mcp.json` からは `nix develop .#e2e --command e2e/mcp-server.sh` で呼ぶ。`.mcp.json` のサーバーは、Claude Code で各自が承認してから使える
 - `--isolated` は使えない。`launch()` と `newContext()` で起動し、拡張機能が無効なコンテキストになるため、拡張機能のページが `ERR_BLOCKED_BY_CLIENT` で開けない。代わりに、起動ごとの一時ディレクトリ（設定ファイルも置く）を永続コンテキストのプロフィール（`userDataDir`）にし、スクリプトの終了時に消す。`userDataDir` を渡さないと `~/.cache/ms-playwright-mcp/` の worktree ごとのプロフィールに状態が残る。このため、ルール等の状態は `browser_close` の後も残り、Playwright MCP を起動し直すと消える。終了時に消すため、スクリプトは Playwright MCP を `exec` せず子プロセスとして起動する
 - 既定はヘッドレス。表示して見たいときは `TABHERD_MCP_HEADED=1` で切り替える
