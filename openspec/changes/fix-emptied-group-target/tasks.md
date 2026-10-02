@@ -8,6 +8,6 @@
 
 ## 2. 全体の確認
 
-- [ ] 2.1 `nix develop .#e2e --command pnpm e2e`・`pnpm typecheck`・`pnpm lint`・`prek run --all-files`・`nix flake check` が通ることを確かめる
-- [ ] 2.2 E2E の devShell の Chromium で拡張機能を動かし、#47 の再現手順で `.org` のタブが「資料」のグループに入ることを確かめる
-- [ ] 2.3 design.md・spec の差分が実装と食い違っていないかを確かめ、食い違いは実装を正として直す
+- [x] 2.1 `nix develop .#e2e --command pnpm e2e`・`pnpm typecheck`・`pnpm lint`・`prek run --all-files`・`nix flake check` が通ることを確かめる
+- [x] 2.2 E2E の devShell の Chromium で拡張機能を動かし、#47 の再現手順で `.org` のタブが「資料」のグループに入ることを確かめる
+- [x] 2.3 design.md・spec の差分が実装と食い違っていないかを確かめ、食い違いは実装を正として直す
