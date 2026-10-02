@@ -38,15 +38,18 @@ function decideTab(tab: TabSnapshot, context: DecisionContext): TabDecision {
   return currentGroup?.title === rule.name ? { type: "keep" } : { type: "group", rule };
 }
 
-// タブは左から順に並んでいるため、最初に見つかったグループが同名のグループのうち左のもの
+// タブは左から順に並んでいるため、最初に見つかったグループが同名のグループのうち左のもの。
+// 同じ判定で元のタブがすべて外れる・別のグループへ移るグループは、空になって Chrome に消されるため候補にしない
 function findLeftmostGroupIds(
   window: WindowSnapshot,
   groupsById: ReadonlyMap<number, GroupSnapshot>,
+  leavingTabIds: ReadonlySet<number>,
 ): Map<string, number> {
+  const remainingGroupIds = new Set(window.tabs.filter((tab) => !leavingTabIds.has(tab.id)).map((tab) => tab.groupId));
   const leftmost = new Map<string, number>();
   for (const tab of window.tabs) {
     const group = groupsById.get(tab.groupId);
-    if (group !== undefined && !leftmost.has(group.title)) {
+    if (group !== undefined && remainingGroupIds.has(group.id) && !leftmost.has(group.title)) {
       leftmost.set(group.title, group.id);
     }
   }
@@ -79,14 +82,16 @@ export function planGrouping(
     managedTitles: new Set([...activeRules.map((rule) => rule.name), ...retiredNames]),
     groupsById,
   };
-  const leftmostGroupIds = findLeftmostGroupIds(window, groupsById);
+  const decisions = window.tabs
+    .filter((tab) => targetTabIds?.has(tab.id) ?? true)
+    .map((tab) => ({ tab, decision: decideTab(tab, context) }));
+  const leavingTabIds = new Set(decisions.filter(({ decision }) => decision.type !== "keep").map(({ tab }) => tab.id));
+  const leftmostGroupIds = findLeftmostGroupIds(window, groupsById, leavingTabIds);
 
   const removals: number[] = [];
   const additions = new Map<number, TabIds>();
   const creations = new Map<Rule, TabIds>();
-  const targetTabs = window.tabs.filter((tab) => targetTabIds?.has(tab.id) ?? true);
-  for (const tab of targetTabs) {
-    const decision = decideTab(tab, context);
+  for (const { tab, decision } of decisions) {
     if (decision.type === "ungroup") {
       removals.push(tab.id);
     } else if (decision.type === "group") {

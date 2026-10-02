@@ -136,3 +136,49 @@ describe("対象外のタブ", () => {
     expect(planGrouping(window, RULES)).toStrictEqual([]);
   });
 });
+
+describe("同じ判定で空になるグループ", () => {
+  it("元のタブがすべて外れるグループには入れず、新しく作って入れる", () => {
+    const window = windowOf(
+      [tab(10, "https://other.test/", 100), tab(11, "https://example.com/")],
+      [group(100, "資料")],
+    );
+    expect(planGrouping(window, RULES)).toStrictEqual([
+      { type: "ungroup", tabIds: [10] },
+      { type: "create-group", windowId: 1, title: "資料", color: "green", tabIds: [11] },
+    ]);
+  });
+
+  it("元のタブがすべて別のグループへ移るグループには入れず、新しく作って入れる", () => {
+    const window = windowOf(
+      [tab(10, "https://github.com/a", 100), tab(11, "https://example.com/"), tab(12, "https://github.com/b", 101)],
+      [group(100, "資料"), group(101, "開発")],
+    );
+    expect(planGrouping(window, RULES)).toStrictEqual([
+      { type: "add-to-group", groupId: 101, tabIds: [10] },
+      { type: "create-group", windowId: 1, title: "資料", color: "green", tabIds: [11] },
+    ]);
+  });
+
+  it("2つのグループの中身が入れ替わるときは、どちらにも入れず、それぞれ新しく作って入れる", () => {
+    const window = windowOf(
+      [tab(10, "https://example.com/", 100), tab(11, "https://github.com/", 101)],
+      [group(100, "開発"), group(101, "資料")],
+    );
+    expect(planGrouping(window, RULES)).toStrictEqual([
+      { type: "create-group", windowId: 1, title: "資料", color: "green", tabIds: [10] },
+      { type: "create-group", windowId: 1, title: "開発", color: "blue", tabIds: [11] },
+    ]);
+  });
+
+  it("同名のグループのうち左のものが空になるときは、残る右のものへ入れる", () => {
+    const window = windowOf(
+      [tab(10, "https://other.test/", 100), tab(11, "https://example.com/a", 101), tab(12, "https://example.com/b")],
+      [group(100, "資料"), group(101, "資料")],
+    );
+    expect(planGrouping(window, RULES)).toStrictEqual([
+      { type: "ungroup", tabIds: [10] },
+      { type: "add-to-group", groupId: 101, tabIds: [12] },
+    ]);
+  });
+});
