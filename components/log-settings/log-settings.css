@@ -1,0 +1,44 @@
+.log-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.log-settings__title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.log-settings__subtitle {
+  margin: 0;
+  font-size: 13px;
+}
+
+.log-settings__text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.log-settings__lists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+
+.log-settings__list {
+  margin: 2px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.log-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
