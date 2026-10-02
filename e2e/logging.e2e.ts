@@ -1,0 +1,92 @@
+import { readFile } from "node:fs/promises";
+
+import type { StoredLogEntry } from "../utils/logging/storage";
+import { expect, rule, test } from "./fixtures";
+
+// テストの名前は openspec/specs/diagnostic-logging/spec.md の Requirement（describe）と Scenario（test）に対応させる
+
+const dev = rule("dev", "開発", "blue");
+
+const UNCAUGHT_MESSAGE = "E2E でわざと起こしたエラー";
+
+// わざと起こしたエラーは、リリース版でも console に error で出る
+test.use({ expectedErrors: [/捕捉されない Promise の拒否が起きました/u] });
+
+test.describe("エラー時のログの保存", () => {
+  test("捕捉されないエラー", async ({ serviceWorker, setRules, groupOf, openTab }) => {
+    async function storedLogs(): Promise<StoredLogEntry[]> {
+      return serviceWorker.evaluate(async () => {
+        const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
+        return logs ?? [];
+      });
+    }
+
+    await setRules([dev]);
+    await openTab("/dev/secret-path");
+    await expect.poll(async () => groupOf("/dev/secret-path")).toMatchObject({ title: "開発" });
+
+    // エラーが起きていないあいだは保存しない
+    expect(await storedLogs()).toStrictEqual([]);
+
+    await serviceWorker.evaluate((message) => {
+      // Service Worker の中で、拡張機能のコードが捕捉しない Promise の拒否を起こす
+      void Promise.reject(new Error(message));
+    }, UNCAUGHT_MESSAGE);
+
+    await expect
+      .poll(async () => {
+        const logs = await storedLogs();
+        return logs.at(-1)?.level;
+      })
+      .toBe("error");
+    const logs = await storedLogs();
+    expect(logs.at(-1)).toMatchObject({
+      category: "tabherd.background",
+      properties: { error: { name: "Error", message: UNCAUGHT_MESSAGE } },
+    });
+    // 直前のタブの判定のログも一緒に保存される
+    expect(logs.some((entry) => entry.category === "tabherd.grouping" && entry.level === "debug")).toBe(true);
+    // URL・グループ名は記録しない
+    const text = JSON.stringify(logs);
+    for (const secret of ["secret-path", "127.0.0.1", "開発"]) {
+      expect(text).not.toContain(secret);
+    }
+  });
+});
+
+test.describe("ログの説明", () => {
+  test("オプションページを開く", async ({ openSettings }) => {
+    const page = await openSettings("options");
+    const section = page.getByRole("region", { name: "ログ" });
+
+    await expect(section).toContainText("記録するもの");
+    await expect(section).toContainText("記録しないもの");
+    await expect(section).toContainText("タブの URL・タイトル");
+    await expect(section).toContainText("自動で送信されることはありません");
+  });
+});
+
+test.describe("ログの書き出しと消去", () => {
+  test("ログを書き出して消去する", async ({ serviceWorker, openSettings }) => {
+    const entry: StoredLogEntry = {
+      timestamp: "2026-10-02T01:00:00.000Z",
+      level: "warning",
+      category: "tabherd.grouping",
+      message: "グループの操作に失敗しました",
+      properties: {},
+    };
+    await serviceWorker.evaluate(async (logs) => chrome.storage.local.set({ logs }), [entry]);
+    const page = await openSettings("options");
+    await expect(page.getByText("保存されたログ：1 件")).toBeVisible();
+
+    const downloading = page.waitForEvent("download");
+    await page.getByRole("button", { name: "ログを保存" }).click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toMatch(/^tabherd-logs-\d{8}-\d{6}\.json$/u);
+    const exported: unknown = JSON.parse(await readFile(await download.path(), "utf8"));
+    expect(exported).toMatchObject({ extensionVersion: expect.any(String), logs: [entry] });
+
+    await page.getByRole("button", { name: "ログを消去" }).click();
+    await expect(page.getByText("保存されたログ：0 件")).toBeVisible();
+  });
+});
