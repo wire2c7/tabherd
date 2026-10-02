@@ -1,6 +1,35 @@
 import { browser } from "wxt/browser";
 
+import { getAppLogger } from "../logging/setup";
 import type { GroupOperation } from "./types";
+
+const logger = getAppLogger("grouping");
+
+/** ログに出す操作。グループ名は閲覧先を表しうるため、タイトル・色を除く */
+export type LoggedOperation =
+  | Exclude<GroupOperation, { type: "create-group" | "update-group" }>
+  | { type: "create-group"; windowId: number; tabIds: readonly number[] }
+  | { type: "update-group"; groupId: number };
+
+/** 操作からログに出せる値だけを取り出す */
+export function toLoggedOperation(operation: GroupOperation): LoggedOperation {
+  switch (operation.type) {
+    case "create-group": {
+      return { type: operation.type, windowId: operation.windowId, tabIds: operation.tabIds };
+    }
+    case "update-group": {
+      return { type: operation.type, groupId: operation.groupId };
+    }
+    case "add-to-group":
+    case "ungroup":
+    case "move-group": {
+      return operation;
+    }
+    default: {
+      return operation satisfies never;
+    }
+  }
+}
 
 /** ユーザーがタブをドラッグしているあいだ、タブ・グループの操作が失敗するときのエラーメッセージ */
 const TABS_BUSY_MESSAGE = "Tabs cannot be edited right now";
@@ -76,11 +105,12 @@ async function executeOperation(operation: GroupOperation): Promise<void> {
 export async function executeOperations(operations: readonly GroupOperation[]): Promise<void> {
   for (const operation of operations) {
     try {
+      logger.debug("操作 {operation} を実行します", { operation: toLoggedOperation(operation) });
       // 前の操作でタブの位置・グループが変わるため、順に実行する
       // oxlint-disable-next-line no-await-in-loop
       await executeOperation(operation);
     } catch (error) {
-      console.error("グループの操作に失敗しました", operation, error);
+      logger.warning("グループの操作 {operation} に失敗しました", { operation: toLoggedOperation(operation), error });
     }
   }
 }

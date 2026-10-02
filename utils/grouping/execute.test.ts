@@ -1,8 +1,10 @@
+import { resetSync } from "@logtape/logtape";
 import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
-import { RETRY_DELAYS_MS, executeOperations, retryWhileTabsBusy } from "./execute";
+import { captureLogs } from "../logging/testing/capture";
+import { RETRY_DELAYS_MS, executeOperations, retryWhileTabsBusy, toLoggedOperation } from "./execute";
 
 const busyError = new Error("Tabs cannot be edited right now (user may be dragging a tab).");
 
@@ -136,9 +138,11 @@ describe("計画の実行", () => {
 
     expect(move).toHaveBeenCalledWith(200, { index: 2 });
   });
+});
 
+describe("操作の失敗", () => {
   it("操作が失敗しても、ログに出して残りの操作を続ける", async () => {
-    const consoleError = vi.spyOn(console, "error").mockReturnValue();
+    const logs = captureLogs();
     mockTabsUngroup().mockRejectedValue(new Error("No tab with id: 12."));
     const group = mockTabsGroup(100);
 
@@ -147,8 +151,30 @@ describe("計画の実行", () => {
       { type: "add-to-group", groupId: 100, tabIds: [10] },
     ]);
 
-    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(logs.filter((record) => record.level === "warning").map((record) => record.properties)).toStrictEqual([
+      { operation: { type: "ungroup", tabIds: [12] }, error: new Error("No tab with id: 12.") },
+    ]);
     expect(group).toHaveBeenCalledWith({ groupId: 100, tabIds: [10] });
-    consoleError.mockRestore();
+    resetSync();
+  });
+});
+
+describe("ログに出す操作", () => {
+  it("グループを作る操作からタイトル・色を除く", () => {
+    expect(
+      toLoggedOperation({ type: "create-group", windowId: 1, title: "業務", color: "red", tabIds: [10, 11] }),
+    ).toStrictEqual({ type: "create-group", windowId: 1, tabIds: [10, 11] });
+  });
+
+  it("グループを変える操作からタイトル・色を除く", () => {
+    expect(toLoggedOperation({ type: "update-group", groupId: 100, title: "業務", color: "red" })).toStrictEqual({
+      type: "update-group",
+      groupId: 100,
+    });
+  });
+
+  it("タイトルを持たない操作はそのまま出す", () => {
+    const operation = { type: "move-group", groupId: 100, index: 2 } as const;
+    expect(toLoggedOperation(operation)).toBe(operation);
   });
 });
