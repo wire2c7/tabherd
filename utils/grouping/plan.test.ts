@@ -137,9 +137,8 @@ describe("対象外のタブ", () => {
   });
 });
 
-// #47 を直すまで失敗する。直したら it に戻す
 describe("同じ判定で空になるグループ", () => {
-  it.fails("元のタブがすべて外れるグループには入れず、新しく作って入れる", () => {
+  it("元のタブがすべて外れるグループには入れず、新しく作って入れる", () => {
     const window = windowOf(
       [tab(10, "https://other.test/", 100), tab(11, "https://example.com/")],
       [group(100, "資料")],
@@ -150,7 +149,7 @@ describe("同じ判定で空になるグループ", () => {
     ]);
   });
 
-  it.fails("元のタブがすべて別のグループへ移るグループには入れず、新しく作って入れる", () => {
+  it("元のタブがすべて別のグループへ移るグループには入れず、新しく作って入れる", () => {
     const window = windowOf(
       [tab(10, "https://github.com/a", 100), tab(11, "https://example.com/"), tab(12, "https://github.com/b", 101)],
       [group(100, "資料"), group(101, "開発")],
@@ -161,7 +160,7 @@ describe("同じ判定で空になるグループ", () => {
     ]);
   });
 
-  it.fails("2つのグループの中身が入れ替わるときは、どちらにも入れず、それぞれ新しく作って入れる", () => {
+  it("2つのグループの中身が入れ替わるときは、どちらにも入れず、それぞれ新しく作って入れる", () => {
     const window = windowOf(
       [tab(10, "https://example.com/", 100), tab(11, "https://github.com/", 101)],
       [group(100, "開発"), group(101, "資料")],
@@ -172,7 +171,7 @@ describe("同じ判定で空になるグループ", () => {
     ]);
   });
 
-  it.fails("同名のグループのうち左のものが空になるときは、残る右のものへ入れる", () => {
+  it("同名のグループのうち左のものが空になるときは、残る右のものへ入れる", () => {
     const window = windowOf(
       [tab(10, "https://other.test/", 100), tab(11, "https://example.com/a", 101), tab(12, "https://example.com/b")],
       [group(100, "資料"), group(101, "資料")],

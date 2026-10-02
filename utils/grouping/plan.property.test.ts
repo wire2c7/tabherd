@@ -110,8 +110,7 @@ const EMPTIED_BY_MOVE_EXAMPLE: GroupingInput = {
 };
 
 describe("planGrouping の性質", () => {
-  // #47 を直すまで、EMPTIED_GROUP_EXAMPLE・EMPTIED_BY_MOVE_EXAMPLE で失敗する。直したら it に戻す
-  it.fails("計画を適用すると、操作してよいタブは一致したルールのグループに入り、ほかのタブの所属は変わらない", () => {
+  it("計画を適用すると、操作してよいタブは一致したルールのグループに入り、ほかのタブの所属は変わらない", () => {
     assert(
       property(groupingInputArb, (input) => {
         expect(membershipProblems(input)).toStrictEqual([]);
@@ -129,8 +128,7 @@ describe("planGrouping の性質", () => {
     );
   });
 
-  // #47 を直すまで、EMPTIED_GROUP_EXAMPLE・EMPTIED_BY_MOVE_EXAMPLE で失敗する。直したら it に戻す
-  it.fails("計画を適用した後にもう一度計画すると、操作は空になる", () => {
+  it("計画を適用した後にもう一度計画すると、操作は空になる", () => {
     assert(
       property(groupingInputArb, (input) => {
         expect(replanAfterApplying(input)).toStrictEqual([]);
