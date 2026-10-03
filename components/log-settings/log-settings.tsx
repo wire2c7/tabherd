@@ -2,6 +2,7 @@ import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { browser } from "wxt/browser";
 
+import type { ClearLogsMessage, ClearLogsResponse } from "../../utils/logging/messages";
 import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
 import { buildLogExport } from "./export";
 
@@ -41,6 +42,18 @@ async function exportLogs(): Promise<void> {
     now: new Date(),
   });
   download(fileName, content);
+}
+
+/**
+ * 端末に保存したログの消去を background に依頼する。
+ * background の保存と同時に直接消すと、保存が消去の前の値を書き戻すため、保存と同じ待ち行列で消してもらう
+ */
+async function clearLogs(): Promise<void> {
+  const message: ClearLogsMessage = { type: "clear-logs" };
+  const response: ClearLogsResponse = await browser.runtime.sendMessage(message);
+  if (!response.ok) {
+    console.error("ログを消去できませんでした", response.error);
+  }
 }
 
 /** ログに記録するもの・しないもの。オプションページで利用者に示す */
@@ -85,7 +98,7 @@ function LogActions(): JSX.Element {
         class="danger"
         disabled={count === 0}
         onClick={() => {
-          void logsItem.removeValue();
+          void clearLogs();
         }}
       >
         ログを消去

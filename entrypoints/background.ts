@@ -4,6 +4,9 @@ import { defineBackground } from "wxt/utils/define-background";
 import { debounceChanges } from "../utils/grouping/debounce";
 import { applyRuleChange, regroupAllWindows, regroupTabs } from "../utils/grouping/regroup";
 import { createSerialQueue } from "../utils/grouping/serial";
+import type { ClearLogsResponse } from "../utils/logging/messages";
+import { isClearLogsMessage } from "../utils/logging/messages";
+import type { StoredLogs } from "../utils/logging/setup";
 import { configureLogging, getAppLogger } from "../utils/logging/setup";
 import { rulesItem } from "../utils/rules/storage";
 
@@ -34,9 +37,36 @@ function logUncaughtErrors(): void {
   });
 }
 
+/**
+ * オプションページからのログの消去の依頼を受ける。
+ * 端末への書き込みを background だけで行い、保存と消去を受け取った順に処理するため、オプションページは直接消さずに依頼する
+ */
+function handleClearLogs(storedLogs: StoredLogs): void {
+  browser.runtime.onMessage.addListener(
+    (message: unknown, sender, sendResponse: (response: ClearLogsResponse) => void) => {
+      const isClearRequest = sender.id === browser.runtime.id && isClearLogsMessage(message);
+      if (isClearRequest) {
+        void (async () => {
+          try {
+            await storedLogs.clear();
+            sendResponse({ ok: true });
+          } catch (error) {
+            sendResponse({ ok: false, error: String(error) });
+          }
+        })();
+      }
+      // 返事を非同期で送るときは、true を返してメッセージの経路を開けておく（Promise を返す方法は Chrome 148 からで、段階的に提供中）。
+      // ほかのメッセージには返事をしない
+      // oxlint-disable-next-line typescript/strict-void-return -- WXT の型は void だが、Chrome は true を返したリスナーの非同期の sendResponse を待つ
+      return isClearRequest;
+    },
+  );
+}
+
 export default defineBackground(() => {
-  configureLogging({ dev: import.meta.env.DEV });
+  const storedLogs = configureLogging({ dev: import.meta.env.DEV });
   logUncaughtErrors();
+  handleClearLogs(storedLogs);
 
   // グループを作ってからタイトルを付けるまでに別のイベントを処理すると同名のグループが2つできるため、処理を直列にする。
   // 各処理は開始時にルールとスナップショットを読み直す
