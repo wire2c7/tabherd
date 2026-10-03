@@ -28,6 +28,7 @@
 
 - テストの中の後片付けは、`vitest` の `onTestFinished` で登録する。準備と後片付けの登録をまとめた補助関数を、テストの最初（後片付けが要るものを作る前）に呼ぶ
   - `vi.spyOn` のモックは、`utils/testing/mocks.ts` の `restoreMocksAfterTest` で戻す
+  - 偽のタイマーは、`utils/testing/mocks.ts` の `useFakeTimersInTest` で使い、本物のタイマーに戻す
   - ログの受け取り（`captureLogs`）や購読（`watchCounts`）のように、作ったものを返す補助関数は、作るときに自分の後片付けを登録する
 - `it.extend` は使わない。`beforeEach`・`afterEach` も、これまでどおり使わない
 - 既にあるテストのうち、後片付けの要らないものは書き換えない
