@@ -77,6 +77,7 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
   - `extensionVersion` は `browser.runtime.getManifest().version`
   - `browser` は `{ brand, version, source }`。User-Agent Client Hints の `navigator.userAgentData.getHighEntropyValues(["fullVersionList"])` から、意味の無い種類（GREASE）と Chromium を除いた種類を選ぶ（Chromium しかなければ Chromium）。Chrome の User-Agent は簡略化されてバージョンが `141.0.0.0` の形になり、Edge 等も `Chrome/` を含むため、User-Agent だけでは正確なバージョンと種類が分からない
   - User-Agent Client Hints が使えない（API が無い、失敗する、一覧が無い・選べない）ときは、`navigator.userAgent` の `Chrome/<版>` の部分を Chromium のバージョンとして入れ、`source` を `userAgent` にする。User-Agent の全体は OS も含むため入れない。TypeScript の DOM の型定義に `userAgentData` が無いため、使う部分の型を自分で定める
+- 書き出す前に、`runtime.sendMessage` で background に保存の待ちを依頼し、待ち行列の保存が終わってから読む。警告の直後に書き出すと、保存の途中のログ（警告そのものを含む）がファイルから漏れるため。待ちの依頼が失敗しても、保存済みのログは書き出せるため、`console.warn` に出して書き出しを続ける
 - ファイルの中身は純粋関数で組み立て、単体テストで確かめる
 
 ### 捕捉されないエラー
