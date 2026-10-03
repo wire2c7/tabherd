@@ -106,7 +106,7 @@ describe("グループ化のログ", () => {
     await regroupTabs([DEV, WORK, secret], 1, [12]);
 
     const stored = JSON.stringify(logs.map((record) => toStoredLogEntry(record)));
-    expect(logs.some((record) => record.level === "warning")).toBe(true);
+    expect(logs.some((record) => record.level === "error")).toBe(true);
     expect(stored).toContain("create-group");
     for (const text of ["秘密の案件", "secret.example", "token", "github.com", "開発", "業務", "pink"]) {
       expect(stored).not.toContain(text);

@@ -151,7 +151,7 @@ describe("操作の失敗", () => {
       { type: "add-to-group", groupId: 100, tabIds: [10] },
     ]);
 
-    expect(logs.filter((record) => record.level === "warning").map((record) => record.properties)).toStrictEqual([
+    expect(logs.filter((record) => record.level === "error").map((record) => record.properties)).toStrictEqual([
       { operation: { type: "ungroup", tabIds: [12] }, error: new Error("No tab with id: 12.") },
     ]);
     expect(group).toHaveBeenCalledWith({ groupId: 100, tabIds: [10] });

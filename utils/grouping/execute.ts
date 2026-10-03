@@ -110,7 +110,7 @@ export async function executeOperations(operations: readonly GroupOperation[]): 
       // oxlint-disable-next-line no-await-in-loop
       await executeOperation(operation);
     } catch (error) {
-      logger.warning("グループの操作 {operation} に失敗しました", { operation: toLoggedOperation(operation), error });
+      logger.error("グループの操作 {operation} に失敗しました", { operation: toLoggedOperation(operation), error });
     }
   }
 }
