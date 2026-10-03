@@ -85,7 +85,7 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
 
 background の起動時に、Service Worker の `error`・`unhandledrejection` を購読し、`["tabherd", "background"]` に error で出す。リスナーは Service Worker の最初の評価の中で登録する。
 
-Chrome は `chrome.*` のイベント（`tabs.onUpdated`・`storage.onChanged` 等）のリスナーが同期的に投げた例外を自分で受け取るため、`error` イベントに届かない（E2E で、リスナーが呼ばれて例外を投げても `error` イベントが発火しないことを確かめた。`setTimeout` の中で投げた例外と、リスナーの中の Promise の拒否は届く）。そのため、background のリスナーは `utils/logging/listener.ts` の `logListenerErrors` で包み、例外をログに残してから投げ直す。投げ直すのは、Chrome での例外の扱いを変えないため。
+Chrome は `chrome.*` のイベント（`tabs.onUpdated`・`storage.onChanged` 等）のリスナーが同期的に投げた例外を自分で受け取るため、`error` イベントに届かない（E2E で、リスナーが呼ばれて例外を投げても `error` イベントが発火しないことを確かめた。`setTimeout` の中で投げた例外と、リスナーの中の Promise の拒否は届く）。そのため、background のリスナーは `utils/logging/listener.ts` の `logListenerErrors` で包み、例外をログに残してから投げ直す。投げ直すのは、Chrome での例外の扱いを変えないため。ルールの変更の監視は、処理を `debounceChanges` が `setTimeout` の中で呼び、例外が `error` イベントに届くため包まない。
 
 ## Risks / Trade-offs
 
