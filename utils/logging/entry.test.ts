@@ -44,6 +44,33 @@ describe("ログを保存する形に変える", () => {
   });
 });
 
+describe("エラーの原因の保存", () => {
+  it("原因の例外（cause）を、入れ子の Error も含めて残す", () => {
+    const root = new Error("No group with id: 1.");
+    const error = new Error("v1 migration failed", { cause: root });
+    expect(toJsonValue(error)).toStrictEqual({
+      name: "Error",
+      message: "v1 migration failed",
+      stack: error.stack,
+      cause: { name: "Error", message: "No group with id: 1.", stack: root.stack },
+    });
+  });
+
+  it("error でない原因もそのまま残す", () => {
+    expect(toJsonValue(new Error("失敗", { cause: { tabId: 3 } }))).toMatchObject({ cause: { tabId: 3 } });
+  });
+
+  it("aggregateError がまとめた例外を残す", () => {
+    const inner = new TypeError("内側");
+    const error = new AggregateError([inner], "すべて失敗");
+    expect(toJsonValue(error)).toMatchObject({
+      name: "AggregateError",
+      message: "すべて失敗",
+      errors: [{ name: "TypeError", message: "内側", stack: inner.stack }],
+    });
+  });
+});
+
 describe("値を JSON にできる形に変える", () => {
   it("入れ子の Error も変える", () => {
     const error = new Error("内側");

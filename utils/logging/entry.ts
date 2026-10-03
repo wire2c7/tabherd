@@ -2,10 +2,20 @@ import type { LogRecord } from "@logtape/logtape";
 
 import type { StoredLogEntry } from "./storage";
 
-/** JSON.stringify では Error が {} になるため、名前・メッセージ・スタックトレースを残す */
+/**
+ * JSON.stringify では Error が {} になるため、名前・メッセージ・スタックトレースを残す。
+ * 原因の例外（cause。WXT の storage の MigrationError 等が持つ）と、AggregateError がまとめた例外（errors）も残す。
+ * 返したオブジェクトの中の値にも replaceError が呼ばれるため、入れ子の Error も同じ形になる。undefined のフィールドは JSON に出ない
+ */
 function replaceError(_key: string, value: unknown): unknown {
   if (value instanceof Error) {
-    return { name: value.name, message: value.message, stack: value.stack };
+    return {
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+      cause: value.cause,
+      errors: value instanceof AggregateError ? value.errors : undefined,
+    };
   }
   return value;
 }
