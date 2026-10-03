@@ -19,8 +19,8 @@ async function runJob(job: WriteJob): Promise<void> {
     try {
       await appendLogs(job.entries);
     } catch (error) {
-      // ロガーに出すとこの sink に戻るため、console に出す
-      console.error("ログを保存できませんでした", error);
+      // ロガーに出すとこの書き込みに戻るため、console に出す
+      console.error("ログを端末に書き込めませんでした", error);
     }
     return;
   }
