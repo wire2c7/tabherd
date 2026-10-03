@@ -5,25 +5,34 @@ import type { GroupOperation } from "./types";
 
 const logger = getAppLogger("grouping");
 
-/** ログに出す操作。グループ名は閲覧先を表しうるため、タイトル・色を除く */
+/**
+ * ログに出す操作。グループ名は閲覧先を表しうるため、タイトル・色を入れない。
+ * 操作の型にフィールドが足されてもログに出ないよう、出すフィールドをここで決め、toLoggedOperation で1つずつ写す
+ */
 export type LoggedOperation =
-  | Exclude<GroupOperation, { type: "create-group" | "update-group" }>
+  | { type: "add-to-group"; groupId: number; tabIds: readonly number[] }
   | { type: "create-group"; windowId: number; tabIds: readonly number[] }
-  | { type: "update-group"; groupId: number };
+  | { type: "ungroup"; tabIds: readonly number[] }
+  | { type: "update-group"; groupId: number }
+  | { type: "move-group"; groupId: number; index: number };
 
-/** 操作からログに出せる値だけを取り出す */
+/** 操作から、ログに出すフィールドだけを写す */
 export function toLoggedOperation(operation: GroupOperation): LoggedOperation {
   switch (operation.type) {
+    case "add-to-group": {
+      return { type: operation.type, groupId: operation.groupId, tabIds: [...operation.tabIds] };
+    }
     case "create-group": {
-      return { type: operation.type, windowId: operation.windowId, tabIds: operation.tabIds };
+      return { type: operation.type, windowId: operation.windowId, tabIds: [...operation.tabIds] };
+    }
+    case "ungroup": {
+      return { type: operation.type, tabIds: [...operation.tabIds] };
     }
     case "update-group": {
       return { type: operation.type, groupId: operation.groupId };
     }
-    case "add-to-group":
-    case "ungroup":
     case "move-group": {
-      return operation;
+      return { type: operation.type, groupId: operation.groupId, index: operation.index };
     }
     default: {
       return operation satisfies never;

@@ -3,6 +3,7 @@ import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
 import { captureLogs } from "../logging/testing/capture";
+import type { GroupOperation } from "./types";
 import { RETRY_DELAYS_MS, executeOperations, retryWhileTabsBusy, toLoggedOperation } from "./execute";
 
 const busyError = new Error("Tabs cannot be edited right now (user may be dragging a tab).");
@@ -171,8 +172,26 @@ describe("ログに出す操作", () => {
     });
   });
 
-  it("タイトルを持たない操作はそのまま出す", () => {
-    const operation = { type: "move-group", groupId: 100, index: 2 } as const;
-    expect(toLoggedOperation(operation)).toBe(operation);
+  it("グループへ入れる・外す・移動する操作は、ID と位置だけを出す", () => {
+    expect(toLoggedOperation({ type: "add-to-group", groupId: 100, tabIds: [10] })).toStrictEqual({
+      type: "add-to-group",
+      groupId: 100,
+      tabIds: [10],
+    });
+    expect(toLoggedOperation({ type: "ungroup", tabIds: [10, 11] })).toStrictEqual({
+      type: "ungroup",
+      tabIds: [10, 11],
+    });
+    expect(toLoggedOperation({ type: "move-group", groupId: 100, index: 2 })).toStrictEqual({
+      type: "move-group",
+      groupId: 100,
+      index: 2,
+    });
+  });
+
+  it("操作に決めていないフィールドがあっても出さない", () => {
+    // 操作の型に後からフィールドが足された場合を、型の余分なプロパティとして再現する
+    const operation: GroupOperation & { title: string } = { type: "ungroup", tabIds: [10], title: "秘密の案件" };
+    expect(toLoggedOperation(operation)).toStrictEqual({ type: "ungroup", tabIds: [10] });
   });
 });
