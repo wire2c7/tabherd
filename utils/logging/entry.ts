@@ -17,10 +17,14 @@ interface PathEntry {
  *   AggregateError がまとめた例外（errors）も残す。返したオブジェクトの中の値も同じ変換を通るため、入れ子の Error も同じ形になる
  * - 循環している参照は CIRCULAR_REFERENCE に置き換える。JSON.stringify が例外を投げて値全体が文字列になり、外側のエラーの情報まで失うのを防ぐ。
  *   同じ値を2か所から参照しているだけなら循環ではないため、今たどっている道筋の上にある値だけを見る
+ * - BigInt は JSON.stringify が例外を投げるため、10進の文字列にする。値全体が文字列になり、ほかのプロパティを失うのを防ぐ
  */
 function createReplacer(): (this: unknown, key: string, value: unknown) => unknown {
   const path: PathEntry[] = [];
   function replace(this: unknown, _key: string, value: unknown): unknown {
+    if (typeof value === "bigint") {
+      return value.toString();
+    }
     if (typeof value !== "object" || value === null) {
       return value;
     }
@@ -52,7 +56,7 @@ function createReplacer(): (this: unknown, key: string, value: unknown) => unkno
 export const UNSERIALIZABLE_VALUE = "[ログに記録できない値]";
 
 /**
- * 値を JSON にできる形に変える。循環している参照は CIRCULAR_REFERENCE に置き換え、それでも変えられない値（BigInt 等）は文字列にする。
+ * 値を JSON にできる形に変える。循環している参照は CIRCULAR_REFERENCE に置き換え、それでも変えられない値（読むと例外を投げるプロパティを持つもの等）は文字列にする。
  * 1件の変換の失敗で、一緒に保存するログやエラー本体を失わないよう、例外を投げない
  */
 export function toJsonValue(value: unknown): unknown {

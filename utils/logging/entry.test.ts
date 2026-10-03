@@ -113,14 +113,32 @@ describe("値を JSON にできる形に変える", () => {
     expect(toJsonValue(() => 1)).toBeNull();
   });
 
-  it("bigInt 等の JSON にできない値は文字列にする", () => {
-    expect(toJsonValue({ value: 1n })).toBe("[object Object]");
+  it("bigInt は、ほかのプロパティを残したまま10進の文字列にする", () => {
+    const error = new Error("外側", { cause: { id: 12_345_678_901_234_567_890n } });
+    expect(toJsonValue({ error })).toStrictEqual({
+      error: { name: "Error", message: "外側", stack: error.stack, cause: { id: "12345678901234567890" } },
+    });
+  });
+
+  it("読むと例外を投げるプロパティがあって JSON にできない値は、文字列にする", () => {
+    const value = {
+      get broken(): never {
+        throw new Error("読めない");
+      },
+    };
+    expect(toJsonValue(value)).toBe("[object Object]");
   });
 
   it("文字列にもできない値は、例外を投げずに代わりの文字列にする", () => {
-    // BigInt を持つ、プロトタイプの無いオブジェクトは JSON.stringify・String のどちらも例外を投げる
-    const value: Record<string, unknown> = { value: 1n };
-    Object.setPrototypeOf(value, null);
+    // 読むと例外を投げるプロパティを持つ、プロトタイプの無いオブジェクトは JSON.stringify・String のどちらも例外を投げる
+    const value = Object.create(null, {
+      broken: {
+        enumerable: true,
+        get: () => {
+          throw new Error("読めない");
+        },
+      },
+    }) as unknown;
     expect(toJsonValue(value)).toBe(UNSERIALIZABLE_VALUE);
   });
 });
