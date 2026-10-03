@@ -67,6 +67,39 @@ describe("きっかけのレベルまでログを溜める sink", () => {
   });
 });
 
+describe("捨てたログの溜め直し", () => {
+  it("捨てたログを溜め直すと、捨てた後に溜めたログより前に戻す", () => {
+    const { received, sink } = setup();
+    sink(record("debug", "a"));
+    const restore = sink.clear();
+    sink(record("debug", "b"));
+    restore();
+    sink(record("warning", "c"));
+    expect(received).toStrictEqual(["a", "b", "c"]);
+  });
+
+  it("溜め直して上限を超えた分は、古いものから捨てる", () => {
+    const { received, sink } = setup(2);
+    sink(record("debug", "a"));
+    sink(record("debug", "b"));
+    const restore = sink.clear();
+    sink(record("debug", "c"));
+    restore();
+    sink(record("warning", "d"));
+    expect(received).toStrictEqual(["b", "c", "d"]);
+  });
+
+  it("捨てた後にログを流していたら、溜め直さない", () => {
+    const { received, sink } = setup();
+    sink(record("debug", "a"));
+    const restore = sink.clear();
+    sink(record("warning", "b"));
+    restore();
+    sink(record("warning", "c"));
+    expect(received).toStrictEqual(["b", "c"]);
+  });
+});
+
 describe("溜めるログの写し", () => {
   it("溜めた後に、ログに渡した配列・オブジェクトが書き換えられても、溜めた内容は変わらない", () => {
     const written: StoredLogEntry[] = [];

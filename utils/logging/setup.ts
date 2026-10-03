@@ -25,7 +25,8 @@ export interface ConfigureLoggingOptions {
 export interface StoredLogs {
   /**
    * それまでに出たログを、保存済みのものも、エラーの直前の文脈としてメモリに溜めたものも消す。
-   * それまでの保存が終わってから消し、消し終わると解決する。後に出たログは消さない
+   * それまでの保存が終わってから消し、消し終わると解決する。後に出たログは消さない。
+   * 消せなかったときは、メモリに溜めたログも戻してから拒否する（消している間に警告が出て、溜めたログを保存した後は戻さない）
    */
   clear: () => Promise<void>;
   /** それまでに端末へ保存すると決まったログの保存・消去が終わると解決する */
@@ -49,8 +50,14 @@ export function configureLogging({ dev }: ConfigureLoggingOptions): StoredLogs {
   });
   return {
     clear: async () => {
-      buffered.clear();
-      await writer.clear();
+      // 依頼の後に出たログを消さないよう、消し終わるのを待たずに捨てる
+      const restore = buffered.clear();
+      try {
+        await writer.clear();
+      } catch (error) {
+        restore();
+        throw error;
+      }
     },
     settled: writer.settled,
   };

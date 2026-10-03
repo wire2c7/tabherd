@@ -13,8 +13,11 @@ export interface BufferUntilOptions {
 
 /** ログを溜める sink */
 export interface BufferingSink extends Sink {
-  /** 溜めたログを流さずに捨てる */
-  clear: () => void;
+  /**
+   * 溜めたログを流さずに捨て、捨てたログを溜め直す関数を返す。
+   * 溜め直す関数は、捨てた後にログを流していたら何もしない。流したログより古いログが後から流れ、保存の順序が崩れるため
+   */
+  clear: () => () => void;
 }
 
 /**
@@ -28,6 +31,8 @@ export function bufferUntil(
   { triggerLevel, maxBufferSize }: BufferUntilOptions,
 ): BufferingSink {
   const buffer: StoredLogEntry[] = [];
+  /** ログを流した回数。捨てたログを溜め直す前に、捨てた後に流したかを見分ける */
+  let flushCount = 0;
   function bufferingSink(record: LogRecord): void {
     const entry = toStoredLogEntry(record);
     if (compareLogLevel(record.level, triggerLevel) < 0) {
@@ -37,6 +42,7 @@ export function bufferUntil(
       }
       return;
     }
+    flushCount += 1;
     for (const buffered of buffer.splice(0)) {
       write(buffered);
     }
@@ -44,7 +50,16 @@ export function bufferUntil(
   }
   return Object.assign(bufferingSink, {
     clear: () => {
-      buffer.length = 0;
+      const discarded = buffer.splice(0);
+      const flushCountAtClear = flushCount;
+      return () => {
+        if (flushCount !== flushCountAtClear) {
+          return;
+        }
+        // 捨てた後に溜めたログより前に戻し、上限を超えた分は古いものから捨てる
+        buffer.unshift(...discarded);
+        buffer.splice(0, Math.max(0, buffer.length - maxBufferSize));
+      };
     },
   });
 }

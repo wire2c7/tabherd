@@ -59,6 +59,20 @@ describe("ロガーの設定：消去", () => {
     const logs = await logsItem.getValue();
     expect(logs.map((entry) => entry.message)).toStrictEqual(["消去の後の警告"]);
   });
+
+  it("消せなかったら、メモリに溜めた直前のログを戻す", async () => {
+    prepare();
+    vi.spyOn(console, "warn").mockReturnValue();
+    vi.spyOn(logsItem, "removeValue").mockRejectedValueOnce(new Error("容量不足"));
+    const { clear, settled } = configureLogging({ dev: false });
+    const logger = getAppLogger("grouping");
+    logger.debug("消去の前の判定");
+    await expect(clear()).rejects.toThrow("容量不足");
+    logger.warning("消去の後の警告");
+    await settled();
+    const logs = await logsItem.getValue();
+    expect(logs.map((entry) => entry.message)).toStrictEqual(["消去の前の判定", "消去の後の警告"]);
+  });
 });
 
 describe("ロガーの設定：console への出力", () => {
