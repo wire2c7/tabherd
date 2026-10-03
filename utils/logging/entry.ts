@@ -85,7 +85,12 @@ function formatValue(value: unknown): string {
   return JSON.stringify(toJsonValue(value));
 }
 
-/** LogTape のログを、端末に保存する形に変える */
+/**
+ * LogTape のログを、端末に保存する形に変える。
+ * バッファが受け取った時点で写すため、多くは保存されずに捨てられる debug のログも、1件ごとに JSON にする。
+ * メッセージに埋める値は、メッセージの文字列とプロパティの両方のために2回 JSON にする。
+ * どちらもログに渡すのは ID・件数等の小さい値で、件数も判定・操作の数ほどのため、まとめて減らす複雑さに見合わない
+ */
 export function toStoredLogEntry(record: LogRecord): StoredLogEntry {
   return {
     timestamp: new Date(record.timestamp).toISOString(),
