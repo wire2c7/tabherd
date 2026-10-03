@@ -116,3 +116,38 @@ test.describe("ログの書き出しと消去", () => {
     await expect(page.getByText("保存されたログ：0 件")).toBeVisible();
   });
 });
+
+test.describe("ログの消去", () => {
+  test("保存の途中で消去する", async ({ serviceWorker, setRules, groupOf, openTab, openSettings }) => {
+    async function storedLogs(): Promise<StoredLogEntry[]> {
+      return serviceWorker.evaluate(async () => {
+        const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
+        return logs ?? [];
+      });
+    }
+    async function rejectInWorker(message: string): Promise<void> {
+      await serviceWorker.evaluate((text) => {
+        void Promise.reject(new Error(text));
+      }, message);
+    }
+
+    await setRules([dev]);
+    await openTab("/dev/before-clear");
+    await expect.poll(async () => groupOf("/dev/before-clear")).toMatchObject({ title: "開発" });
+    await rejectInWorker("消去の前のエラー");
+    const page = await openSettings("options");
+    // 消去の前のエラーの保存を待たずに消去する
+    await page.getByRole("button", { name: "ログを消去" }).click();
+    await expect(page.getByText("保存されたログ：0 件")).toBeVisible();
+
+    await rejectInWorker("消去の後のエラー");
+
+    // 保存されたエラーは消去の後のものだけ（消去の前のエラーが、消去の後に書き戻されていない）
+    await expect
+      .poll(async () => {
+        const logs = await storedLogs();
+        return logs.filter((entry) => entry.level === "error").map((entry) => entry.properties["error"]);
+      })
+      .toStrictEqual([expect.objectContaining({ message: "消去の後のエラー" })]);
+  });
+});
