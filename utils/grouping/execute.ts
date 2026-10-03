@@ -20,13 +20,13 @@ export type LoggedOperation =
 export function toLoggedOperation(operation: GroupOperation): LoggedOperation {
   switch (operation.type) {
     case "add-to-group": {
-      return { type: operation.type, groupId: operation.groupId, tabIds: [...operation.tabIds] };
+      return { type: operation.type, groupId: operation.groupId, tabIds: operation.tabIds };
     }
     case "create-group": {
-      return { type: operation.type, windowId: operation.windowId, tabIds: [...operation.tabIds] };
+      return { type: operation.type, windowId: operation.windowId, tabIds: operation.tabIds };
     }
     case "ungroup": {
-      return { type: operation.type, tabIds: [...operation.tabIds] };
+      return { type: operation.type, tabIds: operation.tabIds };
     }
     case "update-group": {
       return { type: operation.type, groupId: operation.groupId };
