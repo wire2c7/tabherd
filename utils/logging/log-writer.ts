@@ -1,11 +1,10 @@
-import type { LogRecord, Sink } from "@logtape/logtape";
-
-import { toStoredLogEntry } from "./entry";
 import type { StoredLogEntry } from "./storage";
 import { appendLogs, logsItem } from "./storage";
 
-/** 端末にログを保存する sink */
-export interface StoredLogSink extends Sink {
+/** 端末へのログの書き込み */
+export interface LogWriter {
+  /** ログを末尾に保存する。保存は待ち行列で順に行う */
+  write: (entry: StoredLogEntry) => void;
   /** それまでに受け取ったログを消す。それまでの保存が終わってから消し、消し終わると解決する */
   clear: () => Promise<void>;
   /** それまでに受け取った保存・消去が終わると解決する */
@@ -34,11 +33,11 @@ async function runJob(job: WriteJob): Promise<void> {
 }
 
 /**
- * 受け取ったログを端末に保存する sink を作る。
+ * 受け取ったログを端末に保存する書き込み口を作る。
  * chrome.storage には条件付きの書き込みが無く、追記は「読む → 足す → 書く」になるため、追記と消去を1本の待ち行列で受け取った順に1つずつ行う。
- * sink は同期で呼ばれるため、まだ始めていない追記が待ち行列の末尾にあれば、そこへまとめる
+ * write は同期で呼ばれるため、まだ始めていない追記が待ち行列の末尾にあれば、そこへまとめる
  */
-export function getStoredLogSink(): StoredLogSink {
+export function getLogWriter(): LogWriter {
   const queue: WriteJob[] = [];
   let draining: Promise<void> = Promise.resolve();
   let isDraining = false;
@@ -58,9 +57,7 @@ export function getStoredLogSink(): StoredLogSink {
     })();
   }
 
-  function sink(record: LogRecord): void {
-    // 呼び出し側が後で値を変えても保存する内容が変わらないよう、受け取った時点で変える
-    const entry = toStoredLogEntry(record);
+  function write(entry: StoredLogEntry): void {
     const last = queue.at(-1);
     // 待ち行列に残っている追記はまだ始めていないため、まとめても順序は変わらない。消去を挟んだら別の追記にする
     if (last?.type === "append") {
@@ -78,5 +75,5 @@ export function getStoredLogSink(): StoredLogSink {
     await done.promise;
   }
 
-  return Object.assign(sink, { clear, settled: async () => draining });
+  return { write, clear, settled: async () => draining };
 }

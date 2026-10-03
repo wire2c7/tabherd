@@ -32,8 +32,13 @@
 
 LogTape の `fingersCrossed` は、一度発動すると、それ以降のログを Service Worker が止まるまですべて下流へ流す（`sink.js` の `triggered` が戻らない）。これを端末への保存に使うと、エラーの後に操作が続いたとき、debug のログが保存の上限の 500 件を埋めて、エラー本体を押し出してしまう。
 
-そのため、発動のたびにバッファを空にして元の状態に戻るバッファを `utils/logging/` に自前で書く。warning より下のログは直近 100 件をメモリに溜め、warning 以上が来たら、溜めたログとそのログを下流の sink へ流してバッファを空にする。
+そのため、発動のたびにバッファを空にして元の状態に戻るバッファを `utils/logging/` に自前で書く。warning より下のログは直近 100 件をメモリに溜め、warning 以上が来たら、溜めたログとそのログを端末への書き込みへ流してバッファを空にする。
 
+バッファは、受け取った時点でログを保存する形（`StoredLogEntry`。JSON の写し）に変えて溜める。LogTape はログに渡された値を一段しか写さない（`logger.js` の `resolveProperties`）ため、生のログを溜めると、呼び出し側が後で配列・オブジェクトを書き換えたときに、保存する内容が書き換え後の値になる。
+
+- 代替案：ログに渡す値の型を `Readonly<T>` 等にする。型が防ぐのは受け取った側の書き換えだけで、渡した側が自分の参照で書き換えるのは防げない
+- 代替案：`Object.freeze` で凍らせる。凍るのは渡した側のオブジェクトそのもので、渡した側の後の書き換えが例外になり、ログを出しただけで本来の処理の動きが変わる
+- 保存しない debug のログも1件ごとに JSON に変えることになるが、件数は判定・操作の数ほどで、問題にしない
 - 代替案：`fingersCrossed` をそのまま使う。エラーの後の文脈も残るが、上の理由で採らない
 - 代替案：`fingersCrossed` の `bufferTtlMs` 等で発動を解除する。解除は `isolateByContext` を使うときだけ効き、時間で区切ることになり、件数の上限を守れない
 
@@ -42,7 +47,7 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
 - 保存する値は `storage.defineItem<StoredLogEntry[]>("local:logs")` に置く。1件は `{ timestamp, level, category, message, properties }` の JSON にする
   - `message` は LogTape のメッセージのテンプレートに値を埋めた文字列
   - `properties` の `Error` は `{ name, message, stack }` に変える（`JSON.stringify` では `Error` が `{}` になるため）
-- sink は同期で呼ばれるため、受け取ったログをその場で `StoredLogEntry` に変えて溜め、次の待ち行列で順に「読む → 末尾に足す → 直近 500 件に切る → 書く」を行う。保存に失敗したら `console.error` に出す（ロガーに出すと自分自身へ戻るため）
+- 端末への書き込み（`utils/logging/log-writer.ts`）は、バッファから `StoredLogEntry` を同期で受け取り、次の待ち行列で順に「読む → 末尾に足す → 直近 500 件に切る → 書く」を行う。保存に失敗したら `console.error` に出す（ロガーに出すと自分自身へ戻るため）
 - 端末への書き込みは、background の1本の待ち行列（FIFO）で、受け取った順に1つずつ行う。待ち行列の中身は「追記」と「消去」で、追記は、待ち行列の末尾にまだ実行していない追記があればそこへまとめる。消去を挟んだ後のログは、消去より前の追記にまとめない
 
 ### 消去
@@ -57,7 +62,7 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
 
 ### 記録する情報の範囲
 
-ログを出す側で、ID・件数・処理の種類・エラーだけを渡す。グループの操作（`GroupOperation`）は、`title`・`color` を除いた `{ type, groupId, windowId, tabIds, index }` の形にしてから渡す。端末に保存する sink では内容を検査しない。検査で URL らしい文字列を取り除いても、グループ名等は見分けられないため。
+ログを出す側で、ID・件数・処理の種類・エラーだけを渡す。グループの操作（`GroupOperation`）は、`title`・`color` を除いた `{ type, groupId, windowId, tabIds, index }` の形にしてから渡す。端末への保存の段階では内容を検査しない。検査で URL らしい文字列を取り除いても、グループ名等は見分けられないため。
 
 代わりに、グループ名・URL を含む入力で失敗する操作を実行し、出たログにそれらが含まれないことを単体テストで確かめる。実際のブラウザでは、捕捉されないエラーを起こして保存されたログに URL・グループ名が無いことを E2E テストで確かめる。E2E の fixture は Service Worker の console の error を失敗として扱うため、わざと起こすエラーは `expectedErrors` で除く
 

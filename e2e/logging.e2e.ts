@@ -134,7 +134,7 @@ test.describe("ログの書き出しと消去", () => {
 test.describe("ログの消去", () => {
   test.use({ expectedErrors: UNCAUGHT_ERROR_LOGS });
 
-  // 「保存の途中で消去する」の競合は、ブラウザの中では毎回同じタイミングで起こせないため、単体テスト（utils/logging/stored-sink.test.ts）で確かめる。
+  // 「保存の途中で消去する」の競合は、ブラウザの中では毎回同じタイミングで起こせないため、単体テスト（utils/logging/log-writer.test.ts）で確かめる。
   // ここでは、消去の前のログ（保存済みのもの、メモリに溜めたもの）が、消去の後の保存に混ざらないことを確かめる
   test("消去の前のログが、消去の後の保存に混ざらない", async ({
     serviceWorker,

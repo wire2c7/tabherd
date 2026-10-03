@@ -2,6 +2,7 @@ import type { LogLevel, LogRecord } from "@logtape/logtape";
 import { describe, expect, it } from "vitest";
 
 import { bufferUntil } from "./buffer";
+import type { StoredLogEntry } from "./storage";
 
 function record(level: LogLevel, message: string): LogRecord {
   return { category: ["tabherd"], level, message: [message], rawMessage: message, timestamp: 0, properties: {} };
@@ -10,8 +11,8 @@ function record(level: LogLevel, message: string): LogRecord {
 function setup(maxBufferSize = 3) {
   const received: string[] = [];
   const sink = bufferUntil(
-    (logRecord) => {
-      received.push(String(logRecord.message[0]));
+    (entry) => {
+      received.push(entry.message);
     },
     {
       triggerLevel: "warning",
@@ -63,5 +64,26 @@ describe("きっかけのレベルまでログを溜める sink", () => {
     sink(record("debug", "b"));
     sink(record("warning", "c"));
     expect(received).toStrictEqual(["b", "c"]);
+  });
+});
+
+describe("溜めるログの写し", () => {
+  it("溜めた後に、ログに渡した配列・オブジェクトが書き換えられても、溜めた内容は変わらない", () => {
+    const written: StoredLogEntry[] = [];
+    const sink = bufferUntil(
+      (entry) => {
+        written.push(entry);
+      },
+      { triggerLevel: "warning", maxBufferSize: 3 },
+    );
+    const tabIds = [1, 2];
+    const operation = { type: "ungroup", tabIds };
+    sink({ ...record("debug", "a"), properties: { tabIds, operation } });
+
+    tabIds.push(3);
+    operation.type = "move-group";
+    sink(record("warning", "b"));
+
+    expect(written[0]?.properties).toStrictEqual({ tabIds: [1, 2], operation: { type: "ungroup", tabIds: [1, 2] } });
   });
 });

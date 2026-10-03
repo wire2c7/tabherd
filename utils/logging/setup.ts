@@ -2,7 +2,7 @@ import type { Logger } from "@logtape/logtape";
 import { configureSync, getConsoleSink, getLogger, withFilter } from "@logtape/logtape";
 
 import { bufferUntil } from "./buffer";
-import { getStoredLogSink } from "./stored-sink";
+import { getLogWriter } from "./log-writer";
 
 /** 拡張機能のログのカテゴリの先頭 */
 const ROOT_CATEGORY = "tabherd";
@@ -34,8 +34,8 @@ export interface StoredLogs {
 
 /** ロガーを設定する。設定より前に出したログは捨てられるため、起動時に同期的に呼ぶ */
 export function configureLogging({ dev }: ConfigureLoggingOptions): StoredLogs {
-  const stored = getStoredLogSink();
-  const buffered = bufferUntil(stored, { triggerLevel: STORE_TRIGGER_LEVEL, maxBufferSize: CONTEXT_LOG_COUNT });
+  const writer = getLogWriter();
+  const buffered = bufferUntil(writer.write, { triggerLevel: STORE_TRIGGER_LEVEL, maxBufferSize: CONTEXT_LOG_COUNT });
   configureSync({
     sinks: {
       console: withFilter(getConsoleSink(), dev ? "debug" : "warning"),
@@ -50,9 +50,9 @@ export function configureLogging({ dev }: ConfigureLoggingOptions): StoredLogs {
   return {
     clear: async () => {
       buffered.clear();
-      await stored.clear();
+      await writer.clear();
     },
-    settled: stored.settled,
+    settled: writer.settled,
   };
 }
 
