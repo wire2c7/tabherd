@@ -118,7 +118,15 @@ test.describe("ログの書き出しと消去", () => {
 });
 
 test.describe("ログの消去", () => {
-  test("保存の途中で消去する", async ({ serviceWorker, setRules, groupOf, openTab, openSettings }) => {
+  // 「保存の途中で消去する」の競合は、ブラウザの中では毎回同じタイミングで起こせないため、単体テスト（utils/logging/stored-sink.test.ts）で確かめる。
+  // ここでは、消去の前のログ（保存済みのもの、メモリに溜めたもの）が、消去の後の保存に混ざらないことを確かめる
+  test("消去の前のログが、消去の後の保存に混ざらない", async ({
+    serviceWorker,
+    setRules,
+    groupOf,
+    openTab,
+    openSettings,
+  }) => {
     async function storedLogs(): Promise<StoredLogEntry[]> {
       return serviceWorker.evaluate(async () => {
         const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
@@ -136,7 +144,8 @@ test.describe("ログの消去", () => {
     await expect.poll(async () => groupOf("/dev/before-clear")).toMatchObject({ title: "開発" });
     await rejectInWorker("消去の前のエラー");
     const page = await openSettings("options");
-    // 消去の前のエラーの保存を待たずに消去する
+    // ボタンはログが0件のあいだ押せないため、click は消去の前のエラーの保存が終わってから押す
+    const clearedAt = new Date().toISOString();
     await page.getByRole("button", { name: "ログを消去" }).click();
     await expect(page.getByText("保存されたログ：0 件")).toBeVisible();
 
@@ -149,5 +158,8 @@ test.describe("ログの消去", () => {
         return logs.filter((entry) => entry.level === "error").map((entry) => entry.properties["error"]);
       })
       .toStrictEqual([expect.objectContaining({ message: "消去の後のエラー" })]);
+    // エラーの直前の文脈としてメモリに溜めていた、消去の前のログも保存されていない
+    const logs = await storedLogs();
+    expect(logs.filter((entry) => entry.timestamp < clearedAt)).toStrictEqual([]);
   });
 });
