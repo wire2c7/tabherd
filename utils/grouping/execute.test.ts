@@ -3,6 +3,7 @@ import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
 import { captureLogs } from "../logging/testing/capture";
+import { useFakeTimersInTest } from "../testing/mocks";
 import type { GroupOperation } from "./types";
 import { RETRY_DELAYS_MS, executeOperations, retryWhileTabsBusy, toLoggedOperation } from "./execute";
 
@@ -57,7 +58,7 @@ describe("タブの編集ができないときのリトライ", () => {
 
 describe("リトライの待ち時間", () => {
   it("1回目は 100ms 待ってやり直す", async () => {
-    vi.useFakeTimers();
+    useFakeTimersInTest();
     const action = busyTwiceThenOk();
     const result = retryWhileTabsBusy(action);
 
@@ -68,11 +69,10 @@ describe("リトライの待ち時間", () => {
 
     await vi.runAllTimersAsync();
     await expect(result).resolves.toBe("ok");
-    vi.useRealTimers();
   });
 
   it("2回目は、さらに 200ms 待ってやり直す", async () => {
-    vi.useFakeTimers();
+    useFakeTimersInTest();
     const action = busyTwiceThenOk();
     const result = retryWhileTabsBusy(action);
 
@@ -82,11 +82,10 @@ describe("リトライの待ち時間", () => {
     expect(action).toHaveBeenCalledTimes(3);
 
     await expect(result).resolves.toBe("ok");
-    vi.useRealTimers();
   });
 
   it("やり直しても失敗し続けるときは、5回やり直した後にエラーを投げる", async () => {
-    vi.useFakeTimers();
+    useFakeTimersInTest();
     const action = vi.fn<() => Promise<string>>().mockRejectedValue(busyError);
     // 待っているあいだに拒否されても未処理の拒否にならないよう、時間を進める前に expect を付ける
     await Promise.all([
@@ -94,7 +93,6 @@ describe("リトライの待ち時間", () => {
       vi.advanceTimersByTimeAsync(100 + 200 + 400 + 800 + 1600),
     ]);
     expect(action).toHaveBeenCalledTimes(6);
-    vi.useRealTimers();
   });
 });
 
