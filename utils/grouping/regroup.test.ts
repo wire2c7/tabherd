@@ -1,4 +1,3 @@
-import { resetSync } from "@logtape/logtape";
 import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
@@ -111,6 +110,5 @@ describe("グループ化のログ", () => {
     for (const text of ["秘密の案件", "secret.example", "token", "github.com", "開発", "業務", "pink"]) {
       expect(stored).not.toContain(text);
     }
-    resetSync();
   });
 });

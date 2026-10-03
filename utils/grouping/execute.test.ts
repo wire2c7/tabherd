@@ -1,4 +1,3 @@
-import { resetSync } from "@logtape/logtape";
 import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
@@ -155,7 +154,6 @@ describe("操作の失敗", () => {
       { operation: { type: "ungroup", tabIds: [12] }, error: new Error("No tab with id: 12.") },
     ]);
     expect(group).toHaveBeenCalledWith({ groupId: 100, tabIds: [10] });
-    resetSync();
   });
 });
 

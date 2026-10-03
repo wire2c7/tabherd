@@ -1,4 +1,3 @@
-import { resetSync } from "@logtape/logtape";
 import { describe, expect, it, vi } from "vitest";
 
 import { captureLogs } from "../logging/testing/capture";
@@ -43,6 +42,5 @@ describe("処理の直列化", () => {
       ["error", { error: new Error("失敗") }],
     ]);
     expect(next).toHaveBeenCalledTimes(1);
-    resetSync();
   });
 });

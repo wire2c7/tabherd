@@ -1,9 +1,16 @@
 import type { LogRecord } from "@logtape/logtape";
-import { configureSync } from "@logtape/logtape";
+import { configureSync, resetSync } from "@logtape/logtape";
+import { onTestFinished } from "vitest";
 
-/** テストの中で拡張機能のログを受け取る。戻り値の records に、受け取った順に入る。テストの後に resetSync で設定を戻す */
+/**
+ * テストの中で拡張機能のログを受け取る。戻り値の records に、受け取った順に入る。
+ * テストが失敗しても後のテストへ設定が残らないよう、テストの終わりに設定を戻す
+ */
 export function captureLogs(): LogRecord[] {
   const records: LogRecord[] = [];
+  onTestFinished(() => {
+    resetSync();
+  });
   configureSync({
     reset: true,
     sinks: {
