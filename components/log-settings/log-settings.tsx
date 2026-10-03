@@ -6,7 +6,7 @@ import { requestClearLogs } from "../../utils/logging/messages";
 import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
 import { detectBrowser } from "./browser";
 import type { StoredLogCount } from "./count";
-import { watchStoredLogCount } from "./count";
+import { canClearLogs, watchStoredLogCount } from "./count";
 import { buildLogExport } from "./export";
 
 import "./log-settings.css";
@@ -87,46 +87,57 @@ function LogContents(): JSX.Element {
   );
 }
 
-/** ログの書き出し・消去の操作と、直前の操作が失敗したときに表示するメッセージ */
+/** 実行中のログの操作。実行中は二重に押せないよう、どちらのボタンも押せなくする */
+type PendingOperation = "export" | "clear" | null;
+
+/** ログの書き出し・消去の操作と、実行中の操作、直前の操作が失敗したときに表示するメッセージ */
 function useLogOperations(): {
+  pending: PendingOperation;
   failure: string | null;
   handleExport: () => Promise<void>;
   handleClear: () => Promise<void>;
 } {
+  const [pending, setPending] = useState<PendingOperation>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
   async function handleExport(): Promise<void> {
+    setPending("export");
     setFailure(null);
     try {
       await exportLogs();
     } catch (error) {
       console.error("ログを保存できませんでした", error);
       setFailure("ログを保存できませんでした。もう一度お試しください。");
+    } finally {
+      setPending(null);
     }
   }
 
   async function handleClear(): Promise<void> {
+    setPending("clear");
     setFailure(null);
     // background の保存と同時に直接消すと、保存が消去の前の値を書き戻すため、保存と同じ待ち行列で消してもらう
     const response = await requestClearLogs(async (message) => browser.runtime.sendMessage(message));
+    setPending(null);
     if (!response.ok) {
       console.error("ログを消去できませんでした", response.error);
       setFailure("ログを消去できませんでした。もう一度お試しください。");
     }
   }
 
-  return { failure, handleExport, handleClear };
+  return { pending, failure, handleExport, handleClear };
 }
 
 /** ログの書き出し・消去の操作と、保存されたログの件数 */
 function LogActions(): JSX.Element {
   const count = useStoredLogCount();
-  const { failure, handleExport, handleClear } = useLogOperations();
+  const { pending, failure, handleExport, handleClear } = useLogOperations();
 
   return (
     <div class="log-settings__actions">
       <button
         type="button"
+        disabled={pending !== null}
         onClick={() => {
           void handleExport();
         }}
@@ -136,7 +147,7 @@ function LogActions(): JSX.Element {
       <button
         type="button"
         class="danger"
-        disabled={count.status === "loaded" && count.count === 0}
+        disabled={pending !== null || !canClearLogs(count)}
         onClick={() => {
           void handleClear();
         }}
