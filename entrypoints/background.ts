@@ -57,6 +57,9 @@ function handleLogsRequests(storedLogs: StoredLogs): void {
             await (request.type === "clear-logs" ? storedLogs.clear() : storedLogs.settled());
             sendResponse({ ok: true });
           } catch (error) {
+            // sendResponse は、経路が切れた後（オプションページを閉じた等）や2回目に呼んでも、例外を投げずに何もしない
+            // （Chromium の extensions/renderer/api/messaging/one_time_message_handler.cc の OnOneTimeMessageResponse）。
+            // そのため、ここに来るのは消去・待ちが失敗したときだけで、返事を送る処理の例外が捕捉されない拒否になることはない
             sendResponse({ ok: false, error: String(error) });
           }
         })();
