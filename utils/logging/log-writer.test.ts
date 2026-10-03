@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
+import { restoreMocksAfterTest } from "../testing/mocks";
 import { getLogWriter } from "./log-writer";
 import type { StoredLogEntry } from "./storage";
 import { MAX_STORED_LOGS, logsItem } from "./storage";
@@ -43,8 +44,9 @@ describe("端末へのログの書き込み", () => {
 
   it("保存に失敗しても、次のログを保存する", async () => {
     fakeBrowser.reset();
+    restoreMocksAfterTest();
     const consoleError = vi.spyOn(console, "error").mockReturnValue();
-    const setValue = vi.spyOn(logsItem, "setValue").mockRejectedValueOnce(new Error("容量不足"));
+    vi.spyOn(logsItem, "setValue").mockRejectedValueOnce(new Error("容量不足"));
     const writer = getLogWriter();
     writer.write(logEntry("失敗する"));
     await writer.settled();
@@ -53,8 +55,6 @@ describe("端末へのログの書き込み", () => {
     const logs = await logsItem.getValue();
     expect(logs.map((entry) => entry.message)).toStrictEqual(["保存される"]);
     expect(consoleError).toHaveBeenCalledTimes(1);
-    setValue.mockRestore();
-    consoleError.mockRestore();
   });
 });
 
@@ -79,7 +79,8 @@ describe("ログの消去", () => {
     // 次の保存が、保存済みのログを読む途中で止まるようにする
     const reading = Promise.withResolvers<null>();
     const getValue = logsItem.getValue.bind(logsItem);
-    const spy = vi.spyOn(logsItem, "getValue").mockImplementationOnce(async () => {
+    restoreMocksAfterTest();
+    vi.spyOn(logsItem, "getValue").mockImplementationOnce(async () => {
       await reading.promise;
       return getValue();
     });
@@ -91,14 +92,13 @@ describe("ログの消去", () => {
     await writer.settled();
     const logs = await logsItem.getValue();
     expect(logs.map((entry) => entry.message)).toStrictEqual(["消去の後"]);
-    spy.mockRestore();
   });
 
   it("消去に失敗したら、消去の依頼が失敗する", async () => {
     fakeBrowser.reset();
-    const removeValue = vi.spyOn(logsItem, "removeValue").mockRejectedValueOnce(new Error("容量不足"));
+    restoreMocksAfterTest();
+    vi.spyOn(logsItem, "removeValue").mockRejectedValueOnce(new Error("容量不足"));
     const writer = getLogWriter();
     await expect(writer.clear()).rejects.toThrow("容量不足");
-    removeValue.mockRestore();
   });
 });

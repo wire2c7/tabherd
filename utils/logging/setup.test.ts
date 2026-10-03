@@ -1,20 +1,26 @@
 import { resetSync } from "@logtape/logtape";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
+import { restoreMocksAfterTest } from "../testing/mocks";
 import { configureLogging, getAppLogger } from "./setup";
 import { logsItem } from "./storage";
 
-/** 前のテストのロガーの設定と console のモックを戻す。configureSync は設定済みだと例外を投げる */
-function reset(): void {
-  resetSync();
-  vi.restoreAllMocks();
+/**
+ * fake-browser を初期化し、テストの終わりに console のモックとロガーの設定を戻すよう登録する（テストが失敗しても戻す）。
+ * configureSync は設定済みだと例外を投げるため、ロガーを設定するテストの最初に呼ぶ
+ */
+function prepare(): void {
   fakeBrowser.reset();
+  restoreMocksAfterTest();
+  onTestFinished(() => {
+    resetSync();
+  });
 }
 
 describe("ロガーの設定：端末への保存", () => {
   it("警告が出るまでは端末に保存しない", async () => {
-    reset();
+    prepare();
     vi.spyOn(console, "debug").mockReturnValue();
     vi.spyOn(console, "info").mockReturnValue();
     const { settled } = configureLogging({ dev: true });
@@ -26,7 +32,7 @@ describe("ロガーの設定：端末への保存", () => {
   });
 
   it("警告が出たら、直前のログと一緒に端末に保存する", async () => {
-    reset();
+    prepare();
     vi.spyOn(console, "warn").mockReturnValue();
     const { settled } = configureLogging({ dev: false });
     const logger = getAppLogger("grouping");
@@ -43,7 +49,7 @@ describe("ロガーの設定：端末への保存", () => {
 
 describe("ロガーの設定：消去", () => {
   it("保存済みのログと、メモリに溜めた直前のログを消す", async () => {
-    reset();
+    prepare();
     vi.spyOn(console, "warn").mockReturnValue();
     const { clear, settled } = configureLogging({ dev: false });
     const logger = getAppLogger("grouping");
@@ -59,7 +65,7 @@ describe("ロガーの設定：消去", () => {
 
 describe("ロガーの設定：console への出力", () => {
   it("開発ビルドでは debug 以上を console に出す", () => {
-    reset();
+    prepare();
     const debug = vi.spyOn(console, "debug").mockReturnValue();
     configureLogging({ dev: true });
     getAppLogger("grouping").debug("判定する");
@@ -67,7 +73,7 @@ describe("ロガーの設定：console への出力", () => {
   });
 
   it("リリース版では warning より下を console に出さない", () => {
-    reset();
+    prepare();
     const debug = vi.spyOn(console, "debug").mockReturnValue();
     const info = vi.spyOn(console, "info").mockReturnValue();
     const warn = vi.spyOn(console, "warn").mockReturnValue();

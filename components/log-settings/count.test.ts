@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
 import type { StoredLogEntry } from "../../utils/logging/storage";
 import { logsItem } from "../../utils/logging/storage";
+import { restoreMocksAfterTest } from "../../utils/testing/mocks";
 import type { StoredLogCount } from "./count";
 import { canClearLogs, watchStoredLogCount } from "./count";
 
@@ -14,6 +15,16 @@ const ENTRY: StoredLogEntry = {
   properties: {},
 };
 
+/** 件数の購読を始め、渡された状態を順に入れた配列を返す。購読はテストの終わりにやめる（テストが失敗してもやめる） */
+function watchCounts(): StoredLogCount[] {
+  const counts: StoredLogCount[] = [];
+  const unwatch = watchStoredLogCount((count) => {
+    counts.push(count);
+  });
+  onTestFinished(unwatch);
+  return counts;
+}
+
 function loaded(count: number): StoredLogCount {
   return { status: "loaded", count };
 }
@@ -22,10 +33,7 @@ describe("保存したログの件数", () => {
   it("読み込んだ件数と、変わった後の件数を渡す", async () => {
     fakeBrowser.reset();
     await logsItem.setValue([ENTRY]);
-    const counts: StoredLogCount[] = [];
-    const unwatch = watchStoredLogCount((count) => {
-      counts.push(count);
-    });
+    const counts = watchCounts();
     await vi.waitFor(() => {
       expect(counts).toStrictEqual([loaded(1)]);
     });
@@ -33,18 +41,15 @@ describe("保存したログの件数", () => {
     await vi.waitFor(() => {
       expect(counts).toStrictEqual([loaded(1), loaded(2)]);
     });
-    unwatch();
   });
 
   it("読み込みより先に変更の通知が来たら、読み込んだ古い件数で上書きしない", async () => {
     fakeBrowser.reset();
     // 最初の読み込みが、保存より前の値（0 件）を読んだまま止まるようにする
     const reading = Promise.withResolvers<StoredLogEntry[]>();
-    const getValue = vi.spyOn(logsItem, "getValue").mockReturnValueOnce(reading.promise);
-    const counts: StoredLogCount[] = [];
-    const unwatch = watchStoredLogCount((count) => {
-      counts.push(count);
-    });
+    restoreMocksAfterTest();
+    vi.spyOn(logsItem, "getValue").mockReturnValueOnce(reading.promise);
+    const counts = watchCounts();
 
     await logsItem.setValue([ENTRY]);
     await vi.waitFor(() => {
@@ -54,20 +59,16 @@ describe("保存したログの件数", () => {
     await reading.promise;
 
     expect(counts).toStrictEqual([loaded(1)]);
-    unwatch();
-    getValue.mockRestore();
   });
 });
 
 describe("保存したログの件数の読み込みの失敗", () => {
   it("最初の読み込みに失敗したら、失敗を渡す", async () => {
     fakeBrowser.reset();
+    restoreMocksAfterTest();
     vi.spyOn(console, "error").mockReturnValue();
-    const getValue = vi.spyOn(logsItem, "getValue").mockRejectedValueOnce(new Error("v1 migration failed"));
-    const counts: StoredLogCount[] = [];
-    const unwatch = watchStoredLogCount((count) => {
-      counts.push(count);
-    });
+    vi.spyOn(logsItem, "getValue").mockRejectedValueOnce(new Error("v1 migration failed"));
+    const counts = watchCounts();
 
     await vi.waitFor(() => {
       expect(counts).toStrictEqual([{ status: "failed" }]);
@@ -77,9 +78,6 @@ describe("保存したログの件数の読み込みの失敗", () => {
     await vi.waitFor(() => {
       expect(counts).toStrictEqual([{ status: "failed" }, loaded(1)]);
     });
-    unwatch();
-    getValue.mockRestore();
-    vi.restoreAllMocks();
   });
 });
 
