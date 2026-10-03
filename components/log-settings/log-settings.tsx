@@ -2,7 +2,7 @@ import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { browser } from "wxt/browser";
 
-import type { ClearLogsMessage, ClearLogsResponse } from "../../utils/logging/messages";
+import { requestClearLogs } from "../../utils/logging/messages";
 import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
 import { buildLogExport } from "./export";
 
@@ -44,18 +44,6 @@ async function exportLogs(): Promise<void> {
   download(fileName, content);
 }
 
-/**
- * 端末に保存したログの消去を background に依頼する。
- * background の保存と同時に直接消すと、保存が消去の前の値を書き戻すため、保存と同じ待ち行列で消してもらう
- */
-async function clearLogs(): Promise<void> {
-  const message: ClearLogsMessage = { type: "clear-logs" };
-  const response: ClearLogsResponse = await browser.runtime.sendMessage(message);
-  if (!response.ok) {
-    console.error("ログを消去できませんでした", response.error);
-  }
-}
-
 /** ログに記録するもの・しないもの。オプションページで利用者に示す */
 function LogContents(): JSX.Element {
   return (
@@ -83,6 +71,18 @@ function LogContents(): JSX.Element {
 /** ログの書き出し・消去の操作と、保存されたログの件数 */
 function LogActions(): JSX.Element {
   const count = useStoredLogCount();
+  const [clearFailed, setClearFailed] = useState(false);
+
+  async function handleClear(): Promise<void> {
+    setClearFailed(false);
+    // background の保存と同時に直接消すと、保存が消去の前の値を書き戻すため、保存と同じ待ち行列で消してもらう
+    const response = await requestClearLogs(async (message) => browser.runtime.sendMessage(message));
+    if (!response.ok) {
+      console.error("ログを消去できませんでした", response.error);
+      setClearFailed(true);
+    }
+  }
+
   return (
     <div class="log-settings__actions">
       <button
@@ -98,7 +98,7 @@ function LogActions(): JSX.Element {
         class="danger"
         disabled={count === 0}
         onClick={() => {
-          void clearLogs();
+          void handleClear();
         }}
       >
         ログを消去
@@ -106,6 +106,11 @@ function LogActions(): JSX.Element {
       <span class="hint" aria-live="polite">
         {count === null ? "読み込み中…" : `保存されたログ：${count} 件`}
       </span>
+      {clearFailed && (
+        <span class="error" role="alert">
+          ログを消去できませんでした。もう一度お試しください。
+        </span>
+      )}
     </div>
   );
 }
