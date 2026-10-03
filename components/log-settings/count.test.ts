@@ -60,6 +60,21 @@ describe("保存したログの件数", () => {
 
     expect(counts).toStrictEqual([loaded(1)]);
   });
+
+  it("読み込みの途中で購読をやめたら、読み込んだ件数を渡さない", async () => {
+    fakeBrowser.reset();
+    const reading = Promise.withResolvers<StoredLogEntry[]>();
+    restoreMocksAfterTest();
+    vi.spyOn(logsItem, "getValue").mockReturnValueOnce(reading.promise);
+    const listener = vi.fn<(count: StoredLogCount) => void>();
+    const unwatch = watchStoredLogCount(listener);
+
+    unwatch();
+    reading.resolve([ENTRY]);
+    await reading.promise;
+
+    expect(listener).not.toHaveBeenCalled();
+  });
 });
 
 describe("保存したログの件数の読み込みの失敗", () => {

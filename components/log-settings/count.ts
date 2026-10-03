@@ -9,29 +9,34 @@ export type StoredLogCount =
 
 /**
  * 端末に保存したログの件数の状態を、読み込んだときと変わったときに listener へ渡す。戻り値は購読をやめる関数。
- * 最初の読み込みより先に変更の通知が来たら、通知の方が新しいため、読み込みの結果（成功・失敗とも）は渡さない
+ * 最初の読み込みより先に変更の通知が来たら、通知の方が新しいため、読み込みの結果（成功・失敗とも）は渡さない。
+ * 読み込みの途中で購読をやめたときも渡さない
  */
 export function watchStoredLogCount(listener: (state: StoredLogCount) => void): () => void {
-  let isNotified = false;
+  /** 読み込みの結果を listener に渡すか。変更の通知が来たら、または購読をやめたら渡さない */
+  let shouldPassLoaded = true;
   const unwatch = logsItem.watch((logs) => {
-    isNotified = true;
+    shouldPassLoaded = false;
     listener({ status: "loaded", count: logs.length });
   });
   async function load(): Promise<void> {
     try {
       const logs = await logsItem.getValue();
-      if (!isNotified) {
+      if (shouldPassLoaded) {
         listener({ status: "loaded", count: logs.length });
       }
     } catch (error) {
       console.error("保存されたログの件数を読み込めませんでした", error);
-      if (!isNotified) {
+      if (shouldPassLoaded) {
         listener({ status: "failed" });
       }
     }
   }
   void load();
-  return unwatch;
+  return () => {
+    shouldPassLoaded = false;
+    unwatch();
+  };
 }
 
 /**
