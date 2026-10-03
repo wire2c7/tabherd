@@ -64,9 +64,10 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
 ### 書き出し
 
 - オプションページの「ログ」の節は `components/log-settings/` に置き、オプションページだけで表示する（ポップアップは狭いため置かない）
-- 書き出すファイルは `{ extensionVersion, browserVersion, exportedAt, logs }` の JSON で、名前は `tabherd-logs-<日時>.json` にする。`Blob` と `<a download>` で保存させるため、`downloads` の権限は要らない
+- 書き出すファイルは `{ extensionVersion, browser, exportedAt, logs }` の JSON で、名前は `tabherd-logs-<日時>.json` にする。`Blob` と `<a download>` で保存させるため、`downloads` の権限は要らない
   - `extensionVersion` は `browser.runtime.getManifest().version`
-  - `browserVersion` は `navigator.userAgent` の `Chrome/<版>` の部分。User-Agent の全体は OS も含むため入れない
+  - `browser` は `{ brand, version, source }`。User-Agent Client Hints の `navigator.userAgentData.getHighEntropyValues(["fullVersionList"])` から、意味の無い種類（GREASE）と Chromium を除いた種類を選ぶ（Chromium しかなければ Chromium）。Chrome の User-Agent は簡略化されてバージョンが `141.0.0.0` の形になり、Edge 等も `Chrome/` を含むため、User-Agent だけでは正確なバージョンと種類が分からない
+  - User-Agent Client Hints が使えない（API が無い、失敗する、一覧が無い・選べない）ときは、`navigator.userAgent` の `Chrome/<版>` の部分を Chromium のバージョンとして入れ、`source` を `userAgent` にする。User-Agent の全体は OS も含むため入れない。TypeScript の DOM の型定義に `userAgentData` が無いため、使う部分の型を自分で定める
 - ファイルの中身は純粋関数で組み立て、単体テストで確かめる
 
 ### 捕捉されないエラー
