@@ -10,8 +10,11 @@ const ROOT_CATEGORY = "tabherd";
 /** 端末に保存するきっかけのレベル */
 const STORE_TRIGGER_LEVEL = "warning";
 
-/** 端末に保存するきっかけのログの前に、一緒に保存するログの件数 */
-const CONTEXT_LOG_COUNT = 50;
+/**
+ * 端末に保存するきっかけのログの前に、一緒に保存するログの件数。
+ * 複数のウィンドウを同時に処理すると、ほかのウィンドウのログも同じバッファに入るため、1つのウィンドウの判定に要る件数より多めにする
+ */
+const CONTEXT_LOG_COUNT = 100;
 
 export interface ConfigureLoggingOptions {
   /** 開発ビルドなら debug 以上、そうでなければ warning 以上を console に出す */
