@@ -60,27 +60,48 @@ function LogContents(): JSX.Element {
   );
 }
 
-/** ログの書き出し・消去の操作と、保存されたログの件数 */
-function LogActions(): JSX.Element {
-  const count = useStoredLogCount();
-  const [clearFailed, setClearFailed] = useState(false);
+/** ログの書き出し・消去の操作と、直前の操作が失敗したときに表示するメッセージ */
+function useLogOperations(): {
+  failure: string | null;
+  handleExport: () => Promise<void>;
+  handleClear: () => Promise<void>;
+} {
+  const [failure, setFailure] = useState<string | null>(null);
+
+  async function handleExport(): Promise<void> {
+    setFailure(null);
+    try {
+      await exportLogs();
+    } catch (error) {
+      console.error("ログを保存できませんでした", error);
+      setFailure("ログを保存できませんでした。もう一度お試しください。");
+    }
+  }
 
   async function handleClear(): Promise<void> {
-    setClearFailed(false);
+    setFailure(null);
     // background の保存と同時に直接消すと、保存が消去の前の値を書き戻すため、保存と同じ待ち行列で消してもらう
     const response = await requestClearLogs(async (message) => browser.runtime.sendMessage(message));
     if (!response.ok) {
       console.error("ログを消去できませんでした", response.error);
-      setClearFailed(true);
+      setFailure("ログを消去できませんでした。もう一度お試しください。");
     }
   }
+
+  return { failure, handleExport, handleClear };
+}
+
+/** ログの書き出し・消去の操作と、保存されたログの件数 */
+function LogActions(): JSX.Element {
+  const count = useStoredLogCount();
+  const { failure, handleExport, handleClear } = useLogOperations();
 
   return (
     <div class="log-settings__actions">
       <button
         type="button"
         onClick={() => {
-          void exportLogs();
+          void handleExport();
         }}
       >
         ログを保存
@@ -98,9 +119,9 @@ function LogActions(): JSX.Element {
       <span class="hint" aria-live="polite">
         {count === null ? "読み込み中…" : `保存されたログ：${count} 件`}
       </span>
-      {clearFailed && (
+      {failure !== null && (
         <span class="error" role="alert">
-          ログを消去できませんでした。もう一度お試しください。
+          {failure}
         </span>
       )}
     </div>

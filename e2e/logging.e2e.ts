@@ -179,3 +179,46 @@ test.describe("ログの消去", () => {
     expect(logs.filter((entry) => entry.timestamp < clearedAt)).toStrictEqual([]);
   });
 });
+
+test.describe("操作の失敗の表示", () => {
+  // 失敗したときは、オプションページの console にも error で出す
+  test.use({ expectedErrors: [/ログを(?:保存|消去)できませんでした/u] });
+
+  test("ログを書き出せない", async ({ openSettings }) => {
+    const page = await openSettings("options");
+    await page.evaluate(() => {
+      // 保存したログを読めないようにする（呼ぶと TypeError になる）
+      Object.defineProperty(chrome.storage.local, "get", { value: undefined });
+    });
+
+    await page.getByRole("button", { name: "ログを保存" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText("ログを保存できませんでした。もう一度お試しください。");
+  });
+
+  test("ログを消去できない", async ({ serviceWorker, openSettings }) => {
+    await serviceWorker.evaluate(
+      async (logs) => chrome.storage.local.set({ logs }),
+      [
+        {
+          timestamp: "2026-10-02T01:00:00.000Z",
+          level: "error",
+          category: "tabherd.grouping",
+          message: "グループの操作に失敗しました",
+          properties: {},
+        } satisfies StoredLogEntry,
+      ],
+    );
+    const page = await openSettings("options");
+    await expect(page.getByText("保存されたログ：1 件")).toBeVisible();
+    await page.evaluate(() => {
+      // background に消去を依頼できないようにする（呼ぶと TypeError になる）
+      Object.defineProperty(chrome.runtime, "sendMessage", { value: undefined });
+    });
+
+    await page.getByRole("button", { name: "ログを消去" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText("ログを消去できませんでした。もう一度お試しください。");
+    await expect(page.getByText("保存されたログ：1 件")).toBeVisible();
+  });
+});
