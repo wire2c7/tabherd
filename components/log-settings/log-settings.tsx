@@ -4,6 +4,7 @@ import { browser } from "wxt/browser";
 
 import { requestClearLogs } from "../../utils/logging/messages";
 import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
+import { detectBrowser } from "./browser";
 import { buildLogExport } from "./export";
 
 import "./log-settings.css";
@@ -38,7 +39,7 @@ function download(fileName: string, content: string): void {
 async function exportLogs(): Promise<void> {
   const { fileName, content } = buildLogExport(await logsItem.getValue(), {
     extensionVersion: browser.runtime.getManifest().version,
-    userAgent: navigator.userAgent,
+    browser: await detectBrowser(navigator),
     now: new Date(),
   });
   download(fileName, content);
@@ -54,7 +55,7 @@ function LogContents(): JSX.Element {
           <li>時刻、処理の種類</li>
           <li>タブ・グループ・ウィンドウの ID、件数</li>
           <li>エラーの内容</li>
-          <li>拡張機能とブラウザのバージョン</li>
+          <li>拡張機能のバージョン、ブラウザの種類とバージョン</li>
         </ul>
       </div>
       <div>

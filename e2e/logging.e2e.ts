@@ -110,7 +110,16 @@ test.describe("ログの書き出しと消去", () => {
     const download = await downloading;
     expect(download.suggestedFilename()).toMatch(/^tabherd-logs-\d{8}-\d{6}\.json$/u);
     const exported: unknown = JSON.parse(await readFile(await download.path(), "utf8"));
-    expect(exported).toMatchObject({ extensionVersion: expect.any(String), logs: [entry] });
+    expect(exported).toMatchObject({
+      extensionVersion: expect.any(String),
+      // Chromium の拡張機能のページでは User-Agent Client Hints が使え、User-Agent に戻らない
+      browser: {
+        brand: expect.any(String),
+        version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/u),
+        source: "userAgentData",
+      },
+      logs: [entry],
+    });
 
     await page.getByRole("button", { name: "ログを消去" }).click();
     await expect(page.getByText("保存されたログ：0 件")).toBeVisible();

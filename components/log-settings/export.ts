@@ -1,10 +1,11 @@
 import type { StoredLogEntry } from "../../utils/logging/storage";
+import type { BrowserInfo } from "./browser";
 
 /** 書き出すログのファイルの中身 */
 export interface LogExport {
   extensionVersion: string;
-  /** Chrome の版。User-Agent の全体は OS も含むため、版だけを入れる */
-  browserVersion: string | null;
+  /** ブラウザの種類とバージョン。読めなければ null */
+  browser: BrowserInfo | null;
   /** ISO 8601 の日時 */
   exportedAt: string;
   logs: readonly StoredLogEntry[];
@@ -12,13 +13,8 @@ export interface LogExport {
 
 export interface LogExportEnvironment {
   extensionVersion: string;
-  userAgent: string;
+  browser: BrowserInfo | null;
   now: Date;
-}
-
-/** User-Agent から Chrome の版を取り出す。見つからなければ null */
-export function parseBrowserVersion(userAgent: string): string | null {
-  return /\bChrome\/(?<version>[\d.]+)/u.exec(userAgent)?.groups?.["version"] ?? null;
 }
 
 function pad(value: number): string {
@@ -34,11 +30,11 @@ function fileNameStamp(date: Date): string {
 /** 書き出すログのファイルの名前と中身を組み立てる */
 export function buildLogExport(
   logs: readonly StoredLogEntry[],
-  { extensionVersion, userAgent, now }: LogExportEnvironment,
+  { extensionVersion, browser, now }: LogExportEnvironment,
 ): { fileName: string; content: string } {
   const data: LogExport = {
     extensionVersion,
-    browserVersion: parseBrowserVersion(userAgent),
+    browser,
     exportedAt: now.toISOString(),
     logs,
   };
