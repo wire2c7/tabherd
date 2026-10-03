@@ -2,17 +2,15 @@ import { resetSync } from "@logtape/logtape";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
-import { restoreMocksAfterTest } from "../testing/mocks";
 import { configureLogging, getAppLogger } from "./setup";
 import { logsItem } from "./storage";
 
 /**
- * fake-browser を初期化し、テストの終わりに console のモックとロガーの設定を戻すよう登録する（テストが失敗しても戻す）。
+ * fake-browser を初期化し、テストの終わりにロガーの設定を戻すよう登録する（テストが失敗しても戻す）。
  * configureSync は設定済みだと例外を投げるため、ロガーを設定するテストの最初に呼ぶ
  */
 function prepare(): void {
   fakeBrowser.reset();
-  restoreMocksAfterTest();
   onTestFinished(() => {
     resetSync();
   });

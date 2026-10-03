@@ -3,7 +3,6 @@ import { fakeBrowser } from "wxt/testing/fake-browser";
 
 import type { StoredLogEntry } from "../../utils/logging/storage";
 import { logsItem } from "../../utils/logging/storage";
-import { restoreMocksAfterTest } from "../../utils/testing/mocks";
 import type { StoredLogCount } from "./count";
 import { canClearLogs, watchStoredLogCount } from "./count";
 
@@ -47,7 +46,6 @@ describe("保存したログの件数", () => {
     fakeBrowser.reset();
     // 最初の読み込みが、保存より前の値（0 件）を読んだまま止まるようにする
     const reading = Promise.withResolvers<StoredLogEntry[]>();
-    restoreMocksAfterTest();
     vi.spyOn(logsItem, "getValue").mockReturnValueOnce(reading.promise);
     const counts = watchCounts();
 
@@ -64,7 +62,6 @@ describe("保存したログの件数", () => {
   it("読み込みの途中で購読をやめたら、読み込んだ件数を渡さない", async () => {
     fakeBrowser.reset();
     const reading = Promise.withResolvers<StoredLogEntry[]>();
-    restoreMocksAfterTest();
     vi.spyOn(logsItem, "getValue").mockReturnValueOnce(reading.promise);
     const listener = vi.fn<(count: StoredLogCount) => void>();
     const unwatch = watchStoredLogCount(listener);
@@ -80,7 +77,6 @@ describe("保存したログの件数", () => {
 describe("保存したログの件数の読み込みの失敗", () => {
   it("最初の読み込みに失敗したら、失敗を渡す", async () => {
     fakeBrowser.reset();
-    restoreMocksAfterTest();
     vi.spyOn(console, "error").mockReturnValue();
     vi.spyOn(logsItem, "getValue").mockRejectedValueOnce(new Error("v1 migration failed"));
     const counts = watchCounts();

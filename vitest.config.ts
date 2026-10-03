@@ -11,5 +11,7 @@ export default defineConfig({
       // E2E のテストは Playwright で実行する（ファイル名は *.e2e.ts で既定の対象と重ならないが、設定ファイル等を拾わないよう除く）
       "e2e/**",
     ],
+    // vi.spyOn のモックを各テストの前に戻す。前のテストが途中で失敗しても、そのモックが後のテストに残らない
+    restoreMocks: true,
   },
 });
