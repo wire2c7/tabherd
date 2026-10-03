@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import type { StoredLogEntry } from "../utils/logging/storage";
-import { expect, rule, test } from "./fixtures";
+import { expect, rule, test } from "./logging-fixtures";
 
 // テストの名前は openspec/specs/diagnostic-logging/spec.md の Requirement（describe）と Scenario（test）に対応させる
 
@@ -18,14 +18,7 @@ const UNCAUGHT_ERROR_LOGS = [/捕捉されない(?:エラー| Promise の拒否)
 test.describe("エラー時のログの保存", () => {
   test.use({ expectedErrors: UNCAUGHT_ERROR_LOGS });
 
-  test("捕捉されないエラー（Promise の拒否）", async ({ serviceWorker, setRules, groupOf, openTab }) => {
-    async function storedLogs(): Promise<StoredLogEntry[]> {
-      return serviceWorker.evaluate(async () => {
-        const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
-        return logs ?? [];
-      });
-    }
-
+  test("捕捉されないエラー（Promise の拒否）", async ({ serviceWorker, setRules, storedLogs, groupOf, openTab }) => {
     await setRules([dev]);
     await openTab("/dev/secret-path");
     await expect.poll(async () => groupOf("/dev/secret-path")).toMatchObject({ title: "開発" });
@@ -58,7 +51,7 @@ test.describe("エラー時のログの保存", () => {
     }
   });
 
-  test("捕捉されないエラー（例外）", async ({ serviceWorker }) => {
+  test("捕捉されないエラー（例外）", async ({ serviceWorker, storedLogs }) => {
     await serviceWorker.evaluate((message) => {
       // evaluate の中で投げると Playwright が受け取るため、タイマーの中で投げる
       setTimeout(() => {
@@ -67,12 +60,10 @@ test.describe("エラー時のログの保存", () => {
     }, UNCAUGHT_MESSAGE);
 
     await expect
-      .poll(async () =>
-        serviceWorker.evaluate(async () => {
-          const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
-          return logs?.at(-1);
-        }),
-      )
+      .poll(async () => {
+        const logs = await storedLogs();
+        return logs.at(-1);
+      })
       .toMatchObject({
         level: "error",
         category: "tabherd.background",
@@ -98,7 +89,7 @@ test.describe("ログの説明", () => {
 });
 
 test.describe("ログの書き出しと消去", () => {
-  test("ログを書き出して消去する", async ({ serviceWorker, openSettings }) => {
+  test("ログを書き出して消去する", async ({ setLogs, openSettings }) => {
     const entry: StoredLogEntry = {
       timestamp: "2026-10-02T01:00:00.000Z",
       level: "warning",
@@ -106,7 +97,7 @@ test.describe("ログの書き出しと消去", () => {
       message: "グループの操作に失敗しました",
       properties: {},
     };
-    await serviceWorker.evaluate(async (logs) => chrome.storage.local.set({ logs }), [entry]);
+    await setLogs([entry]);
     const page = await openSettings("options");
     await expect(page.getByText("保存されたログ：1 件")).toBeVisible();
 
@@ -139,16 +130,11 @@ test.describe("ログの消去", () => {
   test("消去の前のログが、消去の後の保存に混ざらない", async ({
     serviceWorker,
     setRules,
+    storedLogs,
     groupOf,
     openTab,
     openSettings,
   }) => {
-    async function storedLogs(): Promise<StoredLogEntry[]> {
-      return serviceWorker.evaluate(async () => {
-        const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
-        return logs ?? [];
-      });
-    }
     async function rejectInWorker(message: string): Promise<void> {
       await serviceWorker.evaluate((text) => {
         void Promise.reject(new Error(text));
@@ -197,19 +183,16 @@ test.describe("操作の失敗の表示", () => {
     await expect(page.getByRole("alert")).toHaveText("ログを保存できませんでした。もう一度お試しください。");
   });
 
-  test("ログを消去できない", async ({ serviceWorker, openSettings }) => {
-    await serviceWorker.evaluate(
-      async (logs) => chrome.storage.local.set({ logs }),
-      [
-        {
-          timestamp: "2026-10-02T01:00:00.000Z",
-          level: "error",
-          category: "tabherd.grouping",
-          message: "グループの操作に失敗しました",
-          properties: {},
-        } satisfies StoredLogEntry,
-      ],
-    );
+  test("ログを消去できない", async ({ setLogs, openSettings }) => {
+    await setLogs([
+      {
+        timestamp: "2026-10-02T01:00:00.000Z",
+        level: "error",
+        category: "tabherd.grouping",
+        message: "グループの操作に失敗しました",
+        properties: {},
+      },
+    ]);
     const page = await openSettings("options");
     await expect(page.getByText("保存されたログ：1 件")).toBeVisible();
     await page.evaluate(() => {
