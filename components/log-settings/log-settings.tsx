@@ -4,7 +4,7 @@ import { browser } from "wxt/browser";
 
 import type { LogsRequest, LogsResponse } from "../../utils/logging/messages";
 import { requestLogs } from "../../utils/logging/messages";
-import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
+import { MAX_STORED_LOGS, readStoredLogs } from "../../utils/logging/storage";
 import { detectBrowser } from "./browser";
 import type { StoredLogCount } from "./count";
 import { canClearLogs, watchStoredLogCount } from "./count";
@@ -66,7 +66,7 @@ async function exportLogs(): Promise<void> {
   if (!settled.ok) {
     console.warn("保存の途中のログを待てませんでした", settled.error);
   }
-  const { fileName, content } = buildLogExport(await logsItem.getValue(), {
+  const { fileName, content } = buildLogExport(await readStoredLogs(), {
     extensionVersion: browser.runtime.getManifest().version,
     browser: await detectBrowser(navigator),
     now: new Date(),

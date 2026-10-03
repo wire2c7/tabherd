@@ -1,10 +1,10 @@
-import { logsItem } from "../../utils/logging/storage";
+import { isStoredLogs, logsItem, readStoredLogs } from "../../utils/logging/storage";
 
 /** 端末に保存したログの件数の状態 */
 export type StoredLogCount =
   | { status: "loading" }
   | { status: "loaded"; count: number }
-  /** 最初の読み込みに失敗し、その後に変更の通知もまだ来ていない */
+  /** 読み込みに失敗したか、保存した値が壊れている（配列でない） */
   | { status: "failed" };
 
 /**
@@ -15,13 +15,13 @@ export type StoredLogCount =
 export function watchStoredLogCount(listener: (state: StoredLogCount) => void): () => void {
   /** 読み込みの結果を listener に渡すか。変更の通知が来たら、または購読をやめたら渡さない */
   let shouldPassLoaded = true;
-  const unwatch = logsItem.watch((logs) => {
+  const unwatch = logsItem.watch((logs: unknown) => {
     shouldPassLoaded = false;
-    listener({ status: "loaded", count: logs.length });
+    listener(isStoredLogs(logs) ? { status: "loaded", count: logs.length } : { status: "failed" });
   });
   async function load(): Promise<void> {
     try {
-      const logs = await logsItem.getValue();
+      const logs = await readStoredLogs();
       if (shouldPassLoaded) {
         listener({ status: "loaded", count: logs.length });
       }

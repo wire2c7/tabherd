@@ -92,6 +92,30 @@ describe("保存したログの件数の読み込みの失敗", () => {
   });
 });
 
+describe("壊れた保存データの件数", () => {
+  it("保存した値が配列でなければ、読み込みの失敗を渡す", async () => {
+    fakeBrowser.reset();
+    vi.spyOn(console, "error").mockReturnValue();
+    await fakeBrowser.storage.local.set({ logs: { broken: true } });
+    const counts = watchCounts();
+    await vi.waitFor(() => {
+      expect(counts).toStrictEqual([{ status: "failed" }]);
+    });
+  });
+
+  it("配列でない値に変わったら、読み込みの失敗を渡す", async () => {
+    fakeBrowser.reset();
+    const counts = watchCounts();
+    await vi.waitFor(() => {
+      expect(counts).toStrictEqual([loaded(0)]);
+    });
+    await fakeBrowser.storage.local.set({ logs: { broken: true } });
+    await vi.waitFor(() => {
+      expect(counts).toStrictEqual([loaded(0), { status: "failed" }]);
+    });
+  });
+});
+
 describe("「ログを消去」を押せるか", () => {
   it.each<[string, StoredLogCount, boolean]>([
     ["読み込み中", { status: "loading" }, false],
