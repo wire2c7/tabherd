@@ -37,4 +37,4 @@
 - テストが失敗しても後片付けされ、1つの失敗が後のテストに波及しない
 - `vitest` の `it` のままなので、Oxlint の vitest のルールがすべて効く
 - 補助関数を呼び忘れると後片付けされない。`vi.spyOn` を使うテストでは `restoreMocksAfterTest` を先に呼ぶ
-- Oxlint が `it.extend` を見分けるようになったら、フィクスチャに移すかを改めて判断する
+- Oxlint が `it.extend` を見分けるようになったら、フィクスチャに移すかを改めて判断する。Oxlint の対応は [oxc-project/oxc#26675](https://github.com/oxc-project/oxc/issues/26675) で追う。別のファイルから import した `it` については、oxc は元の eslint-plugin-vitest に合わせて `additionalTestBlockFunctions` で対処する方針を示している（[oxc-project/oxc#21844](https://github.com/oxc-project/oxc/issues/21844)）
