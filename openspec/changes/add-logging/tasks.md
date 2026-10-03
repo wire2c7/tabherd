@@ -24,11 +24,11 @@
 
 ## 5. 消去の競合の解消
 
-- [ ] 5.1 端末への書き込みを追記と消去の待ち行列（FIFO）にし、消去の前に受け取ったログが消え、後のログが残ることを単体テストで確かめる。バッファに溜めたログを捨てる口も足し、単体テストで確かめる
-- [ ] 5.2 オプションページの「ログを消去」を background へのメッセージにし、background が待ち行列に消去を入れる。既存の E2E テスト（書き出しと消去）が通ることを確かめる
+- [x] 5.1 端末への書き込みを追記と消去の待ち行列（FIFO）にし、消去の前に受け取ったログが消え、後のログが残ることを単体テストで確かめる。バッファに溜めたログを捨てる口も足し、単体テストで確かめる
+- [x] 5.2 オプションページの「ログを消去」を background へのメッセージにし、background が待ち行列に消去を入れる。既存の E2E テスト（書き出しと消去）が通ることを確かめる
 
 ## 6. 全体の確認
 
-- [ ] 6.1 `pnpm build` した拡張機能の Service Worker で捕捉されないエラーをわざと起こし、エラーと直前のタブの判定のログが保存され、URL・グループ名が含まれないことを E2E テスト（`e2e/logging.e2e.ts`）で確かめる。グループの操作は実際のブラウザでは決まった形で失敗させられないため、操作の失敗のログは単体テスト（`utils/grouping/regroup.test.ts`）で確かめる
-- [ ] 6.2 `pnpm typecheck`・`pnpm lint`・`pnpm test`・`nix develop .#e2e --command pnpm e2e`・`prek run --all-files`・`nix flake check` が通ることを確かめる
-- [ ] 6.3 design.md の記述が実装と食い違っていないかを確かめ、食い違いは実装を正として design.md を直す
+- [x] 6.1 `pnpm build` した拡張機能の Service Worker で捕捉されないエラーをわざと起こし、エラーと直前のタブの判定のログが保存され、URL・グループ名が含まれないことを E2E テスト（`e2e/logging.e2e.ts`）で確かめる。グループの操作は実際のブラウザでは決まった形で失敗させられないため、操作の失敗のログは単体テスト（`utils/grouping/regroup.test.ts`）で確かめる
+- [x] 6.2 `pnpm typecheck`・`pnpm lint`・`pnpm test`・`nix develop .#e2e --command pnpm e2e`・`prek run --all-files`・`nix flake check` が通ることを確かめる
+- [x] 6.3 design.md の記述が実装と食い違っていないかを確かめ、食い違いは実装を正として design.md を直す

@@ -42,7 +42,7 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
 - 保存する値は `storage.defineItem<StoredLogEntry[]>("local:logs")` に置く。1件は `{ timestamp, level, category, message, properties }` の JSON にする
   - `message` は LogTape のメッセージのテンプレートに値を埋めた文字列
   - `properties` の `Error` は `{ name, message, stack }` に変える（`JSON.stringify` では `Error` が `{}` になるため）
-- sink は同期で呼ばれるため、受け取ったログをその場で `StoredLogEntry` に変えて溜め、Promise の連鎖で順に「読む → 末尾に足す → 直近 500 件に切る → 書く」を行う。保存に失敗したら `console.error` に出す（ロガーに出すと自分自身へ戻るため）
+- sink は同期で呼ばれるため、受け取ったログをその場で `StoredLogEntry` に変えて溜め、次の待ち行列で順に「読む → 末尾に足す → 直近 500 件に切る → 書く」を行う。保存に失敗したら `console.error` に出す（ロガーに出すと自分自身へ戻るため）
 - 端末への書き込みは、background の1本の待ち行列（FIFO）で、受け取った順に1つずつ行う。待ち行列の中身は「追記」と「消去」で、追記は、待ち行列の末尾にまだ実行していない追記があればそこへまとめる。消去を挟んだ後のログは、消去より前の追記にまとめない
 
 ### 消去
