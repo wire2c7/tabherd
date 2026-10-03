@@ -46,7 +46,8 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
 
 - 保存する値は `storage.defineItem<StoredLogEntry[]>("local:logs")` に置く。1件は `{ timestamp, level, category, message, properties }` の JSON にする
   - `message` は LogTape のメッセージのテンプレートに値を埋めた文字列
-  - `properties` の `Error` は `{ name, message, stack }` に変える（`JSON.stringify` では `Error` が `{}` になるため）
+  - `properties` の `Error` は `{ name, message, stack, cause, errors }` に変える（`JSON.stringify` では `Error` が `{}` になるため）。`cause` は原因の例外（WXT の storage の `MigrationError` 等が持つ）、`errors` は `AggregateError` がまとめた例外で、入れ子の `Error` も同じ形にする
+  - 循環している参照は `"[循環参照]"` に置き換える。`JSON.stringify` が例外を投げると値全体が文字列になり、外側のエラーのスタックトレースまで失うため。同じ値を2か所から参照しているだけなら置き換えない
 - 端末への書き込み（`utils/logging/log-writer.ts`）は、バッファから `StoredLogEntry` を同期で受け取り、次の待ち行列で順に「読む → 末尾に足す → 直近 500 件に切る → 書く」を行う。保存に失敗したら `console.error` に出す（ロガーに出すと自分自身へ戻るため）
 - 端末への書き込みは、background の1本の待ち行列（FIFO）で、受け取った順に1つずつ行う。待ち行列の中身は「追記」と「消去」で、追記は、待ち行列の末尾にまだ実行していない追記があればそこへまとめる。消去を挟んだ後のログは、消去より前の追記にまとめない
 
@@ -62,7 +63,7 @@ LogTape の `fingersCrossed` は、一度発動すると、それ以降のログ
 
 ### 記録する情報の範囲
 
-ログを出す側で、ID・件数・処理の種類・エラーだけを渡す。グループの操作（`GroupOperation`）は、`title`・`color` を除いた `{ type, groupId, windowId, tabIds, index }` の形にしてから渡す。端末への保存の段階では内容を検査しない。検査で URL らしい文字列を取り除いても、グループ名等は見分けられないため。
+ログを出す側で、ID・件数・処理の種類・エラーだけを渡す。グループの操作（`GroupOperation`）は、操作の種類ごとにログに出すフィールド（`type` と、ID・位置）を決め、そのフィールドだけを写してから渡す（`toLoggedOperation`）。`title`・`color` を除く形にすると、操作の型に後からフィールドが足されたときに、そのままログに出るため。端末への保存の段階では内容を検査しない。検査で URL らしい文字列を取り除いても、グループ名等は見分けられないため。
 
 代わりに、グループ名・URL を含む入力で失敗する操作を実行し、出たログにそれらが含まれないことを単体テストで確かめる。実際のブラウザでは、捕捉されないエラーを起こして保存されたログに URL・グループ名が無いことを E2E テストで確かめる。E2E の fixture は Service Worker の console の error を失敗として扱うため、わざと起こすエラーは `expectedErrors` で除く
 
