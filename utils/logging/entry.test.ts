@@ -1,7 +1,7 @@
 import type { LogRecord } from "@logtape/logtape";
 import { describe, expect, it } from "vitest";
 
-import { toJsonValue, toStoredLogEntry } from "./entry";
+import { UNSERIALIZABLE_VALUE, toJsonValue, toStoredLogEntry } from "./entry";
 
 function record(overrides: Partial<LogRecord>): LogRecord {
   return {
@@ -60,5 +60,13 @@ describe("値を JSON にできる形に変える", () => {
     const value: Record<string, unknown> = {};
     value["self"] = value;
     expect(toJsonValue(value)).toBe("[object Object]");
+  });
+
+  it("文字列にもできない値は、例外を投げずに代わりの文字列にする", () => {
+    // プロトタイプの無い、循環するオブジェクトは JSON.stringify・String のどちらも例外を投げる
+    const value: Record<string, unknown> = {};
+    Object.setPrototypeOf(value, null);
+    value["self"] = value;
+    expect(toJsonValue(value)).toBe(UNSERIALIZABLE_VALUE);
   });
 });

@@ -10,14 +10,25 @@ function replaceError(_key: string, value: unknown): unknown {
   return value;
 }
 
-/** 値を JSON にできる形に変える。変えられない値（循環する参照等）は文字列にする */
+/** 文字列にもできない値の代わりに保存する文字列 */
+export const UNSERIALIZABLE_VALUE = "[ログに記録できない値]";
+
+/**
+ * 値を JSON にできる形に変える。変えられない値（循環する参照等）は文字列にする。
+ * 1件の変換の失敗で、一緒に保存するログやエラー本体を失わないよう、例外を投げない
+ */
 export function toJsonValue(value: unknown): unknown {
   try {
     const json = JSON.stringify(value, replaceError);
     // undefined・関数は JSON.stringify が undefined を返す
     return json === undefined ? null : JSON.parse(json);
   } catch {
-    return String(value);
+    try {
+      return String(value);
+    } catch {
+      // プロトタイプの無いオブジェクト等は String でも例外を投げる
+      return UNSERIALIZABLE_VALUE;
+    }
   }
 }
 
