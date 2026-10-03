@@ -2,7 +2,8 @@ import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { browser } from "wxt/browser";
 
-import { requestClearLogs } from "../../utils/logging/messages";
+import type { LogsRequest, LogsResponse } from "../../utils/logging/messages";
+import { requestLogs } from "../../utils/logging/messages";
 import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
 import { detectBrowser } from "./browser";
 import type { StoredLogCount } from "./count";
@@ -54,7 +55,17 @@ function download(fileName: string, content: string): void {
   }, REVOKE_DELAY_MS);
 }
 
+/** background にログについての依頼を送る */
+async function sendLogsRequest(type: LogsRequest["type"]): Promise<LogsResponse> {
+  return requestLogs(async (message) => browser.runtime.sendMessage(message), type);
+}
+
 async function exportLogs(): Promise<void> {
+  // background が保存の途中のログを書き終えてから読む。待てなくても、保存済みのログは書き出せるため続ける
+  const settled = await sendLogsRequest("settle-logs");
+  if (!settled.ok) {
+    console.warn("保存の途中のログを待てませんでした", settled.error);
+  }
   const { fileName, content } = buildLogExport(await logsItem.getValue(), {
     extensionVersion: browser.runtime.getManifest().version,
     browser: await detectBrowser(navigator),
@@ -117,7 +128,7 @@ function useLogOperations(): {
     setPending("clear");
     setFailure(null);
     // background の保存と同時に直接消すと、保存が消去の前の値を書き戻すため、保存と同じ待ち行列で消してもらう
-    const response = await requestClearLogs(async (message) => browser.runtime.sendMessage(message));
+    const response = await sendLogsRequest("clear-logs");
     setPending(null);
     if (!response.ok) {
       console.error("ログを消去できませんでした", response.error);
