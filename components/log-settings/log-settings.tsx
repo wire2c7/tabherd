@@ -5,6 +5,7 @@ import { browser } from "wxt/browser";
 import { requestClearLogs } from "../../utils/logging/messages";
 import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
 import { detectBrowser } from "./browser";
+import { watchStoredLogCount } from "./count";
 import { buildLogExport } from "./export";
 
 import "./log-settings.css";
@@ -12,17 +13,7 @@ import "./log-settings.css";
 /** 端末に保存したログの件数。読み込みが終わるまでは null */
 function useStoredLogCount(): number | null {
   const [count, setCount] = useState<number | null>(null);
-  useEffect(() => {
-    const unwatch = logsItem.watch((logs) => {
-      setCount(logs.length);
-    });
-    async function load(): Promise<void> {
-      const logs = await logsItem.getValue();
-      setCount(logs.length);
-    }
-    void load();
-    return unwatch;
-  }, []);
+  useEffect(() => watchStoredLogCount(setCount), []);
   return count;
 }
 
