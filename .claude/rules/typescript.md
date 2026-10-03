@@ -27,6 +27,10 @@ paths:
 - 違反はコードを直して解消する。どうしても無効化コメント（`// oxlint-disable-next-line <ルール名>`）を使う場合は、ルール名を指定して理由を併記する。不要になった無効化コメントはエラーになる
 - 型情報を使うルールは `.wxt/tsconfig.json` を読むため、`pnpm install`（postinstall の `wxt prepare`）の後でないと動かない
 
+## テスト
+
+- テストの中の後片付け（`vi.spyOn` のモックの復元、購読の解除等）は、テストの最後ではなく `onTestFinished` で登録する。`vi.spyOn` を使うテストでは先に `utils/testing/mocks.ts` の `restoreMocksAfterTest` を呼ぶ。`it.extend` は Oxlint が `it` をテストとして見分けなくなるため使わない（`docs/adr/0018-test-cleanup-with-on-test-finished.md`）
+
 ## 自動チェック
 
 - 型チェック: `pnpm typecheck`
