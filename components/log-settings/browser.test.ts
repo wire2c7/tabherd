@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import type { NavigatorLike } from "./browser";
 import { detectBrowser, parseBrowserFromUserAgent, pickBrowserBrand } from "./browser";
@@ -98,5 +98,13 @@ describe("ブラウザの種類とバージョンの読み取り", () => {
 
   it("どちらからも読めなければ null を返す", async () => {
     await expect(detectBrowser({ userAgent: "Mozilla/5.0 Firefox/140.0" })).resolves.toBeNull();
+  });
+});
+
+describe("user-Agent Client Hints の型", () => {
+  it("typeScript の DOM の型定義に navigator.userAgentData が無い", () => {
+    // 型定義に無いため、browser.ts で使う部分の型（NavigatorLike）を自分で定めている。
+    // このテストが型チェック（pnpm typecheck）で失敗したら、TypeScript の型定義に入ったということなので、自前の型をそちらに置き換える
+    expectTypeOf<Navigator>().not.toHaveProperty("userAgentData");
   });
 });
