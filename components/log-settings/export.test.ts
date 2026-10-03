@@ -47,7 +47,9 @@ describe("書き出すログのファイル", () => {
     expect(JSON.parse(content)).toHaveProperty("logs", []);
   });
 
-  it("ファイル名に書き出した日時を入れる", () => {
-    expect(buildLogExport([], environment).fileName).toBe("tabherd-logs-20261002-010203.json");
+  it("ファイル名に書き出した日時をローカルの時刻で入れる", () => {
+    // テストを実行する環境のタイムゾーンによらないよう、ローカルの時刻で日時を作る
+    const now = new Date(2026, 9, 2, 9, 5, 7);
+    expect(buildLogExport([], { ...environment, now }).fileName).toBe("tabherd-logs-20261002-090507.json");
   });
 });
