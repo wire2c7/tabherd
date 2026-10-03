@@ -2,34 +2,62 @@ import type { LogRecord } from "@logtape/logtape";
 
 import type { StoredLogEntry } from "./storage";
 
+/** 循環している参照の代わりに保存する文字列 */
+export const CIRCULAR_REFERENCE = "[循環参照]";
+
+/** JSON.stringify がたどっている道筋の上の値。holder は子の値を変換するときの this、source は変換する前の値 */
+interface PathEntry {
+  holder: object;
+  source: object;
+}
+
 /**
- * JSON.stringify では Error が {} になるため、名前・メッセージ・スタックトレースを残す。
- * 原因の例外（cause。WXT の storage の MigrationError 等が持つ）と、AggregateError がまとめた例外（errors）も残す。
- * 返したオブジェクトの中の値にも replaceError が呼ばれるため、入れ子の Error も同じ形になる。undefined のフィールドは JSON に出ない
+ * JSON.stringify に渡す変換を作る。
+ * - Error は {} になるため、名前・メッセージ・スタックトレースを残す。原因の例外（cause。WXT の storage の MigrationError 等が持つ）と、
+ *   AggregateError がまとめた例外（errors）も残す。返したオブジェクトの中の値も同じ変換を通るため、入れ子の Error も同じ形になる
+ * - 循環している参照は CIRCULAR_REFERENCE に置き換える。JSON.stringify が例外を投げて値全体が文字列になり、外側のエラーの情報まで失うのを防ぐ。
+ *   同じ値を2か所から参照しているだけなら循環ではないため、今たどっている道筋の上にある値だけを見る
  */
-function replaceError(_key: string, value: unknown): unknown {
-  if (value instanceof Error) {
-    return {
-      name: value.name,
-      message: value.message,
-      stack: value.stack,
-      cause: value.cause,
-      errors: value instanceof AggregateError ? value.errors : undefined,
-    };
+function createReplacer(): (this: unknown, key: string, value: unknown) => unknown {
+  const path: PathEntry[] = [];
+  function replace(this: unknown, _key: string, value: unknown): unknown {
+    if (typeof value !== "object" || value === null) {
+      return value;
+    }
+    // this は今の値を持つ親。親より深い値は、もう道筋の上にない
+    while (path.length > 0 && path.at(-1)?.holder !== this) {
+      path.pop();
+    }
+    if (path.some((entry) => entry.source === value)) {
+      return CIRCULAR_REFERENCE;
+    }
+    const replaced =
+      value instanceof Error
+        ? {
+            name: value.name,
+            message: value.message,
+            stack: value.stack,
+            // undefined のフィールドは JSON に出ない
+            cause: value.cause,
+            errors: value instanceof AggregateError ? value.errors : undefined,
+          }
+        : value;
+    path.push({ holder: replaced, source: value });
+    return replaced;
   }
-  return value;
+  return replace;
 }
 
 /** 文字列にもできない値の代わりに保存する文字列 */
 export const UNSERIALIZABLE_VALUE = "[ログに記録できない値]";
 
 /**
- * 値を JSON にできる形に変える。変えられない値（循環する参照等）は文字列にする。
+ * 値を JSON にできる形に変える。循環している参照は CIRCULAR_REFERENCE に置き換え、それでも変えられない値（BigInt 等）は文字列にする。
  * 1件の変換の失敗で、一緒に保存するログやエラー本体を失わないよう、例外を投げない
  */
 export function toJsonValue(value: unknown): unknown {
   try {
-    const json = JSON.stringify(value, replaceError);
+    const json = JSON.stringify(value, createReplacer());
     // undefined・関数は JSON.stringify が undefined を返す
     return json === undefined ? null : JSON.parse(json);
   } catch {

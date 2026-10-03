@@ -1,7 +1,7 @@
 import type { LogRecord } from "@logtape/logtape";
 import { describe, expect, it } from "vitest";
 
-import { UNSERIALIZABLE_VALUE, toJsonValue, toStoredLogEntry } from "./entry";
+import { CIRCULAR_REFERENCE, UNSERIALIZABLE_VALUE, toJsonValue, toStoredLogEntry } from "./entry";
 
 function record(overrides: Partial<LogRecord>): LogRecord {
   return {
@@ -71,6 +71,36 @@ describe("エラーの原因の保存", () => {
   });
 });
 
+describe("循環している参照", () => {
+  it("cause が自分自身を指していても、外側のエラーの情報を残す", () => {
+    const error = new Error("外側");
+    error.cause = error;
+    expect(toJsonValue(error)).toStrictEqual({
+      name: "Error",
+      message: "外側",
+      stack: error.stack,
+      cause: CIRCULAR_REFERENCE,
+    });
+  });
+
+  it("cause が循環するオブジェクトでも、循環しているところだけを置き換える", () => {
+    const cause: Record<string, unknown> = { tabId: 3 };
+    cause["self"] = cause;
+    expect(toJsonValue(new Error("外側", { cause }))).toMatchObject({
+      message: "外側",
+      cause: { tabId: 3, self: CIRCULAR_REFERENCE },
+    });
+  });
+
+  it("同じ値を2か所から参照しているだけなら、置き換えない", () => {
+    const tabIds = [1, 2];
+    expect(toJsonValue({ tabIds, operation: { tabIds } })).toStrictEqual({
+      tabIds: [1, 2],
+      operation: { tabIds: [1, 2] },
+    });
+  });
+});
+
 describe("値を JSON にできる形に変える", () => {
   it("入れ子の Error も変える", () => {
     const error = new Error("内側");
@@ -83,17 +113,14 @@ describe("値を JSON にできる形に変える", () => {
     expect(toJsonValue(() => 1)).toBeNull();
   });
 
-  it("循環する参照は文字列にする", () => {
-    const value: Record<string, unknown> = {};
-    value["self"] = value;
-    expect(toJsonValue(value)).toBe("[object Object]");
+  it("bigInt 等の JSON にできない値は文字列にする", () => {
+    expect(toJsonValue({ value: 1n })).toBe("[object Object]");
   });
 
   it("文字列にもできない値は、例外を投げずに代わりの文字列にする", () => {
-    // プロトタイプの無い、循環するオブジェクトは JSON.stringify・String のどちらも例外を投げる
-    const value: Record<string, unknown> = {};
+    // BigInt を持つ、プロトタイプの無いオブジェクトは JSON.stringify・String のどちらも例外を投げる
+    const value: Record<string, unknown> = { value: 1n };
     Object.setPrototypeOf(value, null);
-    value["self"] = value;
     expect(toJsonValue(value)).toBe(UNSERIALIZABLE_VALUE);
   });
 });
