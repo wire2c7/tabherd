@@ -9,10 +9,15 @@ const dev = rule("dev", "開発", "blue");
 
 const UNCAUGHT_MESSAGE = "E2E でわざと起こしたエラー";
 
-// わざと起こしたエラーは、リリース版でも console に error で出る
-test.use({ expectedErrors: [/捕捉されない(?:エラー| Promise の拒否)が起きました/u] });
+/**
+ * わざと捕捉されないエラーを起こしたときに、ロガーが console に error で出すメッセージ（リリース版でも出る）。
+ * わざと起こす describe の中だけで test.use に渡す。ファイル全体に渡すと、ほかのテストで起きた本物の捕捉されないエラーも見逃す
+ */
+const UNCAUGHT_ERROR_LOGS = [/捕捉されない(?:エラー| Promise の拒否)が起きました/u];
 
 test.describe("エラー時のログの保存", () => {
+  test.use({ expectedErrors: UNCAUGHT_ERROR_LOGS });
+
   test("捕捉されないエラー（Promise の拒否）", async ({ serviceWorker, setRules, groupOf, openTab }) => {
     async function storedLogs(): Promise<StoredLogEntry[]> {
       return serviceWorker.evaluate(async () => {
@@ -127,6 +132,8 @@ test.describe("ログの書き出しと消去", () => {
 });
 
 test.describe("ログの消去", () => {
+  test.use({ expectedErrors: UNCAUGHT_ERROR_LOGS });
+
   // 「保存の途中で消去する」の競合は、ブラウザの中では毎回同じタイミングで起こせないため、単体テスト（utils/logging/stored-sink.test.ts）で確かめる。
   // ここでは、消去の前のログ（保存済みのもの、メモリに溜めたもの）が、消去の後の保存に混ざらないことを確かめる
   test("消去の前のログが、消去の後の保存に混ざらない", async ({
