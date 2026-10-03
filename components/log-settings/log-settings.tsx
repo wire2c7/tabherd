@@ -17,6 +17,12 @@ function useStoredLogCount(): number | null {
   return count;
 }
 
+/**
+ * ダウンロードの後、Blob の URL を無効にするまで待つ時間（ミリ秒）。
+ * click() が返った時点でブラウザが URL を読み終えているとは限らないため、すぐには無効にしない
+ */
+const REVOKE_DELAY_MS = 60_000;
+
 /** ファイルとしてダウンロードさせる。downloads の権限を使わないよう、リンクのクリックで保存させる */
 function download(fileName: string, content: string): void {
   const url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
@@ -24,7 +30,9 @@ function download(fileName: string, content: string): void {
   link.href = url;
   link.download = fileName;
   link.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, REVOKE_DELAY_MS);
 }
 
 async function exportLogs(): Promise<void> {
