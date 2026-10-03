@@ -99,7 +99,7 @@ describe("保存したログの件数の読み込みの失敗", () => {
 describe("「ログを消去」を押せるか", () => {
   it.each<[string, StoredLogCount, boolean]>([
     ["読み込み中", { status: "loading" }, false],
-    ["0 件", { status: "loaded", count: 0 }, false],
+    ["0 件", { status: "loaded", count: 0 }, true],
     ["1 件以上", { status: "loaded", count: 1 }, true],
     ["読み込みに失敗した", { status: "failed" }, true],
   ])("%s", (_name, count, expected) => {

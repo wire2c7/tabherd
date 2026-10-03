@@ -41,16 +41,15 @@ export function watchStoredLogCount(listener: (state: StoredLogCount) => void): 
 
 /**
  * 件数の状態から、「ログを消去」を押せるかを決める。
- * 読み込み中と 0 件のときは押せない。読み込みに失敗したときは、壊れた保存データを消して戻せるよう押せる
+ * 読み込み中は押せない。0 件でも、エラーの直前の文脈として background のメモリに溜めたログを消せるよう押せる。
+ * 読み込みに失敗したときは、壊れた保存データを消して戻せるよう押せる
  */
 export function canClearLogs(count: StoredLogCount): boolean {
   switch (count.status) {
     case "loading": {
       return false;
     }
-    case "loaded": {
-      return count.count > 0;
-    }
+    case "loaded":
     case "failed": {
       return true;
     }

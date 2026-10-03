@@ -160,7 +160,8 @@ test.describe("ログの消去", () => {
     await expect.poll(async () => groupOf("/dev/before-clear")).toMatchObject({ title: "開発" });
     await rejectInWorker("消去の前のエラー");
     const page = await openSettings("options");
-    // ボタンは件数の読み込み中と 0 件のあいだ押せないため、click は消去の前のエラーの保存が終わってから押す
+    // 消去の前のエラーの保存が終わってから押す
+    await expect(page.getByText(/保存されたログ：[1-9]\d* 件/v)).toBeVisible();
     const clearedAt = new Date().toISOString();
     await page.getByRole("button", { name: "ログを消去" }).click();
     await expect(page.getByText("保存されたログ：0 件")).toBeVisible();
