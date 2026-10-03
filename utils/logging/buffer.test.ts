@@ -55,4 +55,13 @@ describe("きっかけのレベルまでログを溜める sink", () => {
     sink(record("fatal", "d"));
     expect(received).toStrictEqual(["a", "b", "c", "d"]);
   });
+
+  it("捨てたログは、次のきっかけで流さない", () => {
+    const { received, sink } = setup();
+    sink(record("debug", "a"));
+    sink.clear();
+    sink(record("debug", "b"));
+    sink(record("warning", "c"));
+    expect(received).toStrictEqual(["b", "c"]);
+  });
 });

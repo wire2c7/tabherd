@@ -58,3 +58,48 @@ describe("ログを端末に保存する sink", () => {
     consoleError.mockRestore();
   });
 });
+
+describe("ログの消去", () => {
+  it("消去の前に受け取ったログは消え、後に受け取ったログは残る", async () => {
+    fakeBrowser.reset();
+    const sink = getStoredLogSink();
+    sink(record("消去の前"));
+    const cleared = sink.clear();
+    sink(record("消去の後"));
+    await cleared;
+    await sink.settled();
+    const logs = await logsItem.getValue();
+    expect(logs.map((entry) => entry.message)).toStrictEqual(["消去の後"]);
+  });
+
+  it("保存の途中で消去しても、消したログが書き戻されない", async () => {
+    fakeBrowser.reset();
+    const sink = getStoredLogSink();
+    sink(record("保存済み"));
+    await sink.settled();
+    // 次の保存が、保存済みのログを読む途中で止まるようにする
+    const reading = Promise.withResolvers<null>();
+    const getValue = logsItem.getValue.bind(logsItem);
+    const spy = vi.spyOn(logsItem, "getValue").mockImplementationOnce(async () => {
+      await reading.promise;
+      return getValue();
+    });
+    sink(record("保存の途中"));
+    const cleared = sink.clear();
+    sink(record("消去の後"));
+    reading.resolve(null);
+    await cleared;
+    await sink.settled();
+    const logs = await logsItem.getValue();
+    expect(logs.map((entry) => entry.message)).toStrictEqual(["消去の後"]);
+    spy.mockRestore();
+  });
+
+  it("消去に失敗したら、消去の依頼が失敗する", async () => {
+    fakeBrowser.reset();
+    const removeValue = vi.spyOn(logsItem, "removeValue").mockRejectedValueOnce(new Error("容量不足"));
+    const sink = getStoredLogSink();
+    await expect(sink.clear()).rejects.toThrow("容量不足");
+    removeValue.mockRestore();
+  });
+});

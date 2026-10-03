@@ -21,16 +21,25 @@ export interface ConfigureLoggingOptions {
   dev: boolean;
 }
 
-/**
- * ロガーを設定する。設定より前に出したログは捨てられるため、起動時に同期的に呼ぶ。
- * 戻り値は、それまでに端末へ保存すると決まったログの保存が終わると解決する関数
- */
-export function configureLogging({ dev }: ConfigureLoggingOptions): () => Promise<void> {
+/** 設定したロガーの、端末に保存したログの操作 */
+export interface StoredLogs {
+  /**
+   * それまでに出たログを、保存済みのものも、エラーの直前の文脈としてメモリに溜めたものも消す。
+   * それまでの保存が終わってから消し、消し終わると解決する。後に出たログは消さない
+   */
+  clear: () => Promise<void>;
+  /** それまでに端末へ保存すると決まったログの保存・消去が終わると解決する */
+  settled: () => Promise<void>;
+}
+
+/** ロガーを設定する。設定より前に出したログは捨てられるため、起動時に同期的に呼ぶ */
+export function configureLogging({ dev }: ConfigureLoggingOptions): StoredLogs {
   const stored = getStoredLogSink();
+  const buffered = bufferUntil(stored, { triggerLevel: STORE_TRIGGER_LEVEL, maxBufferSize: CONTEXT_LOG_COUNT });
   configureSync({
     sinks: {
       console: withFilter(getConsoleSink(), dev ? "debug" : "warning"),
-      stored: bufferUntil(stored, { triggerLevel: STORE_TRIGGER_LEVEL, maxBufferSize: CONTEXT_LOG_COUNT }),
+      stored: buffered,
     },
     loggers: [
       { category: [ROOT_CATEGORY], lowestLevel: "debug", sinks: ["console", "stored"] },
@@ -38,7 +47,13 @@ export function configureLogging({ dev }: ConfigureLoggingOptions): () => Promis
       { category: ["logtape", "meta"], lowestLevel: "warning", sinks: ["console"] },
     ],
   });
-  return stored.settled;
+  return {
+    clear: async () => {
+      buffered.clear();
+      await stored.clear();
+    },
+    settled: stored.settled,
+  };
 }
 
 /**

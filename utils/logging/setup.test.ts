@@ -17,7 +17,7 @@ describe("ロガーの設定：端末への保存", () => {
     reset();
     vi.spyOn(console, "debug").mockReturnValue();
     vi.spyOn(console, "info").mockReturnValue();
-    const settled = configureLogging({ dev: true });
+    const { settled } = configureLogging({ dev: true });
     const logger = getAppLogger("grouping");
     logger.debug("判定する");
     logger.info("操作する");
@@ -28,7 +28,7 @@ describe("ロガーの設定：端末への保存", () => {
   it("警告が出たら、直前のログと一緒に端末に保存する", async () => {
     reset();
     vi.spyOn(console, "warn").mockReturnValue();
-    const settled = configureLogging({ dev: false });
+    const { settled } = configureLogging({ dev: false });
     const logger = getAppLogger("grouping");
     logger.debug("タブ {tabId} を判定する", { tabId: 3 });
     logger.warning("操作に失敗した", { error: new Error("No tab with id: 3.") });
@@ -38,6 +38,22 @@ describe("ロガーの設定：端末への保存", () => {
       ["debug", "tabherd.grouping", "タブ 3 を判定する"],
       ["warning", "tabherd.grouping", "操作に失敗した"],
     ]);
+  });
+});
+
+describe("ロガーの設定：消去", () => {
+  it("保存済みのログと、メモリに溜めた直前のログを消す", async () => {
+    reset();
+    vi.spyOn(console, "warn").mockReturnValue();
+    const { clear, settled } = configureLogging({ dev: false });
+    const logger = getAppLogger("grouping");
+    logger.warning("消去の前の警告");
+    logger.debug("消去の前の判定");
+    await clear();
+    logger.warning("消去の後の警告");
+    await settled();
+    const logs = await logsItem.getValue();
+    expect(logs.map((entry) => entry.message)).toStrictEqual(["消去の後の警告"]);
   });
 });
 
