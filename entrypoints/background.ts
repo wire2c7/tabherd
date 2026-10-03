@@ -19,7 +19,15 @@ const logger = getAppLogger("background");
 /** 拡張機能のコードが捕捉しなかったエラーをログに残す。Service Worker の最初の評価の中で登録する必要がある */
 function logUncaughtErrors(): void {
   globalThis.addEventListener("error", (event: ErrorEvent) => {
-    logger.error("捕捉されないエラーが起きました", { error: event.error });
+    // error は投げられた値そのもので、Error 以外の値や null のこともあるため、場所とメッセージも残す。
+    // filename は拡張機能自身のスクリプトの URL で、閲覧先の URL ではない
+    logger.error("捕捉されないエラーが起きました", {
+      error: event.error,
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    });
   });
   globalThis.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
     logger.error("捕捉されない Promise の拒否が起きました", { error: event.reason });

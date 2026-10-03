@@ -10,10 +10,10 @@ const dev = rule("dev", "開発", "blue");
 const UNCAUGHT_MESSAGE = "E2E でわざと起こしたエラー";
 
 // わざと起こしたエラーは、リリース版でも console に error で出る
-test.use({ expectedErrors: [/捕捉されない Promise の拒否が起きました/u] });
+test.use({ expectedErrors: [/捕捉されない(?:エラー| Promise の拒否)が起きました/u] });
 
 test.describe("エラー時のログの保存", () => {
-  test("捕捉されないエラー", async ({ serviceWorker, setRules, groupOf, openTab }) => {
+  test("捕捉されないエラー（Promise の拒否）", async ({ serviceWorker, setRules, groupOf, openTab }) => {
     async function storedLogs(): Promise<StoredLogEntry[]> {
       return serviceWorker.evaluate(async () => {
         const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
@@ -51,6 +51,32 @@ test.describe("エラー時のログの保存", () => {
     for (const secret of ["secret-path", "127.0.0.1", "開発"]) {
       expect(text).not.toContain(secret);
     }
+  });
+
+  test("捕捉されないエラー（例外）", async ({ serviceWorker }) => {
+    await serviceWorker.evaluate((message) => {
+      // evaluate の中で投げると Playwright が受け取るため、タイマーの中で投げる
+      setTimeout(() => {
+        throw new Error(message);
+      }, 0);
+    }, UNCAUGHT_MESSAGE);
+
+    await expect
+      .poll(async () =>
+        serviceWorker.evaluate(async () => {
+          const { logs } = await chrome.storage.local.get<{ logs?: StoredLogEntry[] }>("logs");
+          return logs?.at(-1);
+        }),
+      )
+      .toMatchObject({
+        level: "error",
+        category: "tabherd.background",
+        properties: {
+          error: { name: "Error", message: UNCAUGHT_MESSAGE },
+          message: expect.stringContaining(UNCAUGHT_MESSAGE),
+          lineno: expect.any(Number),
+        },
+      });
   });
 });
 
