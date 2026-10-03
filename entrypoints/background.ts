@@ -5,6 +5,7 @@ import { debounceChanges } from "../utils/grouping/debounce";
 import { applyRuleChange, regroupAllWindows, regroupTabs } from "../utils/grouping/regroup";
 import { createSerialQueue } from "../utils/grouping/serial";
 import type { ClearLogsResponse } from "../utils/logging/messages";
+import { logListenerErrors } from "../utils/logging/listener";
 import { isClearLogsMessage } from "../utils/logging/messages";
 import type { StoredLogs } from "../utils/logging/setup";
 import { configureLogging, getAppLogger } from "../utils/logging/setup";
@@ -19,7 +20,10 @@ async function regroupAll(): Promise<void> {
 
 const logger = getAppLogger("background");
 
-/** 拡張機能のコードが捕捉しなかったエラーをログに残す。Service Worker の最初の評価の中で登録する必要がある */
+/**
+ * 拡張機能のコードが捕捉しなかったエラーをログに残す。Service Worker の最初の評価の中で登録する必要がある。
+ * chrome.* のイベントのリスナーが同期的に投げた例外はここに届かないため、リスナーを logListenerErrors で包む
+ */
 function logUncaughtErrors(): void {
   globalThis.addEventListener("error", (event: ErrorEvent) => {
     // error は投げられた値そのもので、Error 以外の値や null のこともあるため、場所とメッセージも残す。
@@ -43,7 +47,8 @@ function logUncaughtErrors(): void {
  */
 function handleClearLogs(storedLogs: StoredLogs): void {
   browser.runtime.onMessage.addListener(
-    (message: unknown, sender, sendResponse: (response: ClearLogsResponse) => void) => {
+    // oxlint-disable-next-line typescript/strict-void-return -- WXT の型は void だが、Chrome は true を返したリスナーの非同期の sendResponse を待つ
+    logListenerErrors(logger, (message: unknown, sender, sendResponse: (response: ClearLogsResponse) => void) => {
       const isClearRequest = sender.id === browser.runtime.id && isClearLogsMessage(message);
       if (isClearRequest) {
         void (async () => {
@@ -57,9 +62,8 @@ function handleClearLogs(storedLogs: StoredLogs): void {
       }
       // 返事を非同期で送るときは、true を返してメッセージの経路を開けておく（Promise を返す方法は Chrome 148 からで、段階的に提供中）。
       // ほかのメッセージには返事をしない
-      // oxlint-disable-next-line typescript/strict-void-return -- WXT の型は void だが、Chrome は true を返したリスナーの非同期の sendResponse を待つ
       return isClearRequest;
-    },
+    }),
   );
 }
 
@@ -71,36 +75,52 @@ export default defineBackground(() => {
   // グループを作ってからタイトルを付けるまでに別のイベントを処理すると同名のグループが2つできるため、処理を直列にする。
   // 各処理は開始時にルールとスナップショットを読み直す
   const enqueue = createSerialQueue();
+  regroupOnEvents(enqueue);
+});
 
-  browser.runtime.onInstalled.addListener((details) => {
-    logger.info("拡張機能がインストール・更新されました（{reason}）", { reason: details.reason });
-    void enqueue(regroupAll);
-  });
-  browser.runtime.onStartup.addListener(() => {
-    logger.info("ブラウザが起動しました");
-    void enqueue(regroupAll);
-  });
+/** タブ・ルールの変更や起動のイベントを受け、グループを作り直す処理を enqueue に積む */
+function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
+  browser.runtime.onInstalled.addListener(
+    logListenerErrors(logger, (details) => {
+      logger.info("拡張機能がインストール・更新されました（{reason}）", { reason: details.reason });
+      void enqueue(regroupAll);
+    }),
+  );
+  browser.runtime.onStartup.addListener(
+    logListenerErrors(logger, () => {
+      logger.info("ブラウザが起動しました");
+      void enqueue(regroupAll);
+    }),
+  );
 
   // 手で管理対象のグループへ入れた・外したタブを関係ないイベントで戻さないよう、イベントのタブだけを判定する。
   // 新しいタブも URL が決まった時点で onUpdated が来るため、onCreated は購読しない
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url !== undefined) {
-      logger.debug("タブ {tabId} の URL が変わりました", { tabId, windowId: tab.windowId });
-      void enqueue(async () => regroupTabs(await rulesItem.getValue(), tab.windowId, [tabId]));
-    }
-  });
-  browser.tabs.onAttached.addListener((tabId, attachInfo) => {
-    logger.debug("タブ {tabId} がウィンドウ {windowId} へ移りました", { tabId, windowId: attachInfo.newWindowId });
-    void enqueue(async () => regroupTabs(await rulesItem.getValue(), attachInfo.newWindowId, [tabId]));
-  });
-
-  rulesItem.watch(
-    debounceChanges(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
-      logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
-        oldCount: oldRules.length,
-        newCount: newRules.length,
-      });
-      void enqueue(async () => applyRuleChange(oldRules, newRules));
+  browser.tabs.onUpdated.addListener(
+    logListenerErrors(logger, (tabId, changeInfo, tab) => {
+      if (changeInfo.url !== undefined) {
+        logger.debug("タブ {tabId} の URL が変わりました", { tabId, windowId: tab.windowId });
+        void enqueue(async () => regroupTabs(await rulesItem.getValue(), tab.windowId, [tabId]));
+      }
     }),
   );
-});
+  browser.tabs.onAttached.addListener(
+    logListenerErrors(logger, (tabId, attachInfo) => {
+      logger.debug("タブ {tabId} がウィンドウ {windowId} へ移りました", { tabId, windowId: attachInfo.newWindowId });
+      void enqueue(async () => regroupTabs(await rulesItem.getValue(), attachInfo.newWindowId, [tabId]));
+    }),
+  );
+
+  // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる
+  rulesItem.watch(
+    logListenerErrors(
+      logger,
+      debounceChanges(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
+        logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
+          oldCount: oldRules.length,
+          newCount: newRules.length,
+        });
+        void enqueue(async () => applyRuleChange(oldRules, newRules));
+      }),
+    ),
+  );
+}
