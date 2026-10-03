@@ -5,16 +5,35 @@ import { browser } from "wxt/browser";
 import { requestClearLogs } from "../../utils/logging/messages";
 import { MAX_STORED_LOGS, logsItem } from "../../utils/logging/storage";
 import { detectBrowser } from "./browser";
+import type { StoredLogCount } from "./count";
 import { watchStoredLogCount } from "./count";
 import { buildLogExport } from "./export";
 
 import "./log-settings.css";
 
-/** 端末に保存したログの件数。読み込みが終わるまでは null */
-function useStoredLogCount(): number | null {
-  const [count, setCount] = useState<number | null>(null);
+/** 端末に保存したログの件数の状態 */
+function useStoredLogCount(): StoredLogCount {
+  const [count, setCount] = useState<StoredLogCount>({ status: "loading" });
   useEffect(() => watchStoredLogCount(setCount), []);
   return count;
+}
+
+/** 件数の状態の表示 */
+function describeCount(count: StoredLogCount): string {
+  switch (count.status) {
+    case "loading": {
+      return "読み込み中…";
+    }
+    case "loaded": {
+      return `保存されたログ：${count.count} 件`;
+    }
+    case "failed": {
+      return "保存されたログの件数を読み込めませんでした";
+    }
+    default: {
+      return count satisfies never;
+    }
+  }
 }
 
 /**
@@ -117,15 +136,15 @@ function LogActions(): JSX.Element {
       <button
         type="button"
         class="danger"
-        disabled={count === 0}
+        disabled={count.status === "loaded" && count.count === 0}
         onClick={() => {
           void handleClear();
         }}
       >
         ログを消去
       </button>
-      <span class="hint" aria-live="polite">
-        {count === null ? "読み込み中…" : `保存されたログ：${count} 件`}
+      <span class={count.status === "failed" ? "error" : "hint"} aria-live="polite">
+        {describeCount(count)}
       </span>
       {failure !== null && (
         <span class="error" role="alert">
