@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@fission-ai/openspec": "1.13.2",
-    "@playwright/mcp": "0.0.82",
+    "@playwright/mcp": "0.0.83",
     "@playwright/test": "1.63.0",
     "@types/node": "24.13.6",
     "fast-check": "4.10.2",
