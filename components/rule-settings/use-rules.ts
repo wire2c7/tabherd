@@ -12,7 +12,7 @@ export type RulesUpdater = (rules: readonly Rule[]) => Rule[];
 export interface RulesState {
   /** 保存されたルールの一覧。壊れた箇所は直してある。読み込みが終わるまでは null */
   rules: readonly Rule[] | null;
-  /** 表示している一覧が、壊れた保存値を直したものか。変更して保存すると false になる */
+  /** 表示している一覧が、壊れた保存値を直したものか。変更して保存し終えると false になる */
   isDamaged: boolean;
   /** 一覧を変更して即座に保存する */
   update: (updater: RulesUpdater) => void;
@@ -62,20 +62,26 @@ export function useRules(): RulesState {
     const next = updater(latestRef.current);
     latestRef.current = next;
     setRules(next);
-    setIsDamaged(false);
-    void saveRules(next, pendingWritesRef);
+    void (async () => {
+      // 保存できなければ、ストレージには壊れた値が残っているため、警告を消さない
+      if (await saveRules(next, pendingWritesRef)) {
+        setIsDamaged(false);
+      }
+    })();
   }, []);
 
   return { rules, isDamaged, update };
 }
 
-/** ルールの一覧を保存する。保存が終わるまで pendingWrites を増やしておく */
-async function saveRules(rules: Rule[], pendingWrites: MutableRef<number>): Promise<void> {
+/** ルールの一覧を保存し、保存できたかを返す。保存が終わるまで pendingWrites を増やしておく */
+async function saveRules(rules: Rule[], pendingWrites: MutableRef<number>): Promise<boolean> {
   pendingWrites.current += 1;
   try {
     await writeRules(rules);
+    return true;
   } catch (error) {
     console.error("ルールを保存できませんでした", error);
+    return false;
   } finally {
     pendingWrites.current -= 1;
   }
