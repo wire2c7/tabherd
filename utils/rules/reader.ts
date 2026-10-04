@@ -1,7 +1,7 @@
 import type { Logger } from "@logtape/logtape";
 
 import type { ParsedRules } from "./parse";
-import { readRules, watchRules } from "./storage";
+import { readRules, watchRuleChanges } from "./storage";
 import type { Rule } from "./types";
 
 /** バックグラウンドの処理が使う、ルールの一覧の読み込みと購読 */
@@ -35,6 +35,6 @@ export function createRulesReader(logger: Logger): RulesReader {
   return {
     read: async () => usable(await readRules()),
     // 警告は今の保存値についてだけ出す
-    watch: (listener) => watchRules((newRules, oldRules) => listener(usable(newRules), oldRules.rules)),
+    watch: (listener) => watchRuleChanges((newRules, oldRules) => listener(usable(newRules), oldRules.rules)),
   };
 }

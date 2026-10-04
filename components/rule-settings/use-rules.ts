@@ -2,7 +2,7 @@ import type { MutableRef } from "preact/hooks";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 
 import type { ParsedRules } from "../../utils/rules/parse";
-import { readRules, rulesItem, watchRules } from "../../utils/rules/storage";
+import { readRules, watchRules, writeRules } from "../../utils/rules/storage";
 import type { Rule } from "../../utils/rules/types";
 
 /** ルールの一覧を変更する関数。今の一覧を受け取り、新しい一覧を返す */
@@ -73,7 +73,7 @@ export function useRules(): RulesState {
 async function saveRules(rules: Rule[], pendingWrites: MutableRef<number>): Promise<void> {
   pendingWrites.current += 1;
   try {
-    await rulesItem.setValue(rules);
+    await writeRules(rules);
   } catch (error) {
     console.error("ルールを保存できませんでした", error);
   } finally {
