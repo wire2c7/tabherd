@@ -29,7 +29,7 @@ paths:
 
 ## テスト
 
-- テストの中の後片付け（購読の解除、ロガーの設定の復元等）は、テストの最後ではなく `onTestFinished` で登録する。`vi.spyOn` のモックは `vitest.config.ts` の `restoreMocks: true` が各テストの前に戻すため、自分では戻さない。偽のタイマーは `vi.useFakeTimers` ではなく `utils/testing/mocks.ts` の `useFakeTimersInTest` で使う。`it.extend` は Oxlint が `it` をテストとして見分けなくなるため使わない（`docs/adr/0018-test-cleanup-with-on-test-finished.md`）
+- テストの中の後片付け（購読の解除、ロガーの設定の復元等）は `onTestFinished` で登録する。`vi.spyOn` のモックは設定（`vitest.config.ts`）で戻るため、自分では戻さない。偽のタイマーは `utils/testing/mocks.ts` の `useFakeTimersInTest` で使う。`it.extend` は使わない（理由は `docs/adr/0018-test-cleanup-with-on-test-finished.md`）
 
 ## 自動チェック
 
