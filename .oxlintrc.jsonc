@@ -194,5 +194,122 @@
         "vitest/prefer-expect-assertions": "off",
       },
     },
+    // --- ディレクトリごとに import できるもの（docs/adr/0021-isolate-framework-dependencies.md） ---
+    // group は gitignore 形式で、許可するものを「!」で除き、その後に禁じるディレクトリを並べる。
+    // 先読み（(?!…)）の regex は、Oxlint では何も検出しない（エラーも出ない）ため使わない。
+    // overrides は後のものが同じルールの設定を置き換えるため、テストの設定はディレクトリの設定より後に書く
+    {
+      "files": ["entrypoints/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "regex": "^[@~](/|$)", "message": "パスのエイリアスは使わず、相対パスで import してください" },
+              { "group": ["@logtape/*"], "message": "LogTape は utils/logging/setup.ts だけで使います" },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      "files": ["components/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["*", "!./**", "!../**", "!valibot", "!preact", "!preact/*", "**/entrypoints/**"],
+                "message": "components/ が import できる外部パッケージは preact・valibot だけで、entrypoints/ は import しません",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      "files": ["utils/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["*", "!./**", "!../**", "!valibot", "**/components/**", "**/entrypoints/**"],
+                "message": "utils/ が import できる外部パッケージは valibot だけで、components/・entrypoints/ は import しません",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      // ロガーの実装（LogTape）を使うのはここだけにする
+      "files": ["utils/logging/setup.ts"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "*",
+                  "!./**",
+                  "!../**",
+                  "!valibot",
+                  "!@logtape/logtape",
+                  "**/components/**",
+                  "**/entrypoints/**",
+                ],
+                "message": "utils/logging/setup.ts が import できる外部パッケージは valibot・@logtape/logtape だけです",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      "files": ["components/**/*.test.ts", "components/**/*.test.tsx"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["*", "!./**", "!../**", "!valibot", "!preact", "!preact/*", "!vitest", "**/entrypoints/**"],
+                "message": "components/ のテストが import できる外部パッケージは preact・valibot・vitest だけで、entrypoints/ は import しません",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      "files": ["utils/**/*.test.ts", "utils/**/testing/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "*",
+                  "!./**",
+                  "!../**",
+                  "!valibot",
+                  "!vitest",
+                  "!fast-check",
+                  "!@logtape/logtape",
+                  "**/components/**",
+                  "**/entrypoints/**",
+                ],
+                "message": "utils/ のテストが import できる外部パッケージは valibot・vitest・fast-check・@logtape/logtape だけで、components/・entrypoints/ は import しません",
+              },
+            ],
+          },
+        ],
+      },
+    },
   ],
 }
