@@ -114,14 +114,19 @@ function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
     }),
   );
 
-  // debounceChanges は処理を setTimeout の中で呼ぶため、処理の例外は Service Worker の error イベントに届く。logListenerErrors で包まない
+  // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる。
+  // debounceChanges は処理を setTimeout の中で呼び、処理の例外は error イベントに届くため、今は包まなくても記録される。
+  // debounceChanges が処理を同期で呼ぶように変わっても記録するよう包む
   rulesItem.watch(
-    debounceChanges(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
-      logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
-        oldCount: oldRules.length,
-        newCount: newRules.length,
-      });
-      void enqueue(async () => applyRuleChange(oldRules, newRules));
-    }),
+    logListenerErrors(
+      logger,
+      debounceChanges(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
+        logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
+          oldCount: oldRules.length,
+          newCount: newRules.length,
+        });
+        void enqueue(async () => applyRuleChange(oldRules, newRules));
+      }),
+    ),
   );
 }
