@@ -59,6 +59,7 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - 設定ファイルには原則ツールのデフォルトと異なる項目のみを書く。デフォルトと同じ値をあえて書く場合は、その理由をコメントで残す
 - 変更は依頼された範囲に留め、無関係なリファクタリングを混ぜない
 - 設計判断（技術の採用・不採用、構成・運用方針の変更等）をしたら、`docs/adr/` に ADR を追加する（書き方は `.claude/rules/adr.md`）
+- 拡張機能のコードで使う API（JavaScript・CSS・拡張機能の API）は、`wxt.config.ts` の `minimum_chrome_version` の Chrome で使えるものに限る。Vite は構文を変換するが API は補わず、検査する仕組みも無い。新しい API が要るときは、その変更で最低版を上げて ADR を書く（`docs/adr/0019-minimum-chrome-version.md`）
 
 ## 作業の進め方
 
