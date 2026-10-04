@@ -48,6 +48,34 @@ describe("バックグラウンドの処理のルールの読み込み", () => {
     await fakeBrowser.storage.local.set({ rules: [DEV] });
     await fakeBrowser.storage.local.set({ rules: [BROKEN_DEV] });
     expect(listener).toHaveBeenLastCalledWith([{ ...DEV, conditions: [] }], [DEV]);
+    await vi.waitFor(() => {
+      expect(warnings(records)).toBe(1);
+    });
+  });
+});
+
+describe("壊れたルールの警告の繰り返し", () => {
+  it("起動し直しても、壊れていない値を読むまでは警告を繰り返さない", async () => {
+    fakeBrowser.reset();
+    const records = captureLogs();
+    await fakeBrowser.storage.local.set({ rules: [BROKEN_DEV] });
+    await createRulesReader(getLogger(["tabherd", "test"])).read();
+    // Service Worker が止まって起き直すと変数が消えるため、作り直した RulesReader で読む
+    await createRulesReader(getLogger(["tabherd", "test"])).read();
+    expect(warnings(records)).toBe(1);
+    await fakeBrowser.storage.local.set({ rules: [DEV] });
+    await createRulesReader(getLogger(["tabherd", "test"])).read();
+    await fakeBrowser.storage.local.set({ rules: [BROKEN_DEV] });
+    await createRulesReader(getLogger(["tabherd", "test"])).read();
+    expect(warnings(records)).toBe(2);
+  });
+
+  it("同時に読んでも、警告は1回だけ残す", async () => {
+    fakeBrowser.reset();
+    const records = captureLogs();
+    await fakeBrowser.storage.local.set({ rules: [BROKEN_DEV] });
+    const reader = createRulesReader(getLogger(["tabherd", "test"]));
+    await Promise.all([reader.read(), reader.read(), reader.read()]);
     expect(warnings(records)).toBe(1);
   });
 });
