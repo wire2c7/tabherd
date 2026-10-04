@@ -240,3 +240,38 @@ test.describe("入力の検証", () => {
     await expect.poll(async () => storedNames()).toStrictEqual([""]);
   });
 });
+
+test.describe("壊れたルールの表示", () => {
+  /** 条件の一覧が壊れた「開発」のルール */
+  const brokenDev = { ...dev, conditions: null };
+  const warning = "保存されたルールの一部が壊れていたため、読み込めた内容だけを表示しています。";
+
+  for (const name of pageNames) {
+    test(`壊れたルールがある（${name}）`, async ({ setStoredRules, storedRules, openSettings }) => {
+      await setStoredRules([brokenDev, docs]);
+      const page = await openSettings(name);
+
+      await expect(page.getByText(warning)).toBeVisible();
+      expect(await shownNames(page)).toStrictEqual(["開発", "資料"]);
+      await expect(page.getByRole("article", { name: "ルール「開発」" }).getByLabel("条件 1 の値")).toHaveCount(0);
+      // 開いただけでは書き換えない
+      expect(await storedRules()).toStrictEqual([brokenDev, docs]);
+    });
+  }
+
+  test("編集して保存し直す", async ({ setStoredRules, storedRules, openSettings }) => {
+    await setStoredRules([brokenDev, docs]);
+    const page = await openSettings("popup");
+    await expect(page.getByText(warning)).toBeVisible();
+
+    await page.getByLabel("グループ名").nth(1).fill("ドキュメント");
+
+    await expect(page.getByText(warning)).toBeHidden();
+    await expect
+      .poll(async () => storedRules())
+      .toStrictEqual([
+        { ...dev, conditions: [] },
+        { ...docs, name: "ドキュメント" },
+      ]);
+  });
+});

@@ -58,6 +58,8 @@ interface Fixtures {
   server: TestServer;
   /** ルールの一覧をストレージに保存する。設定画面での保存と同じく、バックグラウンドの watch に通知される */
   setRules: (rules: readonly Rule[]) => Promise<void>;
+  /** 形を問わず値をルールの保存先（WXT の storage の `local:rules` は chrome.storage.local の `rules`）に書く。壊れた保存値を作るのに使う */
+  setStoredRules: (value: unknown) => Promise<void>;
   /** ストレージに保存されたルールの一覧 */
   storedRules: () => Promise<Rule[]>;
   /** ストレージに保存されたルールのグループ名（一覧の順） */
@@ -178,11 +180,13 @@ export const test = base.extend<Options & Fixtures>({
     await provide({ origin: `http://127.0.0.1:${address.port}` });
     server.close();
   },
-  setRules: async ({ serviceWorker }, provide) => {
-    await provide(async (rules) => {
-      // WXT の storage の `local:rules` は、chrome.storage.local の `rules` に保存される
-      await serviceWorker.evaluate(async (value) => chrome.storage.local.set({ rules: value }), rules);
-    });
+  setStoredRules: async ({ serviceWorker }, provide) => {
+    await provide(async (stored) =>
+      serviceWorker.evaluate(async (value) => chrome.storage.local.set({ rules: value }), stored),
+    );
+  },
+  setRules: async ({ setStoredRules }, provide) => {
+    await provide(setStoredRules);
   },
   storedRules: async ({ serviceWorker }, provide) => {
     await provide(async () =>
