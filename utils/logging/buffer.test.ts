@@ -98,6 +98,18 @@ describe("捨てたログの溜め直し", () => {
     sink(record("warning", "c"));
     expect(received).toStrictEqual(["b", "c"]);
   });
+
+  it("捨てた後に別の消去で捨てていたら、溜め直さない", () => {
+    const { received, sink } = setup();
+    sink(record("debug", "a"));
+    const restoreFirst = sink.clear();
+    sink(record("debug", "b"));
+    const restoreSecond = sink.clear();
+    restoreFirst();
+    sink(record("warning", "c"));
+    expect(received).toStrictEqual(["c"]);
+    restoreSecond();
+  });
 });
 
 describe("溜めるログの写し", () => {
