@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
+import { toStoredLogEntry } from "../logging/entry";
+import { captureLogs } from "../logging/testing/capture";
 import type { Rule } from "../rules/types";
 import { applyRuleChange, regroupAllWindows, regroupTabs } from "./regroup";
 
@@ -80,5 +82,33 @@ describe("グループ化とグループの並び", () => {
 
     expect(group).toHaveBeenCalledWith({ groupId: 100, tabIds: [12] });
     expect(tabsQuery).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("グループ化のログ", () => {
+  it("操作が失敗しても、ログにグループ名・URL を出さない", async () => {
+    const logs = captureLogs();
+    const { tabsQuery, group } = mockWindow();
+    tabsQuery.mockResolvedValue([
+      browserTab(0, "https://github.com/", 100),
+      browserTab(1, "https://example.com/", 200),
+      browserTab(2, "https://secret.example.org/private?token=abc", -1),
+    ]);
+    group.mockRejectedValue(new Error("No tab with id: 12."));
+    const secret: Rule = {
+      id: "secret",
+      name: "秘密の案件",
+      color: "pink",
+      conditions: [{ type: "contains", value: "secret.example" }],
+    };
+
+    await regroupTabs([DEV, WORK, secret], 1, [12]);
+
+    const stored = JSON.stringify(logs.map((record) => toStoredLogEntry(record)));
+    expect(logs.some((record) => record.level === "error")).toBe(true);
+    expect(stored).toContain("create-group");
+    for (const text of ["秘密の案件", "secret.example", "token", "github.com", "開発", "業務", "pink"]) {
+      expect(stored).not.toContain(text);
+    }
   });
 });

@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { captureLogs } from "../logging/testing/capture";
+
 import { createSerialQueue } from "./serial";
 
 describe("処理の直列化", () => {
@@ -28,7 +30,7 @@ describe("処理の直列化", () => {
   });
 
   it("処理が失敗してもログに出し、次の処理を続ける", async () => {
-    const consoleError = vi.spyOn(console, "error").mockReturnValue();
+    const logs = captureLogs();
     const enqueue = createSerialQueue();
     const next = vi.fn<() => Promise<void>>().mockResolvedValue();
 
@@ -36,8 +38,9 @@ describe("処理の直列化", () => {
     await expect(failed).resolves.toBeUndefined();
     await enqueue(next);
 
-    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(logs.map((record) => [record.level, record.properties])).toStrictEqual([
+      ["error", { error: new Error("失敗") }],
+    ]);
     expect(next).toHaveBeenCalledTimes(1);
-    consoleError.mockRestore();
   });
 });

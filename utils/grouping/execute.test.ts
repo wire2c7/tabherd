@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
-import { RETRY_DELAYS_MS, executeOperations, retryWhileTabsBusy } from "./execute";
+import { captureLogs } from "../logging/testing/capture";
+import { useFakeTimersInTest } from "../testing/mocks";
+import type { GroupOperation } from "./types";
+import { RETRY_DELAYS_MS, executeOperations, retryWhileTabsBusy, toLoggedOperation } from "./execute";
 
 const busyError = new Error("Tabs cannot be edited right now (user may be dragging a tab).");
 
@@ -55,7 +58,7 @@ describe("タブの編集ができないときのリトライ", () => {
 
 describe("リトライの待ち時間", () => {
   it("1回目は 100ms 待ってやり直す", async () => {
-    vi.useFakeTimers();
+    useFakeTimersInTest();
     const action = busyTwiceThenOk();
     const result = retryWhileTabsBusy(action);
 
@@ -66,11 +69,10 @@ describe("リトライの待ち時間", () => {
 
     await vi.runAllTimersAsync();
     await expect(result).resolves.toBe("ok");
-    vi.useRealTimers();
   });
 
   it("2回目は、さらに 200ms 待ってやり直す", async () => {
-    vi.useFakeTimers();
+    useFakeTimersInTest();
     const action = busyTwiceThenOk();
     const result = retryWhileTabsBusy(action);
 
@@ -80,11 +82,10 @@ describe("リトライの待ち時間", () => {
     expect(action).toHaveBeenCalledTimes(3);
 
     await expect(result).resolves.toBe("ok");
-    vi.useRealTimers();
   });
 
   it("やり直しても失敗し続けるときは、5回やり直した後にエラーを投げる", async () => {
-    vi.useFakeTimers();
+    useFakeTimersInTest();
     const action = vi.fn<() => Promise<string>>().mockRejectedValue(busyError);
     // 待っているあいだに拒否されても未処理の拒否にならないよう、時間を進める前に expect を付ける
     await Promise.all([
@@ -92,7 +93,6 @@ describe("リトライの待ち時間", () => {
       vi.advanceTimersByTimeAsync(100 + 200 + 400 + 800 + 1600),
     ]);
     expect(action).toHaveBeenCalledTimes(6);
-    vi.useRealTimers();
   });
 });
 
@@ -136,9 +136,11 @@ describe("計画の実行", () => {
 
     expect(move).toHaveBeenCalledWith(200, { index: 2 });
   });
+});
 
+describe("操作の失敗", () => {
   it("操作が失敗しても、ログに出して残りの操作を続ける", async () => {
-    const consoleError = vi.spyOn(console, "error").mockReturnValue();
+    const logs = captureLogs();
     mockTabsUngroup().mockRejectedValue(new Error("No tab with id: 12."));
     const group = mockTabsGroup(100);
 
@@ -147,8 +149,47 @@ describe("計画の実行", () => {
       { type: "add-to-group", groupId: 100, tabIds: [10] },
     ]);
 
-    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(logs.filter((record) => record.level === "error").map((record) => record.properties)).toStrictEqual([
+      { operation: { type: "ungroup", tabIds: [12] }, error: new Error("No tab with id: 12.") },
+    ]);
     expect(group).toHaveBeenCalledWith({ groupId: 100, tabIds: [10] });
-    consoleError.mockRestore();
+  });
+});
+
+describe("ログに出す操作", () => {
+  it("グループを作る操作からタイトル・色を除く", () => {
+    expect(
+      toLoggedOperation({ type: "create-group", windowId: 1, title: "業務", color: "red", tabIds: [10, 11] }),
+    ).toStrictEqual({ type: "create-group", windowId: 1, tabIds: [10, 11] });
+  });
+
+  it("グループを変える操作からタイトル・色を除く", () => {
+    expect(toLoggedOperation({ type: "update-group", groupId: 100, title: "業務", color: "red" })).toStrictEqual({
+      type: "update-group",
+      groupId: 100,
+    });
+  });
+
+  it("グループへ入れる・外す・移動する操作は、ID と位置だけを出す", () => {
+    expect(toLoggedOperation({ type: "add-to-group", groupId: 100, tabIds: [10] })).toStrictEqual({
+      type: "add-to-group",
+      groupId: 100,
+      tabIds: [10],
+    });
+    expect(toLoggedOperation({ type: "ungroup", tabIds: [10, 11] })).toStrictEqual({
+      type: "ungroup",
+      tabIds: [10, 11],
+    });
+    expect(toLoggedOperation({ type: "move-group", groupId: 100, index: 2 })).toStrictEqual({
+      type: "move-group",
+      groupId: 100,
+      index: 2,
+    });
+  });
+
+  it("操作に決めていないフィールドがあっても出さない", () => {
+    // 操作の型に後からフィールドが足された場合を、型の余分なプロパティとして再現する
+    const operation: GroupOperation & { title: string } = { type: "ungroup", tabIds: [10], title: "秘密の案件" };
+    expect(toLoggedOperation(operation)).toStrictEqual({ type: "ungroup", tabIds: [10] });
   });
 });

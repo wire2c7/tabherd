@@ -1,6 +1,44 @@
 import { browser } from "wxt/browser";
 
+import { getAppLogger } from "../logging/setup";
 import type { GroupOperation } from "./types";
+
+const logger = getAppLogger("grouping");
+
+/**
+ * ログに出す操作。グループ名は閲覧先を表しうるため、タイトル・色を入れない。
+ * 操作の型にフィールドが足されてもログに出ないよう、出すフィールドをここで決め、toLoggedOperation で1つずつ写す
+ */
+export type LoggedOperation =
+  | { type: "add-to-group"; groupId: number; tabIds: readonly number[] }
+  | { type: "create-group"; windowId: number; tabIds: readonly number[] }
+  | { type: "ungroup"; tabIds: readonly number[] }
+  | { type: "update-group"; groupId: number }
+  | { type: "move-group"; groupId: number; index: number };
+
+/** 操作から、ログに出すフィールドだけを写す */
+export function toLoggedOperation(operation: GroupOperation): LoggedOperation {
+  switch (operation.type) {
+    case "add-to-group": {
+      return { type: operation.type, groupId: operation.groupId, tabIds: operation.tabIds };
+    }
+    case "create-group": {
+      return { type: operation.type, windowId: operation.windowId, tabIds: operation.tabIds };
+    }
+    case "ungroup": {
+      return { type: operation.type, tabIds: operation.tabIds };
+    }
+    case "update-group": {
+      return { type: operation.type, groupId: operation.groupId };
+    }
+    case "move-group": {
+      return { type: operation.type, groupId: operation.groupId, index: operation.index };
+    }
+    default: {
+      return operation satisfies never;
+    }
+  }
+}
 
 /** ユーザーがタブをドラッグしているあいだ、タブ・グループの操作が失敗するときのエラーメッセージ */
 const TABS_BUSY_MESSAGE = "Tabs cannot be edited right now";
@@ -76,11 +114,12 @@ async function executeOperation(operation: GroupOperation): Promise<void> {
 export async function executeOperations(operations: readonly GroupOperation[]): Promise<void> {
   for (const operation of operations) {
     try {
+      logger.debug("操作 {operation} を実行します", { operation: toLoggedOperation(operation) });
       // 前の操作でタブの位置・グループが変わるため、順に実行する
       // oxlint-disable-next-line no-await-in-loop
       await executeOperation(operation);
     } catch (error) {
-      console.error("グループの操作に失敗しました", operation, error);
+      logger.error("グループの操作 {operation} に失敗しました", { operation: toLoggedOperation(operation), error });
     }
   }
 }

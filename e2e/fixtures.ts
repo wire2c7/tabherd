@@ -45,6 +45,11 @@ export interface WindowState {
 /** 設定画面のページ */
 export type SettingsPageName = "popup" | "options";
 
+interface Options {
+  /** テストでわざと起こすエラー。Service Worker・ページのエラーのうち、これに一致するものは失敗として扱わない */
+  expectedErrors: readonly RegExp[];
+}
+
 interface Fixtures {
   /** 拡張機能を読み込んだ Chromium の永続コンテキスト。テストごとに一時的なプロフィールで起動する */
   context: BrowserContext;
@@ -131,8 +136,9 @@ function collectErrors(context: BrowserContext, errors: string[]): void {
 }
 
 // fixture の第2引数（値を渡す関数）は Playwright の例では use だが、React のフックと誤って判定されないよう provide と呼ぶ
-export const test = base.extend<Fixtures>({
-  context: async ({ headless }, provide) => {
+export const test = base.extend<Options & Fixtures>({
+  expectedErrors: [[], { option: true }],
+  context: async ({ headless, expectedErrors }, provide) => {
     const context = await chromium.launchPersistentContext("", {
       executablePath: chromiumPath(),
       headless,
@@ -143,7 +149,8 @@ export const test = base.extend<Fixtures>({
 
     try {
       await provide(context);
-      expect(errors, "Service Worker とページでエラーが出ていない").toStrictEqual([]);
+      const unexpected = errors.filter((error) => !expectedErrors.some((pattern) => pattern.test(error)));
+      expect(unexpected, "Service Worker とページでエラーが出ていない").toStrictEqual([]);
     } finally {
       await context.close();
     }
