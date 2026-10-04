@@ -14,7 +14,7 @@ import "./rule-settings.css";
 
 /** ルールの設定画面。ポップアップとオプションページの両方で描画する */
 export function RuleSettings(): JSX.Element {
-  const [rules, update] = useRules();
+  const { rules, isDamaged, update } = useRules();
   const [newRuleId, setNewRuleId] = useState<string | null>(null);
 
   const handleUpdate = useCallback(
@@ -41,6 +41,7 @@ export function RuleSettings(): JSX.Element {
           "URL が条件に一致するタブを、ルールのグループ名のタブグループへ自動でまとめます。複数のルールに一致するときは上のルールが優先されます。ルールと同じ名前のタブグループは、手で作ったものもそのルールのグループとして扱います。"
         }
       </p>
+      {isDamaged && <DamageWarning />}
       {rules === null ? (
         <p class="hint">読み込み中…</p>
       ) : (
@@ -58,6 +59,18 @@ export function RuleSettings(): JSX.Element {
         </button>
       </div>
     </div>
+  );
+}
+
+/** 保存されたルールが壊れていて、直した一覧を表示しているときの警告 */
+function DamageWarning(): JSX.Element {
+  return (
+    <p class="error" role="alert">
+      {
+        // JSX のテキストの途中で改行すると半角スペースになるため、1つの文字列にする
+        "保存されたルールの一部が壊れていたため、読み込めた内容だけを表示しています。ルールを変更すると、この内容で保存し直します。"
+      }
+    </p>
   );
 }
 
