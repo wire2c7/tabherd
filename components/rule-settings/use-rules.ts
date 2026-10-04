@@ -1,36 +1,50 @@
 import type { MutableRef } from "preact/hooks";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 
-import { rulesItem } from "../../utils/rules/storage";
+import type { ParsedRules } from "../../utils/rules/parse";
+import { readRules, watchRules, writeRules } from "../../utils/rules/storage";
 import type { Rule } from "../../utils/rules/types";
 
 /** ルールの一覧を変更する関数。今の一覧を受け取り、新しい一覧を返す */
 export type RulesUpdater = (rules: readonly Rule[]) => Rule[];
 
+/** useRules の戻り値 */
+export interface RulesState {
+  /** 保存されたルールの一覧。壊れた箇所は直してある。読み込みが終わるまでは null */
+  rules: readonly Rule[] | null;
+  /** 表示している一覧が、壊れた保存値を直したものか。変更して保存し終えると false になる */
+  isDamaged: boolean;
+  /** 一覧を変更して即座に保存する */
+  update: (updater: RulesUpdater) => void;
+}
+
 /**
- * 保存されたルールの一覧と、それを変更して即座に保存する関数を返す。読み込みが終わるまでは null。
+ * 保存されたルールの一覧と、それを変更して即座に保存する関数を返す。
+ * 壊れた保存値は直して表示するが、書き戻すのは利用者が変更したときだけにする。
  * ほかの画面（ポップアップとオプションページ）での変更は、ストレージの watch で受け取る
  */
-export function useRules(): [rules: readonly Rule[] | null, update: (updater: RulesUpdater) => void] {
+export function useRules(): RulesState {
   const [rules, setRules] = useState<readonly Rule[] | null>(null);
+  const [isDamaged, setIsDamaged] = useState(false);
   // 連続した入力で、前の変更の再描画・保存を待たずに次の変更を組み立てるため、最新の一覧を state とは別に持つ
   const latestRef = useRef<readonly Rule[] | null>(null);
   // 保存中の書き込みの数
   const pendingWritesRef = useRef(0);
 
   useEffect(() => {
-    function apply(value: readonly Rule[]): void {
+    function apply({ rules: value, damage }: ParsedRules): void {
       latestRef.current = value;
       setRules(value);
+      setIsDamaged(damage !== null);
     }
     async function load(): Promise<void> {
-      const value = await rulesItem.getValue();
+      const value = await readRules();
       // 読み込みより先に watch で受け取っていれば、そちらが新しい
       if (latestRef.current === null) {
         apply(value);
       }
     }
-    const unwatch = rulesItem.watch((value) => {
+    const unwatch = watchRules((value) => {
       // 自分の書き込みを待っているあいだは、手元の一覧の方が新しい。
       // 保存前の値の通知で表示を戻すと、入力中の文字が消えるため無視する
       if (pendingWritesRef.current === 0) {
@@ -48,19 +62,26 @@ export function useRules(): [rules: readonly Rule[] | null, update: (updater: Ru
     const next = updater(latestRef.current);
     latestRef.current = next;
     setRules(next);
-    void saveRules(next, pendingWritesRef);
+    void (async () => {
+      // 保存できなければ、ストレージには壊れた値が残っているため、警告を消さない
+      if (await saveRules(next, pendingWritesRef)) {
+        setIsDamaged(false);
+      }
+    })();
   }, []);
 
-  return [rules, update];
+  return { rules, isDamaged, update };
 }
 
-/** ルールの一覧を保存する。保存が終わるまで pendingWrites を増やしておく */
-async function saveRules(rules: Rule[], pendingWrites: MutableRef<number>): Promise<void> {
+/** ルールの一覧を保存し、保存できたかを返す。保存が終わるまで pendingWrites を増やしておく */
+async function saveRules(rules: Rule[], pendingWrites: MutableRef<number>): Promise<boolean> {
   pendingWrites.current += 1;
   try {
-    await rulesItem.setValue(rules);
+    await writeRules(rules);
+    return true;
   } catch (error) {
     console.error("ルールを保存できませんでした", error);
+    return false;
   } finally {
     pendingWrites.current -= 1;
   }

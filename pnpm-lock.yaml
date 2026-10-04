@@ -14,6 +14,9 @@ importers:
       preact:
         specifier: 10.29.8
         version: 10.29.8
+      valibot:
+        specifier: 1.5.0
+        version: 1.5.0(typescript@7.0.2)
     devDependencies:
       '@fission-ai/openspec':
         specifier: 1.13.2
@@ -1588,6 +1591,14 @@ packages:
       webpack:
         optional: true
 
+  valibot@1.5.0:
+    resolution: {integrity: sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vite@8.3.1:
     resolution: {integrity: sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -2927,6 +2938,10 @@ snapshots:
     optionalDependencies:
       rolldown: 1.2.11
       vite: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
+
+  valibot@1.5.0(typescript@7.0.2):
+    optionalDependencies:
+      typescript: 7.0.2
 
   vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1):
     dependencies:

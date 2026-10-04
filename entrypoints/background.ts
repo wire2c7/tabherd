@@ -9,16 +9,18 @@ import type { LogsResponse } from "../utils/logging/messages";
 import { isLogsRequest } from "../utils/logging/messages";
 import type { StoredLogs } from "../utils/logging/setup";
 import { configureLogging, getAppLogger } from "../utils/logging/setup";
-import { rulesItem } from "../utils/rules/storage";
+import { createRulesReader } from "../utils/rules/reader";
 
 /** 設定画面は入力のたびに保存するため、入力途中の名前でグループを作り直し続けないよう待つ時間 */
 const RULE_CHANGE_DEBOUNCE_MS = 300;
 
-async function regroupAll(): Promise<void> {
-  await regroupAllWindows(await rulesItem.getValue());
-}
-
 const logger = getAppLogger("background");
+
+const rulesReader = createRulesReader(logger);
+
+async function regroupAll(): Promise<void> {
+  await regroupAllWindows(await rulesReader.read());
+}
 
 /**
  * 拡張機能のコードが捕捉しなかったエラーをログに残す。Service Worker の最初の評価の中で登録する必要がある。
@@ -103,21 +105,21 @@ function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
     logListenerErrors(logger, (tabId, changeInfo, tab) => {
       if (changeInfo.url !== undefined) {
         logger.debug("タブ {tabId} の URL が変わりました", { tabId, windowId: tab.windowId });
-        void enqueue(async () => regroupTabs(await rulesItem.getValue(), tab.windowId, [tabId]));
+        void enqueue(async () => regroupTabs(await rulesReader.read(), tab.windowId, [tabId]));
       }
     }),
   );
   browser.tabs.onAttached.addListener(
     logListenerErrors(logger, (tabId, attachInfo) => {
       logger.debug("タブ {tabId} がウィンドウ {windowId} へ移りました", { tabId, windowId: attachInfo.newWindowId });
-      void enqueue(async () => regroupTabs(await rulesItem.getValue(), attachInfo.newWindowId, [tabId]));
+      void enqueue(async () => regroupTabs(await rulesReader.read(), attachInfo.newWindowId, [tabId]));
     }),
   );
 
   // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる。
   // debounceChanges は処理を setTimeout の中で呼び、処理の例外は error イベントに届くため、今は包まなくても記録される。
   // debounceChanges が処理を同期で呼ぶように変わっても記録するよう包む
-  rulesItem.watch(
+  rulesReader.watch(
     logListenerErrors(
       logger,
       debounceChanges(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {

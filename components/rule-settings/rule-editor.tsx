@@ -1,9 +1,10 @@
 import type { JSX } from "preact";
 import { useCallback, useEffect, useRef } from "preact/hooks";
+import { is } from "valibot";
 
 import type { RuleProblem } from "../../utils/rules/match";
 import type { Condition, GroupColor, Rule } from "../../utils/rules/types";
-import { GROUP_COLORS } from "../../utils/rules/types";
+import { GROUP_COLORS, GroupColorSchema } from "../../utils/rules/types";
 
 import { ConditionEditor } from "./condition-editor";
 import { addCondition, removeCondition, updateCondition } from "./edit";
@@ -155,7 +156,7 @@ function ColorSelect({ color, onChange }: ColorSelectProps): JSX.Element {
       value={color}
       onChange={(event) => {
         const { value } = event.currentTarget;
-        onChange(GROUP_COLORS.find((c) => c === value) ?? color);
+        onChange(is(GroupColorSchema, value) ? value : color);
       }}
     >
       {GROUP_COLORS.map((c) => (
