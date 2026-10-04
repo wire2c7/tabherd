@@ -1,7 +1,6 @@
-import type { LogLevel, LogRecord, Sink } from "@logtape/logtape";
-import { compareLogLevel } from "@logtape/logtape";
-
 import { toStoredLogEntry } from "./entry";
+import type { LogEvent, LogLevel } from "./logger";
+import { compareLogLevel } from "./logger";
 import type { StoredLogEntry } from "./storage";
 
 export interface BufferUntilOptions {
@@ -12,7 +11,8 @@ export interface BufferUntilOptions {
 }
 
 /** ログを溜める sink */
-export interface BufferingSink extends Sink {
+export interface BufferingSink {
+  (record: LogEvent): void;
   /**
    * 溜めたログを流さずに捨て、捨てたログを溜め直す関数を返す。
    * 溜め直す関数は、捨てた後にログを流したか、別の消去で捨てていたら何もしない。
@@ -34,7 +34,7 @@ export function bufferUntil(
   const buffer: StoredLogEntry[] = [];
   /** ログを流すか捨てるたびに増やす。捨てたログを溜め直す前に、捨てた後に流したか捨てたかを見分ける */
   let generation = 0;
-  function bufferingSink(record: LogRecord): void {
+  function bufferingSink(record: LogEvent): void {
     const entry = toStoredLogEntry(record);
     if (compareLogLevel(record.level, triggerLevel) < 0) {
       buffer.push(entry);

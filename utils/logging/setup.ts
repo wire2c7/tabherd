@@ -1,8 +1,10 @@
-import type { Logger } from "@logtape/logtape";
 import { configureSync, getConsoleSink, getLogger, withFilter } from "@logtape/logtape";
 
+import type { StorageItem } from "../storage/item";
 import { bufferUntil } from "./buffer";
 import { getLogWriter } from "./log-writer";
+import type { Logger } from "./logger";
+import type { StoredLogEntry } from "./storage";
 
 /** 拡張機能のログのカテゴリの先頭 */
 const ROOT_CATEGORY = "tabherd";
@@ -19,6 +21,8 @@ const CONTEXT_LOG_COUNT = 100;
 export interface ConfigureLoggingOptions {
   /** 開発ビルドなら debug 以上、そうでなければ warning 以上を console に出す */
   dev: boolean;
+  /** 端末にログを保存する LOGS_ITEM の StorageItem */
+  logs: StorageItem<StoredLogEntry[]>;
 }
 
 /** 設定したロガーの、端末に保存したログの操作 */
@@ -33,9 +37,12 @@ export interface StoredLogs {
   settled: () => Promise<void>;
 }
 
-/** ロガーを設定する。設定より前に出したログは捨てられるため、起動時に同期的に呼ぶ */
-export function configureLogging({ dev }: ConfigureLoggingOptions): StoredLogs {
-  const writer = getLogWriter();
+/**
+ * ロガーを設定する。設定より前に出したログは捨てられるため、起動時に同期的に呼ぶ。
+ * ロガーの実装（LogTape）を使うのはこのファイルだけにし、ほかのコードは logger.ts の型を使う
+ */
+export function configureLogging({ dev, logs }: ConfigureLoggingOptions): StoredLogs {
+  const writer = getLogWriter(logs);
   const buffered = bufferUntil(writer.write, { triggerLevel: STORE_TRIGGER_LEVEL, maxBufferSize: CONTEXT_LOG_COUNT });
   configureSync({
     sinks: {

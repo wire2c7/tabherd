@@ -1,17 +1,12 @@
-import { browser } from "wxt/browser";
-
+import type { TabsApi } from "./tabs";
 import type { WindowSnapshot } from "./types";
 
 /**
  * 通常のウィンドウのスナップショットを取る。windowId を省略するとすべての通常のウィンドウを対象にする。
  * タブグループは通常のウィンドウにしか作れないため、ポップアップ等のウィンドウは含めない
  */
-export async function takeWindowSnapshots(windowId?: number): Promise<WindowSnapshot[]> {
-  const filter = windowId === undefined ? {} : { windowId };
-  const [tabs, groups] = await Promise.all([
-    browser.tabs.query({ ...filter, windowType: "normal" }),
-    browser.tabGroups.query(filter),
-  ]);
+export async function takeWindowSnapshots(api: TabsApi, windowId?: number): Promise<WindowSnapshot[]> {
+  const [tabs, groups] = await Promise.all([api.queryTabs(windowId), api.queryGroups(windowId)]);
 
   const windows = new Map<number, WindowSnapshot>();
   for (const tab of tabs.toSorted((a, b) => a.index - b.index)) {

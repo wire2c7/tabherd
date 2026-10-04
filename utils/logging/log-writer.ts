@@ -1,5 +1,6 @@
+import type { StorageItem } from "../storage/item";
 import type { StoredLogEntry } from "./storage";
-import { appendLogs, logsItem } from "./storage";
+import { appendLogs } from "./storage";
 
 /** 端末へのログの書き込み */
 export interface LogWriter {
@@ -14,10 +15,10 @@ export interface LogWriter {
 /** 端末への書き込みの1件 */
 type WriteJob = { type: "append"; entries: StoredLogEntry[] } | { type: "clear"; done: PromiseWithResolvers<null> };
 
-async function runJob(job: WriteJob): Promise<void> {
+async function runJob(item: StorageItem<StoredLogEntry[]>, job: WriteJob): Promise<void> {
   if (job.type === "append") {
     try {
-      await appendLogs(job.entries);
+      await appendLogs(item, job.entries);
     } catch (error) {
       // ロガーに出すとこの書き込みに戻るため、console に出す
       console.error("ログを端末に書き込めませんでした", error);
@@ -25,7 +26,7 @@ async function runJob(job: WriteJob): Promise<void> {
     return;
   }
   try {
-    await logsItem.removeValue();
+    await item.removeValue();
     job.done.resolve(null);
   } catch (error) {
     job.done.reject(error);
@@ -33,11 +34,11 @@ async function runJob(job: WriteJob): Promise<void> {
 }
 
 /**
- * 受け取ったログを端末に保存する書き込み口を作る。
+ * 受け取ったログを、LOGS_ITEM の StorageItem に保存する書き込み口を作る。
  * chrome.storage には条件付きの書き込みが無く、追記は「読む → 足す → 書く」になるため、追記と消去を1本の待ち行列で受け取った順に1つずつ行う。
  * write は同期で呼ばれるため、まだ始めていない追記が待ち行列の末尾にあれば、そこへまとめる
  */
-export function getLogWriter(): LogWriter {
+export function getLogWriter(item: StorageItem<StoredLogEntry[]>): LogWriter {
   const queue: WriteJob[] = [];
   let draining: Promise<void> = Promise.resolve();
   let isDraining = false;
@@ -51,7 +52,7 @@ export function getLogWriter(): LogWriter {
       for (let job = queue.shift(); job !== undefined; job = queue.shift()) {
         // 前の書き込みが終わってから次を始める
         // oxlint-disable-next-line no-await-in-loop
-        await runJob(job);
+        await runJob(item, job);
       }
       isDraining = false;
     })();

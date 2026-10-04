@@ -1,4 +1,6 @@
-import { isStoredLogs, logsItem, readStoredLogs } from "../../utils/logging/storage";
+import type { StoredLogEntry } from "../../utils/logging/storage";
+import { isStoredLogs, readStoredLogs } from "../../utils/logging/storage";
+import type { StorageItem } from "../../utils/storage/item";
 
 /** 端末に保存したログの件数の状態 */
 export type StoredLogCount =
@@ -8,20 +10,23 @@ export type StoredLogCount =
   | { status: "failed" };
 
 /**
- * 端末に保存したログの件数の状態を、読み込んだときと変わったときに listener へ渡す。戻り値は購読をやめる関数。
+ * LOGS_ITEM の StorageItem に保存したログの件数の状態を、読み込んだときと変わったときに listener へ渡す。戻り値は購読をやめる関数。
  * 最初の読み込みより先に変更の通知が来たら、通知の方が新しいため、読み込みの結果（成功・失敗とも）は渡さない。
  * 読み込みの途中で購読をやめたときも渡さない
  */
-export function watchStoredLogCount(listener: (state: StoredLogCount) => void): () => void {
+export function watchStoredLogCount(
+  item: StorageItem<StoredLogEntry[]>,
+  listener: (state: StoredLogCount) => void,
+): () => void {
   /** 読み込みの結果を listener に渡すか。変更の通知が来たら、または購読をやめたら渡さない */
   let shouldPassLoaded = true;
-  const unwatch = logsItem.watch((logs: unknown) => {
+  const unwatch = item.watch((logs) => {
     shouldPassLoaded = false;
     listener(isStoredLogs(logs) ? { status: "loaded", count: logs.length } : { status: "failed" });
   });
   async function load(): Promise<void> {
     try {
-      const logs = await readStoredLogs();
+      const logs = await readStoredLogs(item);
       if (shouldPassLoaded) {
         listener({ status: "loaded", count: logs.length });
       }

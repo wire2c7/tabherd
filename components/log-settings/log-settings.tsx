@@ -1,10 +1,11 @@
 import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { browser } from "wxt/browser";
 
-import type { LogsRequest, LogsResponse } from "../../utils/logging/messages";
+import type { SendLogsRequest } from "../../utils/logging/messages";
 import { requestLogs } from "../../utils/logging/messages";
+import type { StoredLogEntry } from "../../utils/logging/storage";
 import { MAX_STORED_LOGS, readStoredLogs } from "../../utils/logging/storage";
+import type { StorageItem } from "../../utils/storage/item";
 import { detectBrowser } from "./browser";
 import type { StoredLogCount } from "./count";
 import { canClearLogs, watchStoredLogCount } from "./count";
@@ -12,10 +13,19 @@ import { buildLogExport } from "./export";
 
 import "./log-settings.css";
 
+interface LogSettingsProps {
+  /** 端末に保存したログ（LOGS_ITEM の StorageItem） */
+  logs: StorageItem<StoredLogEntry[]>;
+  /** background にログについての依頼を送る関数（runtime.sendMessage） */
+  send: SendLogsRequest;
+  /** 書き出すファイルに添える、拡張機能のバージョン */
+  extensionVersion: string;
+}
+
 /** 端末に保存したログの件数の状態 */
-function useStoredLogCount(): StoredLogCount {
+function useStoredLogCount(logs: StorageItem<StoredLogEntry[]>): StoredLogCount {
   const [count, setCount] = useState<StoredLogCount>({ status: "loading" });
-  useEffect(() => watchStoredLogCount(setCount), []);
+  useEffect(() => watchStoredLogCount(logs, setCount), [logs]);
   return count;
 }
 
@@ -55,19 +65,14 @@ function download(fileName: string, content: string): void {
   }, REVOKE_DELAY_MS);
 }
 
-/** background にログについての依頼を送る */
-async function sendLogsRequest(type: LogsRequest["type"]): Promise<LogsResponse> {
-  return requestLogs(async (message) => browser.runtime.sendMessage(message), type);
-}
-
-async function exportLogs(): Promise<void> {
+async function exportLogs({ logs, send, extensionVersion }: LogSettingsProps): Promise<void> {
   // background が保存の途中のログを書き終えてから読む。待てなくても、保存済みのログは書き出せるため続ける
-  const settled = await sendLogsRequest("settle-logs");
+  const settled = await requestLogs(send, "settle-logs");
   if (!settled.ok) {
     console.warn("保存の途中のログを待てませんでした", settled.error);
   }
-  const { fileName, content } = buildLogExport(await readStoredLogs(), {
-    extensionVersion: browser.runtime.getManifest().version,
+  const { fileName, content } = buildLogExport(await readStoredLogs(logs), {
+    extensionVersion,
     browser: await detectBrowser(navigator),
     now: new Date(),
   });
@@ -102,7 +107,7 @@ function LogContents(): JSX.Element {
 type PendingOperation = "export" | "clear" | null;
 
 /** ログの書き出し・消去の操作と、実行中の操作、直前の操作が失敗したときに表示するメッセージ */
-function useLogOperations(): {
+function useLogOperations(props: LogSettingsProps): {
   pending: PendingOperation;
   failure: string | null;
   handleExport: () => Promise<void>;
@@ -115,7 +120,7 @@ function useLogOperations(): {
     setPending("export");
     setFailure(null);
     try {
-      await exportLogs();
+      await exportLogs(props);
     } catch (error) {
       console.error("ログを保存できませんでした", error);
       setFailure("ログを保存できませんでした。もう一度お試しください。");
@@ -128,7 +133,7 @@ function useLogOperations(): {
     setPending("clear");
     setFailure(null);
     // background の保存と同時に直接消すと、保存が消去の前の値を書き戻すため、保存と同じ待ち行列で消してもらう
-    const response = await sendLogsRequest("clear-logs");
+    const response = await requestLogs(props.send, "clear-logs");
     setPending(null);
     if (!response.ok) {
       console.error("ログを消去できませんでした", response.error);
@@ -140,9 +145,9 @@ function useLogOperations(): {
 }
 
 /** ログの書き出し・消去の操作と、保存されたログの件数 */
-function LogActions(): JSX.Element {
-  const count = useStoredLogCount();
-  const { pending, failure, handleExport, handleClear } = useLogOperations();
+function LogActions(props: LogSettingsProps): JSX.Element {
+  const count = useStoredLogCount(props.logs);
+  const { pending, failure, handleExport, handleClear } = useLogOperations(props);
 
   return (
     <div class="log-settings__actions">
@@ -178,7 +183,7 @@ function LogActions(): JSX.Element {
 }
 
 /** ログの説明と、書き出し・消去の操作。オプションページだけで描画する */
-export function LogSettings(): JSX.Element {
+export function LogSettings(props: LogSettingsProps): JSX.Element {
   return (
     <section class="log-settings" aria-labelledby="log-settings-title">
       <h2 id="log-settings-title" class="log-settings__title">
@@ -194,7 +199,7 @@ export function LogSettings(): JSX.Element {
           `ログはこの端末にのみ保存され、自動で送信されることはありません。保存するのは直近 ${MAX_STORED_LOGS} 件までです。不具合を報告する際は「ログを保存」で書き出したファイルを添付してください。`
         }
       </p>
-      <LogActions />
+      <LogActions logs={props.logs} send={props.send} extensionVersion={props.extensionVersion} />
     </section>
   );
 }

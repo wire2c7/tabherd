@@ -2,6 +2,7 @@ import type { JSX, RefObject } from "preact";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 
 import { findRuleProblems } from "../../utils/rules/match";
+import type { RulesStore } from "../../utils/rules/storage";
 import type { Rule } from "../../utils/rules/types";
 
 import { addRule, moveRule, removeRule, updateRule } from "./edit";
@@ -12,9 +13,14 @@ import { useRules } from "./use-rules";
 
 import "./rule-settings.css";
 
+interface RuleSettingsProps {
+  /** ルールの一覧を読み書きする先 */
+  store: RulesStore;
+}
+
 /** ルールの設定画面。ポップアップとオプションページの両方で描画する */
-export function RuleSettings(): JSX.Element {
-  const { rules, isDamaged, update } = useRules();
+export function RuleSettings({ store }: RuleSettingsProps): JSX.Element {
+  const { rules, isDamaged, update } = useRules(store);
   const [newRuleId, setNewRuleId] = useState<string | null>(null);
 
   const handleUpdate = useCallback(
