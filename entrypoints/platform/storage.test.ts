@@ -1,6 +1,9 @@
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
+import { LOGS_ITEM } from "../../utils/logging/storage";
+import { DAMAGE_WARNED_ITEM } from "../../utils/rules/reader";
+import { RULES_ITEM } from "../../utils/rules/storage";
 import { defineStorageItem } from "./storage";
 
 describe("定義から作った StorageItem", () => {
@@ -23,5 +26,17 @@ describe("定義から作った StorageItem", () => {
     onTestFinished(item.watch(listener));
     await fakeBrowser.storage.session.set({ warned: true });
     expect(listener).toHaveBeenCalledWith(true, false);
+  });
+});
+
+describe("保存する値の定義", () => {
+  // キーを変えると、利用者がこれまでに保存した値を読めなくなる
+  it("ルール・ログ・壊れたルールの警告の状態を、これまでと同じ chrome.storage のキーに保存する", async () => {
+    fakeBrowser.reset();
+    await defineStorageItem(RULES_ITEM).setValue([]);
+    await defineStorageItem(LOGS_ITEM).setValue([]);
+    await defineStorageItem(DAMAGE_WARNED_ITEM).setValue(true);
+    await expect(fakeBrowser.storage.local.get(null)).resolves.toStrictEqual({ rules: [], logs: [] });
+    await expect(fakeBrowser.storage.session.get(null)).resolves.toStrictEqual({ rulesDamageWarned: true });
   });
 });
