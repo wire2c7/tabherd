@@ -51,7 +51,7 @@ export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Ele
           "URL が条件に一致するタブを、ルールのグループ名のタブグループへ自動でまとめます。複数のルールに一致するときは上のルールが優先されます。ルールと同じ名前のタブグループは、手で作ったものもそのルールのグループとして扱います。"
         }
       </p>
-      {isDamaged && <DamageWarning />}
+      <RuleWarnings isDamaged={isDamaged} rules={rules} titles={titles} />
       {rules === null ? (
         <p class="hint">読み込み中…</p>
       ) : (
@@ -70,6 +70,36 @@ export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Ele
         </button>
       </div>
     </div>
+  );
+}
+
+interface RuleWarningsProps {
+  isDamaged: boolean;
+  /** 読み込みが終わるまでは null */
+  rules: readonly Rule[] | null;
+  /** 読み込みが終わるまでは null */
+  titles: RuleTitles | null;
+}
+
+/**
+ * 一覧の上に出す警告。保存されたルールが壊れていたことと、使われないルールの件数。
+ * 件数は、一覧が長く、エラーのあるルールが画面の外にあっても気づけるよう出す
+ */
+function RuleWarnings({ isDamaged, rules, titles }: RuleWarningsProps): JSX.Element {
+  // 入力欄の下のエラーと同じく、記録を読み込むまでは重複を数えない
+  const unusedCount = useMemo(
+    () => (rules === null ? 0 : findProblemsToShow(rules, titles).filter((problem) => problem !== null).length),
+    [rules, titles],
+  );
+  return (
+    <>
+      {isDamaged && <DamageWarning />}
+      {unusedCount > 0 && (
+        <p class="error" aria-live="polite">
+          {`使われないルールが ${unusedCount} 件あります。エラーが表示されているルールのグループ名を確かめてください。`}
+        </p>
+      )}
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  countUnusedRules,
   findMatchingRule,
   findRuleProblems,
   groupTitlesInOrder,
@@ -161,6 +162,16 @@ describe("無効なルールが持ち続けるタイトル", () => {
 
   it("タイトルを持っていない無効なルールは並べるタイトルに含めない", () => {
     expect(groupTitlesInOrder([dev, docs])).toStrictEqual(["資料"]);
+  });
+});
+
+describe("使われないルールの件数", () => {
+  it("空のグループ名と重複したグループ名のルールを数える", () => {
+    expect(countUnusedRules([rule("開発", []), rule("", []), rule("資料", []), rule("開発", [])])).toBe(2);
+  });
+
+  it("すべて有効なら 0", () => {
+    expect(countUnusedRules([rule("開発", []), rule("資料", [])])).toBe(0);
   });
 });
 

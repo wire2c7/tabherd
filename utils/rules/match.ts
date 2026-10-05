@@ -101,6 +101,11 @@ export function findRuleProblems(rules: readonly Rule[], titles: RuleTitles = NO
   });
 }
 
+/** 使われない（無効な）ルールの件数 */
+export function countUnusedRules(rules: readonly Rule[], titles: RuleTitles = NO_TITLES): number {
+  return findRuleProblems(rules, titles).filter((problem) => problem !== null).length;
+}
+
 /** 判定の対象になる有効なルールだけを、一覧の順のまま返す */
 export function validRules(rules: readonly Rule[], titles: RuleTitles = NO_TITLES): Rule[] {
   const problems = findRuleProblems(rules, titles);
