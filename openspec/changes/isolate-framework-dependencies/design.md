@@ -25,7 +25,7 @@
 
 ### ブラウザの API はインターフェースを `utils/` に置き、WXT による実装を `entrypoints/platform/` に置く
 
-`utils/` は使う API をインターフェースとして定義し、関数の引数で受け取る。WXT による実装は `entrypoints/platform/` に置き、エントリポイント（`background.ts`・`popup/app.tsx`・`options/app.tsx`）が作って渡す。`components/` へは props で渡す。
+`utils/` は使う API をインターフェースとして定義し、関数の引数で受け取る。WXT による実装は `entrypoints/platform/` に置き、エントリポイント（`background/`・`popup/app.tsx`・`options/app.tsx`）が作って渡す。`components/` へは props で渡す。
 
 - 採用理由: 置き換えるときに書き直すのが `entrypoints/` だけになる。`utils/` のテストが `fakeBrowser` を使わず、手書きの偽物で済む
 - `entrypoints/platform/` は `index` を持たないため、WXT はエントリポイントとして扱わない。popup・options・background が共有するため、どれか1つのエントリポイントのディレクトリには置かない
@@ -74,5 +74,5 @@ WXT による実装を組み立てる分だけ `background.ts` の依存が増�
 ## Risks / Trade-offs
 
 - [エントリポイントでの組み立てが増える] → 組み立ては1つのエントリポイントにつき数行で、`entrypoints/platform/` の関数を呼ぶだけにする
-- [`entrypoints/platform/` の実装を確かめる範囲が狭い] → WXT の API をそのまま呼ぶだけの薄い層にする。ストレージは定義のキーで読み書きすることを Vitest（WXT の `fakeBrowser`）で、タブは E2E のテストで確かめる
+- [`entrypoints/platform/` の実装を確かめる範囲が狭い] → WXT の API をそのまま呼ぶだけの薄い層にする。保存する値の定義が既存の chrome.storage のキーに書き込むことと、タブの API に渡す引数を、Vitest（WXT の `fakeBrowser`）で確かめる
 - [WXT が将来 `entrypoints/<名前>/` の `index` 以外のファイルもエントリポイントとして扱うようになる] → ビルドで余計なエントリポイントができるか、エラーになるため気づける

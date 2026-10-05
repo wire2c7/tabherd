@@ -55,5 +55,5 @@ WXT（ADR 0002）・Preact（ADR 0003）・LogTape（ADR 0017）を、いつで�
 - エントリポイントで、WXT による実装を作って渡す組み立てが増える
 - WXT を置き換えるときは、WXT の storage が保存した値（`chrome.storage` の、`local:` 等を除いたキー）を読めるようにする必要がある。データの形を変えて版を持たせるときは、版の保存の形も置き換え先で読めるようにする
 - ログのメッセージの `{name}` を埋める書き方は LogTape のもののため、LogTape を置き換えるときは `setup.ts` で同じ書き方を解釈する
-- `entrypoints/platform/` の実装は WXT の API をそのまま呼ぶだけにし、ストレージは WXT の `fakeBrowser` を使う Vitest で、タブは E2E のテストで確かめる
+- `entrypoints/platform/` の実装は WXT の API をそのまま呼ぶだけにし、WXT の `fakeBrowser` を使う Vitest で確かめる
 - 新しいパッケージを `utils/`・`components/` で使うには、`.oxlintrc.jsonc` の許可に加える必要がある
