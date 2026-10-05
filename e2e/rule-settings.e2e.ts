@@ -1,5 +1,6 @@
 import type { SettingsPageName } from "./fixtures";
 import { expect, rule, shownNames, test } from "./fixtures";
+import { storedTitles } from "./rule-titles";
 
 // テストの名前は openspec/specs/rule-settings-ui/spec.md の Requirement（describe）と Scenario（test）に対応させる。
 // Scenario のない確認は、対応する Requirement の中に置く
@@ -219,13 +220,26 @@ test.describe("入力の検証", () => {
   test("グループ名の重複", async ({ setRules, openSettings }) => {
     await setRules([dev, docs]);
     const page = await openSettings("popup");
-    const message = "上のルールと同じグループ名です。このルールは使われません";
+    const message = "ほかのルールが使っているグループ名です。このルールは使われません";
 
     await page.getByLabel("グループ名").nth(1).fill("開発");
 
     const [first, second] = [page.locator(".rule-settings__item").nth(0), page.locator(".rule-settings__item").nth(1)];
     await expect(second.getByText(message)).toBeVisible();
     await expect(first.getByText(message)).toBeHidden();
+  });
+
+  test("下のルールのグループ名にする", async ({ serviceWorker, setRules, openSettings }) => {
+    await setRules([dev, docs]);
+    await expect.poll(async () => storedTitles(serviceWorker)).toStrictEqual({ dev: "開発", docs: "資料" });
+    const page = await openSettings("popup");
+    const message = "ほかのルールが使っているグループ名です。このルールは使われません";
+
+    await page.getByLabel("グループ名").nth(0).fill("資料");
+
+    const [first, second] = [page.locator(".rule-settings__item").nth(0), page.locator(".rule-settings__item").nth(1)];
+    await expect(first.getByText(message)).toBeVisible();
+    await expect(second.getByText(message)).toBeHidden();
   });
 
   test("空のグループ名", async ({ setRules, storedNames, openSettings }) => {
