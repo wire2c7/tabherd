@@ -13,11 +13,17 @@ const DOCS: Rule = {
   conditions: [{ type: "contains", value: "example.com" }],
 };
 
+/** id のルールが name のタイトルを持っている RuleTitles */
+function titlesOf(...entries: [Rule, string][]): Map<string, string> {
+  return new Map(entries.map(([rule, title]) => [rule.id, title]));
+}
+
 describe("ルールの変更の差分", () => {
   it("名前が変わったルールは、旧い名前から新しい名前への変更になる", () => {
     expect(diffRules([DEV, DOCS], [{ ...DEV, name: "Dev" }, DOCS])).toStrictEqual({
       updates: [{ oldName: "開発", name: "Dev", color: "blue" }],
       retiredNames: ["開発"],
+      titles: titlesOf([DEV, "Dev"], [DOCS, "資料"]),
     });
   });
 
@@ -25,23 +31,34 @@ describe("ルールの変更の差分", () => {
     expect(diffRules([DEV], [{ ...DEV, color: "red" }])).toStrictEqual({
       updates: [{ oldName: "開発", name: "開発", color: "red" }],
       retiredNames: [],
+      titles: titlesOf([DEV, "開発"]),
+    });
+  });
+});
+
+describe("ルールの削除・追加の差分", () => {
+  it("削除されたルールの名前は、旧い名前として返す", () => {
+    expect(diffRules([DEV, DOCS], [DOCS])).toStrictEqual({
+      updates: [],
+      retiredNames: ["開発"],
+      titles: titlesOf([DOCS, "資料"]),
     });
   });
 
-  it("削除されたルールの名前は、旧い名前として返す", () => {
-    expect(diffRules([DEV, DOCS], [DOCS])).toStrictEqual({ updates: [], retiredNames: ["開発"] });
-  });
-
   it("変わっていないルール・追加されたルールは差分にならない", () => {
-    expect(diffRules([DEV], [DEV, DOCS])).toStrictEqual({ updates: [], retiredNames: [] });
+    expect(diffRules([DEV], [DEV, DOCS])).toStrictEqual({
+      updates: [],
+      retiredNames: [],
+      titles: titlesOf([DEV, "開発"], [DOCS, "資料"]),
+    });
   });
 
-  it("名前が空になったルールは無効になるため、旧い名前として返す", () => {
-    expect(diffRules([DEV], [{ ...DEV, name: "" }])).toStrictEqual({ updates: [], retiredNames: ["開発"] });
-  });
-
-  it("変更前に無効だったルールは比べない", () => {
-    expect(diffRules([{ ...DEV, name: "" }], [DEV])).toStrictEqual({ updates: [], retiredNames: [] });
+  it("変更前に無効でタイトルも持っていなかったルールは比べない", () => {
+    expect(diffRules([{ ...DEV, name: "" }], [DEV])).toStrictEqual({
+      updates: [],
+      retiredNames: [],
+      titles: titlesOf([DEV, "開発"]),
+    });
   });
 
   it("名前を入れ替えたルールは、どちらの名前も旧い名前にならない", () => {
@@ -59,6 +76,77 @@ describe("ルールの変更の差分", () => {
         { oldName: "資料", name: "開発", color: "green" },
       ],
       retiredNames: [],
+      titles: titlesOf([DEV, "資料"], [DOCS, "開発"]),
+    });
+  });
+});
+
+describe("無効になったルールのタイトル", () => {
+  it("名前を空にしたルールは、空にする前のタイトルを持ち続け、旧い名前にならない", () => {
+    expect(diffRules([DEV], [{ ...DEV, name: "" }])).toStrictEqual({
+      updates: [],
+      retiredNames: [],
+      titles: titlesOf([DEV, "開発"]),
+    });
+  });
+
+  it("持ち続けたタイトルは、名前を入れると新しい名前への変更になる", () => {
+    expect(diffRules([{ ...DEV, name: "" }], [{ ...DEV, name: "Dev" }], titlesOf([DEV, "開発"]))).toStrictEqual({
+      updates: [{ oldName: "開発", name: "Dev", color: "blue" }],
+      retiredNames: ["開発"],
+      titles: titlesOf([DEV, "Dev"]),
+    });
+  });
+
+  it("起動し直したとき（変更前後が同じ）も、記録したタイトルを持ち続ける", () => {
+    const emptied: Rule = { ...DEV, name: "" };
+    expect(diffRules([emptied], [emptied], titlesOf([DEV, "開発"]))).toStrictEqual({
+      updates: [],
+      retiredNames: [],
+      titles: titlesOf([DEV, "開発"]),
+    });
+  });
+
+  it("同じ名前に戻したときも、色を合わせる変更を出す（無効なあいだに色を変えていても揃う）", () => {
+    expect(diffRules([{ ...DEV, name: "" }], [DEV], titlesOf([DEV, "開発"])).updates).toStrictEqual([
+      { oldName: "開発", name: "開発", color: "blue" },
+    ]);
+  });
+});
+
+describe("無効なルールの削除・名前の重複", () => {
+  it("無効なまま削除すると、持ち続けたタイトルを旧い名前として返す", () => {
+    expect(diffRules([{ ...DEV, name: "" }, DOCS], [DOCS], titlesOf([DEV, "開発"], [DOCS, "資料"]))).toStrictEqual({
+      updates: [],
+      retiredNames: ["開発"],
+      titles: titlesOf([DOCS, "資料"]),
+    });
+  });
+
+  it("後から同じ名前にしたルールは無効になり、元のタイトルを持ち続ける", () => {
+    const titles = titlesOf([DEV, "開発"], [DOCS, "資料"]);
+    expect(diffRules([DEV, DOCS], [{ ...DEV, name: "資料" }, DOCS], titles)).toStrictEqual({
+      updates: [],
+      retiredNames: [],
+      titles,
+    });
+  });
+
+  it("名前を空にしたルールが持ち続けるタイトルを、ほかのルールの名前にしても、そのルールは無効になる", () => {
+    const titles = titlesOf([DEV, "開発"], [DOCS, "資料"]);
+    expect(
+      diffRules(
+        [DEV, DOCS],
+        [
+          { ...DEV, name: "" },
+          { ...DOCS, name: "開発" },
+        ],
+        titles,
+      ),
+    ).toStrictEqual({
+      updates: [],
+      retiredNames: [],
+      titles,
     });
   });
 });

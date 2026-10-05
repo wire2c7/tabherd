@@ -30,3 +30,12 @@ export const RuleSchema = object({
 });
 
 export type Rule = InferOutput<typeof RuleSchema>;
+
+/**
+ * ルールの ID から、そのルールが持っているグループのタイトル。Chrome のタブグループには印を付けられないため、
+ * グループとルールをタイトルで結び付ける。ルールが無効なあいだは、無効になる前のタイトルを持ち続ける
+ */
+export type RuleTitles = ReadonlyMap<string, string>;
+
+/** タイトルを持っているルールが無い RuleTitles */
+export const NO_TITLES: RuleTitles = new Map();

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { findMatchingRule, findRuleProblems, isValidRegex, matchesCondition, validRules } from "./match";
+import {
+  findMatchingRule,
+  findRuleProblems,
+  groupTitlesInOrder,
+  heldTitles,
+  isValidRegex,
+  matchesCondition,
+  validRules,
+} from "./match";
 import type { Condition, Rule } from "./types";
 
 function rule(name: string, conditions: Condition[]): Rule {
@@ -89,6 +97,48 @@ describe("ルールの無効になる理由", () => {
       null,
       "duplicate-name",
     ]);
+  });
+});
+
+describe("タイトルを持っているルールの優先", () => {
+  const upper: Rule = { id: "upper", name: "業務", color: "blue", conditions: [] };
+  const lower: Rule = { id: "lower", name: "業務", color: "red", conditions: [] };
+
+  it("下のルールがその名前のタイトルを持っていれば、後から同じ名前にした上のルールが duplicate-name になる", () => {
+    expect(findRuleProblems([upper, lower], new Map([["lower", "業務"]]))).toStrictEqual(["duplicate-name", null]);
+  });
+
+  it("名前を空にしたルールが持ち続けるタイトルと同じ名前のルールは duplicate-name になる", () => {
+    const emptied: Rule = { id: "emptied", name: "", color: "blue", conditions: [] };
+    expect(findRuleProblems([emptied, lower], new Map([["emptied", "業務"]]))).toStrictEqual([
+      "empty-name",
+      "duplicate-name",
+    ]);
+  });
+
+  it("一覧に無いルールのタイトルは数えない", () => {
+    expect(findRuleProblems([upper], new Map([["deleted", "業務"]]))).toStrictEqual([null]);
+  });
+});
+
+describe("無効なルールが持ち続けるタイトル", () => {
+  const dev: Rule = { id: "dev", name: "", color: "blue", conditions: [] };
+  const docs: Rule = { id: "docs", name: "資料", color: "green", conditions: [] };
+  const titles = new Map([
+    ["dev", "開発"],
+    ["docs", "資料"],
+  ]);
+
+  it("無効なルールのタイトルだけを返す", () => {
+    expect(heldTitles([dev, docs], titles)).toStrictEqual(new Map([["dev", "開発"]]));
+  });
+
+  it("並べるタイトルは、無効なルールの持ち続けるタイトルをルールの位置に含める", () => {
+    expect(groupTitlesInOrder([dev, docs], titles)).toStrictEqual(["開発", "資料"]);
+  });
+
+  it("タイトルを持っていない無効なルールは並べるタイトルに含めない", () => {
+    expect(groupTitlesInOrder([dev, docs])).toStrictEqual(["資料"]);
   });
 });
 

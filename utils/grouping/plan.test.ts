@@ -182,3 +182,26 @@ describe("同じ判定で空になるグループ", () => {
     ]);
   });
 });
+
+describe("無効なルールが持ち続けるタイトルのグループ", () => {
+  it("中のタブは動かさず、条件に一致する新しいタブも入れない", () => {
+    const emptied: Rule = { ...DEV, name: "" };
+    const window = windowOf(
+      [tab(10, "https://example.org/", 100), tab(11, "https://github.com/new")],
+      [group(100, "開発")],
+    );
+    expect(planGrouping(window, [emptied, DOCS], { titles: new Map([[DEV.id, "開発"]]) })).toStrictEqual([]);
+  });
+
+  it("後から同じ名前にしたルールではなく、タイトルを持っているルールでまとめる", () => {
+    const renamed: Rule = { ...DEV, name: "資料" };
+    const titles = new Map([
+      [DEV.id, "開発"],
+      [DOCS.id, "資料"],
+    ]);
+    const window = windowOf([tab(10, "https://github.com/"), tab(11, "https://example.com/")]);
+    expect(planGrouping(window, [renamed, DOCS], { titles })).toStrictEqual([
+      { type: "create-group", windowId: 1, title: "資料", color: "green", tabIds: [11] },
+    ]);
+  });
+});

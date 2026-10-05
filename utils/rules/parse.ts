@@ -1,6 +1,6 @@
-import { is, object, safeParse, string, unknown } from "valibot";
+import { is, object, record, safeParse, string, unknown } from "valibot";
 
-import type { Condition, GroupColor, Rule } from "./types";
+import type { Condition, GroupColor, Rule, RuleTitles } from "./types";
 import { ConditionSchema, GroupColorSchema, RuleSchema } from "./types";
 
 /** 保存値を読むときに見つかった壊れた箇所。どれも無ければ壊れていない */
@@ -87,4 +87,12 @@ function parseConditions(values: readonly unknown[]): Condition[] {
     const parsed = safeParse(ConditionSchema, value);
     return parsed.success ? [parsed.output] : [];
   });
+}
+
+const RuleTitlesSchema = record(string(), string());
+
+/** 保存値を RuleTitles に直す。形が壊れていれば、どのルールもタイトルを持っていないものとする（次の反映で書き直される） */
+export function parseRuleTitles(value: unknown): RuleTitles {
+  const parsed = safeParse(RuleTitlesSchema, value);
+  return parsed.success ? new Map(Object.entries(parsed.output)) : new Map();
 }

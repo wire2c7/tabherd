@@ -1,5 +1,5 @@
 import { getAppLogger } from "../logging/setup";
-import type { Rule } from "../rules/types";
+import type { Rule, RuleTitles } from "../rules/types";
 import { executeOperations } from "./execute";
 import { planGroupOrder } from "./order";
 import type { PlanGroupingOptions } from "./plan";
@@ -10,6 +10,12 @@ import type { TabsApi } from "./tabs";
 import type { WindowSnapshot } from "./types";
 
 const logger = getAppLogger("grouping");
+
+/** ルールの一覧と、ルールが持っているグループのタイトル */
+export interface RulesState {
+  rules: readonly Rule[];
+  titles: RuleTitles;
+}
 
 /** 1つのウィンドウのグループ化で使うルールと、判定するタブ・管理対象のグループ名 */
 interface GroupingRequest {
@@ -38,7 +44,7 @@ async function groupAndArrange(
     [latest] = await takeWindowSnapshots(api, window.id);
   }
   if (latest !== undefined) {
-    const moves = planGroupOrder(latest, rules);
+    const moves = planGroupOrder(latest, rules, options.titles);
     logger.debug("ウィンドウ {windowId} のグループの並べ替えを {operationCount} 件計画しました", {
       windowId: window.id,
       operationCount: moves.length,
@@ -50,13 +56,15 @@ async function groupAndArrange(
 /** ウィンドウの指定したタブだけを判定し、ルールのグループへ入れる・外す。その後にウィンドウのグループの並びを揃える */
 export async function regroupTabs(
   api: TabsApi,
-  rules: readonly Rule[],
+  { rules, titles }: RulesState,
   { windowId, tabIds }: { windowId: number; tabIds: readonly number[] },
 ): Promise<void> {
   logger.debug("ウィンドウ {windowId} のタブ {tabIds} を判定します", { windowId, tabIds });
   const windows = await takeWindowSnapshots(api, windowId);
   await Promise.all(
-    windows.map(async (window) => groupAndArrange(api, window, { rules, options: { targetTabIds: new Set(tabIds) } })),
+    windows.map(async (window) =>
+      groupAndArrange(api, window, { rules, options: { targetTabIds: new Set(tabIds), titles } }),
+    ),
   );
 }
 
@@ -66,35 +74,39 @@ export async function regroupTabs(
  */
 export async function regroupAllWindows(
   api: TabsApi,
-  rules: readonly Rule[],
+  { rules, titles }: RulesState,
   retiredNames: readonly string[] = [],
 ): Promise<void> {
   const windows = await takeWindowSnapshots(api);
   logger.debug("すべてのウィンドウ（{windowCount} 件）のタブを判定し直します", { windowCount: windows.length });
   // グループはウィンドウごとに作るため、ウィンドウをまたいで操作が干渉しない
-  await Promise.all(windows.map(async (window) => groupAndArrange(api, window, { rules, options: { retiredNames } })));
+  await Promise.all(
+    windows.map(async (window) => groupAndArrange(api, window, { rules, options: { retiredNames, titles } })),
+  );
 }
 
 /**
- * ルールの変更を開いているタブに反映する。
- * 名前・色が変わったルールのグループのタイトル・色を先に変え、その後にスナップショットを取り直して全体を判定し直す
+ * ルールの変更を開いているタブに反映し、変更後にルールが持っているタイトルを返す。state.titles は変更前にルールが持っていたタイトル。
+ * 名前・色が変わったルールのグループのタイトル・色を先に変え、その後にスナップショットを取り直して全体を判定し直す。
+ * 起動時は oldRules に今のルールを渡し、記録とルールの食い違いを直す
  */
 export async function applyRuleChange(
   api: TabsApi,
   oldRules: readonly Rule[],
-  newRules: readonly Rule[],
-): Promise<void> {
-  const { updates, retiredNames } = diffRules(oldRules, newRules);
+  { rules, titles }: RulesState,
+): Promise<Map<string, string>> {
+  const change = diffRules(oldRules, rules, titles);
   logger.debug(
     "ルールの変更を反映します（名前・色の変わったグループ {updateCount} 件、使われなくなった名前 {retiredCount} 件）",
     {
-      updateCount: updates.length,
-      retiredCount: retiredNames.length,
+      updateCount: change.updates.length,
+      retiredCount: change.retiredNames.length,
     },
   );
-  if (updates.length > 0) {
+  if (change.updates.length > 0) {
     const windows = await takeWindowSnapshots(api);
-    await Promise.all(windows.map(async (window) => executeOperations(api, planGroupUpdates(window, updates))));
+    await Promise.all(windows.map(async (window) => executeOperations(api, planGroupUpdates(window, change.updates))));
   }
-  await regroupAllWindows(api, newRules, retiredNames);
+  await regroupAllWindows(api, { rules, titles: change.titles }, change.retiredNames);
+  return change.titles;
 }

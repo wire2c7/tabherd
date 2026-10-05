@@ -1,5 +1,6 @@
-import { validRules } from "../rules/match";
-import type { Rule } from "../rules/types";
+import { groupTitlesInOrder } from "../rules/match";
+import type { Rule, RuleTitles } from "../rules/types";
+import { NO_TITLES } from "../rules/types";
 import { TAB_GROUP_ID_NONE } from "./plan";
 import type { GroupOperation, WindowSnapshot } from "./types";
 
@@ -25,13 +26,17 @@ function toBlocks(window: WindowSnapshot): Block[] {
 }
 
 /**
- * 管理対象のグループを、ピン留めされたタブの直後からルールの順に並べる移動の計画を組み立てる。
+ * 管理対象のグループと無効なルールが持ち続けるタイトル（titles）のグループを、ピン留めされたタブの直後からルールの順に並べる移動の計画を組み立てる。
  * 同名のグループが複数あるときは、今の左右の順のまま続けて並べる。
  * 管理対象でないタブ・グループは動かさず、管理対象のグループの後ろへ元の相対的な順のまま押し出される。
  * すでに正しい位置にあるグループには操作を出さない
  */
-export function planGroupOrder(window: WindowSnapshot, rules: readonly Rule[]): GroupOperation[] {
-  const rankByName = new Map(validRules(rules).map((rule, rank) => [rule.name, rank]));
+export function planGroupOrder(
+  window: WindowSnapshot,
+  rules: readonly Rule[],
+  titles: RuleTitles = NO_TITLES,
+): GroupOperation[] {
+  const rankByName = new Map(groupTitlesInOrder(rules, titles).map((title, rank) => [title, rank]));
   const groupsById = new Map(window.groups.map((group) => [group.id, group]));
   const blocks = toBlocks(window);
 

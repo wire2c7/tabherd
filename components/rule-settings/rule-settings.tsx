@@ -2,25 +2,28 @@ import type { JSX, RefObject } from "preact";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 
 import { findRuleProblems } from "../../utils/rules/match";
-import type { RulesStore } from "../../utils/rules/storage";
-import type { Rule } from "../../utils/rules/types";
+import type { RuleTitlesStore, RulesStore } from "../../utils/rules/storage";
+import type { Rule, RuleTitles } from "../../utils/rules/types";
 
 import { addRule, moveRule, removeRule, updateRule } from "./edit";
 import type { MoveDirection } from "./reorder";
 import { RuleEditor } from "./rule-editor";
 import { useDragReorder } from "./use-drag-reorder";
-import { useRules } from "./use-rules";
+import { useRuleTitles, useRules } from "./use-rules";
 
 import "./rule-settings.css";
 
 interface RuleSettingsProps {
   /** ルールの一覧を読み書きする先 */
   store: RulesStore;
+  /** ルールが持っているグループのタイトルの読み込み先。名前が重なったルールのどれが使われるかを決める */
+  titlesStore: RuleTitlesStore;
 }
 
 /** ルールの設定画面。ポップアップとオプションページの両方で描画する */
-export function RuleSettings({ store }: RuleSettingsProps): JSX.Element {
+export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Element {
   const { rules, isDamaged, update } = useRules(store);
+  const titles = useRuleTitles(titlesStore);
   const [newRuleId, setNewRuleId] = useState<string | null>(null);
 
   const handleUpdate = useCallback(
@@ -53,6 +56,7 @@ export function RuleSettings({ store }: RuleSettingsProps): JSX.Element {
       ) : (
         <RuleList
           rules={rules}
+          titles={titles}
           newRuleId={newRuleId}
           onUpdate={handleUpdate}
           onRemove={handleRemove}
@@ -82,6 +86,7 @@ function DamageWarning(): JSX.Element {
 
 interface RuleListProps {
   rules: readonly Rule[];
+  titles: RuleTitles;
   newRuleId: string | null;
   onUpdate: (id: string, update: (rule: Rule) => Rule) => void;
   onRemove: (id: string) => void;
@@ -90,9 +95,9 @@ interface RuleListProps {
 }
 
 /** ルールの一覧。一覧の順が優先度とタブバー上の並びを表す。ハンドルのドラッグと「上へ」「下へ」のボタンで並び替える */
-function RuleList({ rules, newRuleId, onUpdate, onRemove, onMove }: RuleListProps): JSX.Element {
+function RuleList({ rules, titles, newRuleId, onUpdate, onRemove, onMove }: RuleListProps): JSX.Element {
   const listRef = useRef<HTMLOListElement>(null);
-  const problems = useMemo(() => findRuleProblems(rules), [rules]);
+  const problems = useMemo(() => findRuleProblems(rules, titles), [rules, titles]);
   const ids = useMemo(() => rules.map((rule) => rule.id), [rules]);
   const drag = useDragReorder(listRef, ids, onMove);
   const handleStep = useStepWithFocus(listRef, ids, onMove);
