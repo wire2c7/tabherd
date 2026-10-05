@@ -32,6 +32,8 @@ export function useRules(store: RulesStore): RulesState {
   const pendingWritesRef = useRef(0);
 
   useEffect(() => {
+    // 保存先が替わったら、新しい保存先から読み込んだ一覧を捨てないよう、前の保存先の一覧を忘れる
+    latestRef.current = null;
     function apply({ rules: value, damage }: ParsedRules): void {
       latestRef.current = value;
       setRules(value);

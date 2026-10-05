@@ -25,7 +25,11 @@ interface LogSettingsProps {
 /** 端末に保存したログの件数の状態 */
 function useStoredLogCount(logs: StorageItem<StoredLogEntry[]>): StoredLogCount {
   const [count, setCount] = useState<StoredLogCount>({ status: "loading" });
-  useEffect(() => watchStoredLogCount(logs, setCount), [logs]);
+  useEffect(() => {
+    // 保存先が替わったら、前の保存先の件数を見せないよう読み込み中に戻す
+    setCount({ status: "loading" });
+    return watchStoredLogCount(logs, setCount);
+  }, [logs]);
   return count;
 }
 
