@@ -4,9 +4,9 @@ import { debounceChanges } from "../../utils/grouping/debounce";
 import type { RulesState } from "../../utils/grouping/regroup";
 import { applyRuleChange, regroupTabs } from "../../utils/grouping/regroup";
 import type { createSerialQueue } from "../../utils/grouping/serial";
+import type { TabsApi } from "../../utils/grouping/tabs";
 import { logListenerErrors } from "../../utils/logging/listener";
 import { getAppLogger } from "../../utils/logging/setup";
-import type { Rule } from "../../utils/rules/types";
 import { browserTabs } from "../platform/tabs";
 import { showUnusedRules } from "./badge";
 import { readRulesState, rulesReader, titlesStore } from "./rules";
@@ -49,7 +49,7 @@ async function regroupAll(): Promise<void> {
 /** regroupTab が判定に使う依存先 */
 export interface RegroupTabDeps {
   /** 操作を実行するタブの API */
-  api: typeof browserTabs;
+  api: TabsApi;
   /** 進行中のルール変更のデバウンスの確定待ち（`DebouncedChanges.waitUntilSettled`） */
   waitUntilSettled: () => Promise<void>;
   /** ルールの一覧とグループのタイトルを読む関数 */
@@ -79,10 +79,7 @@ export function regroupTab(deps: RegroupTabDeps, windowId: number, tabId: number
  * @param enqueue - 積んだ処理を直列に実行する関数
  */
 export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
-  // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる。
-  // debounceChanges は処理を setTimeout の中で呼び、処理の例外は error イベントに届くため、今は包まなくても記録される。
-  // debounceChanges が処理を同期で呼ぶように変わっても記録するよう包む
-  const ruleChangeDebounce = debounceChanges<readonly Rule[]>(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
+  const ruleChangeDebounce = debounceChanges<RulesState["rules"]>(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
     logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
       oldCount: oldRules.length,
       newCount: newRules.length,
@@ -125,5 +122,8 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
     }),
   );
 
+  // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる。
+  // debounceChanges は処理を setTimeout の中で呼び、処理の例外は error イベントに届くため、今は包まなくても記録される。
+  // debounceChanges が処理を同期で呼ぶように変わっても記録するよう包む
   rulesReader.watch(logListenerErrors(logger, ruleChangeDebounce.onChange));
 }
