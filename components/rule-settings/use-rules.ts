@@ -126,16 +126,14 @@ async function saveRules(store: RulesStore, rules: Rule[], { pendingWrites, onSa
 
 /**
  * ルールが持っているグループのタイトルを返す。background が反映のたびに書き直すため、変更を watch で受け取る。
- * 読み込みが終わるまでは null。読めなかったときは、どのルールもタイトルを持っていないものとする
+ * 読み込みが終わるまでは null。読めなかったときは、どのルールもタイトルを持っていないものとする。
+ * store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
  */
 export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
   const [titles, setTitles] = useState<RuleTitles | null>(null);
   useEffect(() => {
-    // 保存先が替わったら、前の保存先のタイトルで判定しないよう読み込み中に戻す
-    setTitles(null);
-    // 読み込みより先に watch で受け取っていれば、そちらが新しい。購読をやめた後に届いた読み込みは捨てる
+    // 読み込みより先に watch で受け取っていれば、そちらが新しい
     let received = false;
-    let active = true;
     const unwatch = store.watch((value) => {
       received = true;
       setTitles(value);
@@ -143,20 +141,17 @@ export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
     void (async () => {
       try {
         const value = await store.read();
-        if (active && !received) {
+        if (!received) {
           setTitles(value);
         }
       } catch (error) {
         console.error("ルールが持っているグループのタイトルを読み込めませんでした", error);
-        if (active && !received) {
+        if (!received) {
           setTitles(NO_TITLES);
         }
       }
     })();
-    return () => {
-      active = false;
-      unwatch();
-    };
+    return unwatch;
   }, [store]);
   return titles;
 }
