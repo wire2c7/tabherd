@@ -31,31 +31,18 @@ export function useRules(store: RulesStore): RulesState {
   // 保存中の書き込みの数
   const pendingWritesRef = useRef(0);
 
-  useEffect(() => {
-    // 保存先が替わったら、新しい保存先から読み込んだ一覧を捨てないよう、前の保存先の一覧を忘れる
-    latestRef.current = null;
-    function apply({ rules: value, damage }: ParsedRules): void {
-      latestRef.current = value;
-      setRules(value);
-      setIsDamaged(damage !== null);
-    }
-    async function load(): Promise<void> {
-      const value = await store.read();
-      // 読み込みより先に watch で受け取っていれば、そちらが新しい
-      if (latestRef.current === null) {
-        apply(value);
-      }
-    }
-    const unwatch = store.watch((value) => {
-      // 自分の書き込みを待っているあいだは、手元の一覧の方が新しい。
-      // 保存前の値の通知で表示を戻すと、入力中の文字が消えるため無視する
-      if (pendingWritesRef.current === 0) {
-        apply(value);
-      }
-    });
-    void load();
-    return unwatch;
-  }, [store]);
+  useEffect(
+    () =>
+      subscribeRules(store, {
+        latest: latestRef,
+        pendingWrites: pendingWritesRef,
+        onChange: ({ rules: value, damage }) => {
+          setRules(value);
+          setIsDamaged(damage !== null);
+        },
+      }),
+    [store],
+  );
 
   const update = useCallback(
     (updater: RulesUpdater) => {
@@ -72,6 +59,46 @@ export function useRules(store: RulesStore): RulesState {
   );
 
   return { rules, isDamaged, update };
+}
+
+interface RulesSubscription {
+  /** 最新の一覧。読み込み・変更の通知で書き換える */
+  latest: MutableRef<readonly Rule[] | null>;
+  /** 保存中の書き込みの数。0 でないあいだの通知は無視する */
+  pendingWrites: MutableRef<number>;
+  /** 読み込んだ・変わった一覧を受け取る */
+  onChange: (parsed: ParsedRules) => void;
+}
+
+/** store の一覧を読み込み、変更を購読する。購読をやめる関数を返す */
+function subscribeRules(store: RulesStore, { latest, pendingWrites, onChange }: RulesSubscription): () => void {
+  // 保存先が替わったら、新しい保存先から読み込んだ一覧を捨てないよう、前の保存先の一覧を忘れる
+  latest.current = null;
+  // 購読をやめた後に届いた読み込みは、前の保存先のものとして捨てる
+  let active = true;
+  function apply(parsed: ParsedRules): void {
+    latest.current = parsed.rules;
+    onChange(parsed);
+  }
+  async function load(): Promise<void> {
+    const value = await store.read();
+    // 読み込みより先に watch で受け取っていれば、そちらが新しい
+    if (active && latest.current === null) {
+      apply(value);
+    }
+  }
+  const unwatch = store.watch((value) => {
+    // 自分の書き込みを待っているあいだは、手元の一覧の方が新しい。
+    // 保存前の値の通知で表示を戻すと、入力中の文字が消えるため無視する
+    if (pendingWrites.current === 0) {
+      apply(value);
+    }
+  });
+  void load();
+  return () => {
+    active = false;
+    unwatch();
+  };
 }
 
 interface SaveOptions {
