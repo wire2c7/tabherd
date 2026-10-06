@@ -16,7 +16,13 @@ export interface RulesStore {
   watch: (listener: (newRules: ParsedRules, oldRules: ParsedRules) => void) => () => void;
 }
 
-/** RULES_ITEM の StorageItem から RulesStore を作る。保存した値の形は確かめずに返るため、読むときは parseRules で直してから渡す */
+/**
+ * RULES_ITEM の StorageItem から RulesStore を作る。
+ *
+ * @param item - 保存先の StorageItem
+ * @returns 保存したルールの一覧の読み書き
+ * @remarks 保存した値の形は確かめずに返るため、読むときは parseRules で直してから渡す
+ */
 export function createRulesStore(item: StorageItem<Rule[]>): RulesStore {
   return {
     read: async () => parseRules(await item.getValue()),
@@ -40,7 +46,12 @@ export interface RuleTitlesStore {
   watch: (listener: (titles: RuleTitles) => void) => () => void;
 }
 
-/** RULE_TITLES_ITEM の StorageItem から RuleTitlesStore を作る */
+/**
+ * RULE_TITLES_ITEM の StorageItem から RuleTitlesStore を作る。
+ *
+ * @param item - 保存先の StorageItem
+ * @returns 保存した RuleTitles の読み書き
+ */
 export function createRuleTitlesStore(item: StorageItem<Record<string, string>>): RuleTitlesStore {
   return {
     read: async () => parseRuleTitles(await item.getValue()),

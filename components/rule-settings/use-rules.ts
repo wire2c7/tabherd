@@ -23,9 +23,10 @@ export interface RulesState {
 
 /**
  * store に保存されたルールの一覧と、それを変更して即座に保存する関数を返す。
- * 壊れた保存値は直して表示するが、書き戻すのは利用者が変更したときだけにする。
- * ほかの画面（ポップアップとオプションページ）での変更は、ストレージの watch で受け取る。
- * store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
+ *
+ * @param store - 保存先の RulesStore
+ * @returns 保存されたルールの一覧と、変更して保存する関数
+ * @remarks 壊れた保存値は直して表示するが、書き戻すのは利用者が変更したときだけにする。ほかの画面（ポップアップとオプションページ）での変更は、ストレージの watch で受け取る。store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
  */
 export function useRules(store: RulesStore): RulesState {
   const [rules, setRules] = useState<readonly Rule[] | null>(null);
@@ -127,9 +128,11 @@ async function saveRules(store: RulesStore, rules: Rule[], { pendingWrites, onSa
 }
 
 /**
- * ルールが持っているグループのタイトルを返す。background が反映のたびに書き直すため、変更を watch で受け取る。
- * 読み込みが終わるまでは null。読めなかったときは、どのルールもタイトルを持っていないものとする。
- * store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
+ * ルールが持っているグループのタイトルを返す。
+ *
+ * @param store - 読み込み元の RuleTitlesStore
+ * @returns ルールが持っているグループのタイトル。読み込みが終わるまでは null
+ * @remarks background が反映のたびに書き直すため、変更を watch で受け取る。読めなかったときは、どのルールもタイトルを持っていないものとする。store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
  */
 export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
   const [titles, setTitles] = useState<RuleTitles | null>(null);
@@ -169,7 +172,13 @@ function findProblemsToShow(rules: readonly Rule[], titles: RuleTitles | null): 
   return findRuleProblems(rules, titles);
 }
 
-/** ルールが持っているグループのタイトル（読み込むまでは null）と、rules のそれぞれの表示する問題を返す */
+/**
+ * ルールが持っているグループのタイトル（読み込むまでは null）と、rules のそれぞれの表示する問題を返す。
+ *
+ * @param store - 読み込み元の RuleTitlesStore
+ * @param rules - 問題を判定するルールの一覧。読み込みが終わるまでは null
+ * @returns ルールが持っているグループのタイトルと、rules のそれぞれの表示する問題
+ */
 export function useRuleProblems(
   store: RuleTitlesStore,
   rules: readonly Rule[] | null,

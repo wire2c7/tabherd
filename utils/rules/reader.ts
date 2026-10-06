@@ -19,8 +19,13 @@ export interface RulesReader {
 export const DAMAGE_WARNED_ITEM: StorageItemDefinition<boolean> = { key: "session:rulesDamageWarned", fallback: false };
 
 /**
- * 壊れた保存値を読んだら警告のログを残す RulesReader を作る。damageWarned は DAMAGE_WARNED_ITEM の StorageItem。
- * タブのイベントのたびに読むため、保存するログが同じ警告で埋まらないよう、壊れていない値を読むまでは警告を繰り返さない
+ * 壊れた保存値を読んだら警告のログを残す RulesReader を作る。
+ *
+ * @param rules - 読み込み元の RulesStore
+ * @param damageWarned - 警告を繰り返さないための状態。DAMAGE_WARNED_ITEM の StorageItem
+ * @param logger - 警告を残すロガー
+ * @returns バックグラウンドの処理が使う RulesReader
+ * @remarks タブのイベントのたびに読むため、保存するログが同じ警告で埋まらないよう、壊れていない値を読むまでは警告を繰り返さない
  */
 export function createRulesReader(rules: RulesStore, damageWarned: StorageItem<boolean>, logger: Logger): RulesReader {
   // damageWarned の値を写したもの。起動してから最初に確かめるまでは undefined

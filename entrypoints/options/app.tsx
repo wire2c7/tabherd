@@ -17,6 +17,11 @@ async function sendLogsRequest(message: LogsRequest): Promise<unknown> {
   return browser.runtime.sendMessage(message);
 }
 
+/**
+ * オプションページの画面。
+ *
+ * @returns ルール・ログの設定を並べたページ
+ */
 export function App(): JSX.Element {
   return (
     <main class="page">

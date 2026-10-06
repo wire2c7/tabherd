@@ -67,6 +67,13 @@ function applyOperation(window: WindowSnapshot, operation: GroupOperation): Wind
   }
 }
 
+/**
+ * 計画の操作を順にスナップショットへ適用する。
+ *
+ * @param window - 適用前のウィンドウのスナップショット
+ * @param operations - 順に適用する操作
+ * @returns 適用後のウィンドウのスナップショット
+ */
 export function applyOperations(window: WindowSnapshot, operations: readonly GroupOperation[]): WindowSnapshot {
   let applied = window;
   for (const operation of operations) {

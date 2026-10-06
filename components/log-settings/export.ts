@@ -27,7 +27,13 @@ function fileNameStamp(date: Date): string {
   return `${day}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
-/** 書き出すログのファイルの名前と中身を組み立てる */
+/**
+ * 書き出すログのファイルの名前と中身を組み立てる。
+ *
+ * @param logs - 書き出すログ
+ * @param environment - 拡張機能のバージョン・ブラウザの情報・現在日時
+ * @returns ファイルの名前と中身
+ */
 export function buildLogExport(
   logs: readonly StoredLogEntry[],
   { extensionVersion, browser, now }: LogExportEnvironment,

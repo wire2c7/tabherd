@@ -2,7 +2,11 @@ import { getAppLogger } from "../logging/setup";
 
 const logger = getAppLogger("grouping");
 
-/** 渡された処理を1つずつ順に実行するキュー。戻り値の関数は、その処理が終わると解決する Promise を返す */
+/**
+ * 渡された処理を1つずつ順に実行するキューを作る。
+ *
+ * @returns 処理を積む関数。戻り値は、その処理が終わると解決する Promise
+ */
 export function createSerialQueue(): (task: () => Promise<void>) => Promise<void> {
   let tail: Promise<void> = Promise.resolve();
   return async (task) => {

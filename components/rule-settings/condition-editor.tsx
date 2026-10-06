@@ -19,6 +19,12 @@ interface Props {
   onRemove: (index: number) => void;
 }
 
+/**
+ * 1件の条件（種類・値）の編集欄。
+ *
+ * @param props - 編集する条件・一覧での位置・入力欄の id の接頭辞と、変更・削除のハンドラ
+ * @returns 条件の編集欄
+ */
 export function ConditionEditor({ condition, index, idPrefix, onChange, onRemove }: Props): JSX.Element {
   // 空の値はどの URL にも一致しないだけで、入力途中でもあるためエラーにしない
   const invalidRegex = condition.type === "regex" && condition.value !== "" && !isValidRegex(condition.value);

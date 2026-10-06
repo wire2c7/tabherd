@@ -30,8 +30,11 @@ export interface NavigatorLike {
 const GREASE_BRAND = /not.?a.?brand/iu;
 
 /**
- * fullVersionList からブラウザの種類とバージョンを選ぶ。Chromium を基にしたブラウザは Chromium と自身の種類の両方を返すため、
- * Chromium 以外があればそちらを選ぶ。選べなければ null
+ * fullVersionList からブラウザの種類とバージョンを選ぶ。
+ *
+ * @param fullVersionList - User-Agent Client Hints が返すブラウザの種類とバージョンの一覧
+ * @returns 選んだ種類とバージョン。選べなければ null
+ * @remarks Chromium を基にしたブラウザは Chromium と自身の種類の両方を返すため、Chromium 以外があればそちらを選ぶ
  */
 export function pickBrowserBrand(fullVersionList: readonly BrandVersion[]): BrowserInfo | null {
   const brands = fullVersionList.filter(({ brand }) => !GREASE_BRAND.test(brand));
@@ -39,15 +42,24 @@ export function pickBrowserBrand(fullVersionList: readonly BrandVersion[]): Brow
   return picked === undefined ? null : { brand: picked.brand, version: picked.version, source: "userAgentData" };
 }
 
-/** User-Agent から Chromium のバージョンを読む。User-Agent の全体は OS も含むため、バージョンだけを返す。読めなければ null */
+/**
+ * User-Agent から Chromium のバージョンを読む。
+ *
+ * @param userAgent - 読む元の User-Agent
+ * @returns ブラウザの種類（Chromium）とバージョン。読めなければ null
+ * @remarks User-Agent の全体は OS も含むため、バージョンだけを返す
+ */
 export function parseBrowserFromUserAgent(userAgent: string): BrowserInfo | null {
   const version = /\bChrome\/(?<version>[\d.]+)/u.exec(userAgent)?.groups?.["version"];
   return version === undefined ? null : { brand: "Chromium", version, source: "userAgent" };
 }
 
 /**
- * ブラウザの種類とバージョンを読む。User-Agent Client Hints の fullVersionList を使い、
- * 使えない（API が無い、失敗する、一覧が無い・空）ときは User-Agent から読む
+ * ブラウザの種類とバージョンを読む。
+ *
+ * @param navigatorLike - 読む元の navigator
+ * @returns ブラウザの種類とバージョン。読めなければ null
+ * @remarks User-Agent Client Hints の fullVersionList を使い、使えない（API が無い、失敗する、一覧が無い・空）ときは User-Agent から読む
  */
 export async function detectBrowser(navigatorLike: NavigatorLike): Promise<BrowserInfo | null> {
   try {

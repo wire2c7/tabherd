@@ -1,7 +1,13 @@
 import type { Condition, Rule, RuleTitles } from "./types";
 import { NO_TITLES } from "./types";
 
-/** u フラグ付きの正規表現として解釈できるか。空文字列は条件として意味を持たないため不正とする */
+/**
+ * u フラグ付きの正規表現として解釈できるかを確かめる。
+ *
+ * @param pattern - 確かめる正規表現の文字列
+ * @returns 解釈できれば true
+ * @remarks 空文字列は条件として意味を持たないため不正とする
+ */
 export function isValidRegex(pattern: string): boolean {
   return compileRegex(pattern) !== null;
 }
@@ -18,7 +24,14 @@ function compileRegex(pattern: string): RegExp | null {
   }
 }
 
-/** URL が条件に一致するか。値が空・正規表現の構文が不正な条件はどの URL にも一致しない */
+/**
+ * URL が条件に一致するかを確かめる。
+ *
+ * @param url - 確かめる URL
+ * @param condition - 確かめる条件
+ * @returns 一致すれば true
+ * @remarks 値が空・正規表現の構文が不正な条件はどの URL にも一致しない
+ */
 export function matchesCondition(url: string, condition: Condition): boolean {
   if (condition.value === "") {
     return false;
@@ -36,7 +49,13 @@ export function matchesCondition(url: string, condition: Condition): boolean {
   }
 }
 
-/** URL がルールの条件のいずれかに一致するか */
+/**
+ * URL がルールの条件のいずれかに一致するかを確かめる。
+ *
+ * @param url - 確かめる URL
+ * @param rule - 確かめるルール
+ * @returns いずれかの条件に一致すれば true
+ */
 export function matchesRule(url: string, rule: Rule): boolean {
   return rule.conditions.some((condition) => matchesCondition(url, condition));
 }
@@ -46,7 +65,11 @@ export type RuleProblem = "empty-name" | "duplicate-name";
 
 /**
  * 互いに相手の持っているタイトルを名前にしているルール（名前の入れ替え）を返す。
- * 名前のタイトルを持っているルールをたどり、元のルールに戻れば、たどったルールはすべて入れ替えの輪に入っている
+ *
+ * @param rules - 調べるルールの一覧
+ * @param holderByTitle - グループのタイトルから、そのタイトルを持っているルールへのマップ
+ * @returns 名前の入れ替えの輪に入っているルールの集合
+ * @remarks 名前のタイトルを持っているルールをたどり、元のルールに戻れば、たどったルールはすべて入れ替えの輪に入っている
  */
 function findSwappingRules(rules: readonly Rule[], holderByTitle: ReadonlyMap<string, Rule>): Set<Rule> {
   const swapping = new Set<Rule>();
@@ -68,8 +91,12 @@ function findSwappingRules(rules: readonly Rule[], holderByTitle: ReadonlyMap<st
 }
 
 /**
- * ルールの一覧のそれぞれについて、無効になる理由を返す（有効なら null）。返す配列の添字は rules と対応する。
- * グループ名が、ほかのルールが titles で持っているタイトル（無効なあいだ持ち続けるものを含む）と同じルールは無効にする。
+ * ルールの一覧のそれぞれについて、無効になる理由を返す。
+ *
+ * @param rules - 判定するルールの一覧
+ * @param titles - ルールの ID から、そのルールが持っているグループのタイトルへのマップ
+ * @returns 無効になる理由の配列（有効なら null）。添字は rules と対応する
+ * @remarks グループ名が、ほかのルールが titles で持っているタイトル（無効なあいだ持ち続けるものを含む）と同じルールは無効にする。
  * 後から同じ名前にしたルールのために、すでにあるグループのタイトルを別のルールのものにしないため。
  * ただし、互いに相手のタイトルを名前にしているルール（名前の入れ替え）は、どれも有効にする。
  * どのルールも持っていない名前が重なったときは、一覧で最も上のルールを有効にする
@@ -102,8 +129,13 @@ export function findRuleProblems(rules: readonly Rule[], titles: RuleTitles = NO
 }
 
 /**
- * 使われない（無効な）ルールの件数。problems は findRuleProblems(rules, titles) の結果（求め済みなら渡す）。
- * 名前が空でグループのタイトルを持っていないルール（追加したばかりで名前を入れていないルール）は数えない
+ * 使われない（無効な）ルールの件数を数える。
+ *
+ * @param rules - 数えるルールの一覧
+ * @param titles - ルールの ID から、そのルールが持っているグループのタイトルへのマップ
+ * @param problems - findRuleProblems(rules, titles) の結果（求め済みなら渡す）
+ * @returns 使われないルールの件数
+ * @remarks 名前が空でグループのタイトルを持っていないルール（追加したばかりで名前を入れていないルール）は数えない
  */
 export function countUnusedRules(
   rules: readonly Rule[],
@@ -116,7 +148,13 @@ export function countUnusedRules(
   }).length;
 }
 
-/** 判定の対象になる有効なルールだけを、一覧の順のまま返す */
+/**
+ * 判定の対象になる有効なルールだけを、一覧の順のまま返す。
+ *
+ * @param rules - 絞り込むルールの一覧
+ * @param titles - ルールの ID から、そのルールが持っているグループのタイトルへのマップ
+ * @returns 有効なルールだけの配列
+ */
 export function validRules(rules: readonly Rule[], titles: RuleTitles = NO_TITLES): Rule[] {
   const problems = findRuleProblems(rules, titles);
   return rules.filter((_, index) => problems[index] === null);
@@ -124,7 +162,11 @@ export function validRules(rules: readonly Rule[], titles: RuleTitles = NO_TITLE
 
 /**
  * 無効なルールが持ち続けるタイトルを、ルールの ID ごとに返す。
- * 記録が食い違っていて有効なルールの名前と同じタイトルを持っていれば、有効なルールのグループとして扱うため除く
+ *
+ * @param rules - 調べるルールの一覧
+ * @param titles - ルールの ID から、そのルールが持っているグループのタイトルへのマップ
+ * @returns 無効なルールの ID から、持ち続けるタイトルへのマップ
+ * @remarks 記録が食い違っていて有効なルールの名前と同じタイトルを持っていれば、有効なルールのグループとして扱うため除く
  */
 export function heldTitles(rules: readonly Rule[], titles: RuleTitles): Map<string, string> {
   const problems = findRuleProblems(rules, titles);
@@ -139,7 +181,13 @@ export function heldTitles(rules: readonly Rule[], titles: RuleTitles): Map<stri
   return held;
 }
 
-/** ルールの一覧の順に、並べるグループのタイトルを返す。有効なルールは名前、無効なルールは持ち続けるタイトル */
+/**
+ * ルールの一覧の順に、並べるグループのタイトルを返す。
+ *
+ * @param rules - 並べる順の元になるルールの一覧
+ * @param titles - ルールの ID から、そのルールが持っているグループのタイトルへのマップ
+ * @returns グループのタイトルの配列。有効なルールは名前、無効なルールは持ち続けるタイトル
+ */
 export function groupTitlesInOrder(rules: readonly Rule[], titles: RuleTitles = NO_TITLES): string[] {
   const problems = findRuleProblems(rules, titles);
   const held = heldTitles(rules, titles);
@@ -152,7 +200,14 @@ export function groupTitlesInOrder(rules: readonly Rule[], titles: RuleTitles = 
   });
 }
 
-/** URL が一致するルールを返す。複数に一致するときは一覧で最も上のもの、どれにも一致しなければ null */
+/**
+ * URL が一致するルールを返す。
+ *
+ * @param url - 一致するルールを探す URL
+ * @param rules - 探す対象のルールの一覧
+ * @param titles - ルールの ID から、そのルールが持っているグループのタイトルへのマップ
+ * @returns 一致するルール。複数に一致するときは一覧で最も上のもの、どれにも一致しなければ null
+ */
 export function findMatchingRule(url: string, rules: readonly Rule[], titles: RuleTitles = NO_TITLES): Rule | null {
   return validRules(rules, titles).find((rule) => matchesRule(url, rule)) ?? null;
 }

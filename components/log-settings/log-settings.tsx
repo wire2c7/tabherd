@@ -182,7 +182,13 @@ function LogActions(props: LogSettingsProps): JSX.Element {
   );
 }
 
-/** ログの説明と、書き出し・消去の操作。オプションページだけで描画する */
+/**
+ * ログの説明と、書き出し・消去の操作。
+ *
+ * @param props - 端末に保存したログ、background への送信先、書き出すファイルに添えるバージョン
+ * @returns ログの説明と操作のセクション
+ * @remarks オプションページだけで描画する
+ */
 export function LogSettings(props: LogSettingsProps): JSX.Element {
   return (
     <section class="log-settings" aria-labelledby="log-settings-title">

@@ -1,6 +1,10 @@
 /**
  * 値の変更を、最後の変更から ms のあいだ次の変更がなければまとめて通知する。
- * listener には、まとめた変更のうち最初の変更前の値と、最後の変更後の値を渡す
+ *
+ * @param ms - まとめる間隔（ミリ秒）
+ * @param listener - まとめた変更を受け取るリスナー
+ * @returns 変更のたびに呼ぶ関数
+ * @remarks listener には、まとめた変更のうち最初の変更前の値と、最後の変更後の値を渡す
  */
 export function debounceChanges<T>(
   ms: number,

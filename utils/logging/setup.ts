@@ -38,8 +38,11 @@ export interface StoredLogs {
 }
 
 /**
- * ロガーを設定する。設定より前に出したログは捨てられるため、起動時に同期的に呼ぶ。
- * ロガーの実装（LogTape）を使うのはこのファイルだけにし、ほかのコードは logger.ts の型を使う
+ * ロガーを設定する。
+ *
+ * @param options - console に出す範囲（dev）と、端末に保存する先（logs）
+ * @returns 設定したロガーの、端末に保存したログの操作
+ * @remarks 設定より前に出したログは捨てられるため、起動時に同期的に呼ぶ。ロガーの実装（LogTape）を使うのはこのファイルだけにし、ほかのコードは logger.ts の型を使う
  */
 export function configureLogging({ dev, logs }: ConfigureLoggingOptions): StoredLogs {
   const writer = getLogWriter(logs);
@@ -72,7 +75,10 @@ export function configureLogging({ dev, logs }: ConfigureLoggingOptions): Stored
 
 /**
  * 拡張機能の領域（background・grouping 等）のロガーを返す。
- * ログには ID・件数・処理の種類・エラーだけを渡し、URL・タイトル・グループ名・ルールの内容は渡さない（端末に保存され、書き出して公開されるため）
+ *
+ * @param area - ロガーのカテゴリに加える領域名
+ * @returns その領域のロガー
+ * @remarks ログには ID・件数・処理の種類・エラーだけを渡し、URL・タイトル・グループ名・ルールの内容は渡さない（端末に保存され、書き出して公開されるため）
  */
 export function getAppLogger(area: string): Logger {
   return getLogger([ROOT_CATEGORY, area]);

@@ -31,8 +31,11 @@ const RepairableRuleSchema = object({
 });
 
 /**
- * 保存値をルールの一覧に直す。StorageItem は保存した値の形を確かめずに返すため、壊れた値はここで直す。
- * 読めないルール・条件は除き、読めない条件の一覧は空に、読めない色は grey にする。型に無いプロパティは捨てるが、壊れていたことには数えない
+ * 保存値をルールの一覧に直す。
+ *
+ * @param value - 保存値
+ * @returns 直したルールの一覧と、壊れていた箇所
+ * @remarks StorageItem は保存した値の形を確かめずに返すため、壊れた値はここで直す。読めないルール・条件は除き、読めない条件の一覧は空に、読めない色は grey にする。型に無いプロパティは捨てるが、壊れていたことには数えない
  */
 export function parseRules(value: unknown): ParsedRules {
   if (!Array.isArray(value)) {
@@ -92,8 +95,11 @@ function parseConditions(values: readonly unknown[]): Condition[] {
 const RuleTitlesSchema = record(string(), unknown());
 
 /**
- * 保存値を RuleTitles に直す。オブジェクトでなければ、どのルールもタイトルを持っていないものとし、
- * 値が文字列でない項目はその項目だけを除く（次の反映で書き直される）
+ * 保存値を RuleTitles に直す。
+ *
+ * @param value - 保存値
+ * @returns 直した RuleTitles
+ * @remarks オブジェクトでなければ、どのルールもタイトルを持っていないものとし、値が文字列でない項目はその項目だけを除く（次の反映で書き直される）
  */
 export function parseRuleTitles(value: unknown): RuleTitles {
   const parsed = safeParse(RuleTitlesSchema, value);

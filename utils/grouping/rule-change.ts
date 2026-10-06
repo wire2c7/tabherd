@@ -46,7 +46,12 @@ function isSameTitles(a: RuleTitles, b: RuleTitles): boolean {
 
 /**
  * ルールの一覧の変更前後と、変更前にルールが持っていたタイトル（titles）から、既存のグループへ反映する差分を求める。
- * titles に無いルールは、変更前に有効ならその名前を持っていたものとみなす（記録より前に作ったルール）。
+ *
+ * @param oldRules - 変更前のルールの一覧
+ * @param newRules - 変更後のルールの一覧
+ * @param titles - 変更前にルールが持っていたタイトル
+ * @returns 既存のグループへ反映するタイトル・色の変更、使われなくなったタイトル、変更後にルールが持つタイトル
+ * @remarks titles に無いルールは、変更前に有効ならその名前を持っていたものとみなす（記録より前に作ったルール）。
  * 有効なルールは名前をタイトルとして持ち、持っていたタイトルと名前が違うか、変更前に無効だったか、色が変わったら、そのグループを変える。
  * 持ち主が削除・改名したタイトルを引き継いだルールも、そのグループの色を変える。
  * 無効なルールは、有効なルールの名前と重ならない限り、持っていたタイトルを持ち続ける。
@@ -108,7 +113,11 @@ function planTitleUpdates(
 
 /**
  * 名前・色が変わったルールの既存のグループのタイトル・色を変える操作の計画を組み立てる。
- * 旧い名前のグループが複数あれば、すべてを変える。すでに新しいタイトル・色のグループには操作を出さない
+ *
+ * @param window - 対象のウィンドウのスナップショット
+ * @param updates - 反映する名前・色の変更
+ * @returns グループのタイトル・色を変える操作の一覧
+ * @remarks 旧い名前のグループが複数あれば、すべてを変える。すでに新しいタイトル・色のグループには操作を出さない
  */
 export function planGroupUpdates(window: WindowSnapshot, updates: readonly RuleUpdate[]): GroupOperation[] {
   const updateByOldName = new Map(updates.map((update) => [update.oldName, update]));
