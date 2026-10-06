@@ -18,7 +18,11 @@ function copy(value: unknown): unknown {
   return value === undefined ? undefined : structuredClone(value);
 }
 
-/** 保存値が同じか。保存値は JSON にできる値に限るため、JSON で比べる（WXT の watch は dequal で比べる） */
+/**
+ * 保存値が同じか。保存値は JSON にできる値に限るため、JSON で比べる（WXT の watch は dequal で比べる）。
+ * JSON.stringify はオブジェクトのキーの並び順を区別するため、並び順だけが違う値は dequal と違って別の値として通知する。
+ * テストでルール・タイトルの一覧をキーの並び順を変えて保存することは無いため、今は問題にならない
+ */
 function isSame(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
