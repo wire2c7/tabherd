@@ -52,6 +52,8 @@
               ".agents/skills/openspec-*/*"
               ".claude/skills/openspec-*/*"
               ".claude/commands/opsx/*"
+              # gh-stack スキルの生成物（`gh skill install` で上書きされる）は整形しない
+              ".claude/skills/gh-stack/*"
             ];
           };
 
