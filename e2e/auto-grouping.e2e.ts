@@ -242,6 +242,27 @@ test.describe("ルールの変更の反映", () => {
       .poll(async () => Promise.all([groupOf("/dev/1"), groupOf("/docs/1")]))
       .toStrictEqual([{ ...devGroup, title: "資料2" }, docsGroup]);
   });
+
+  test("名前を入れ替える", async ({ serviceWorker, setRules, groupOf, openTab }) => {
+    const other = rule("other", "その他", "grey");
+    await openTab("/dev/1");
+    await openTab("/docs/1");
+    await openTab("/other/1");
+    await setRules([dev, docs]);
+    await expect.poll(async () => storedTitles(serviceWorker)).toStrictEqual({ dev: "開発", docs: "資料" });
+    const [devGroup, docsGroup] = [await groupOf("/dev/1"), await groupOf("/docs/1")];
+    await setRules([{ ...dev, name: "資料" }, docs, other]);
+    await expect.poll(async () => groupOf("/other/1")).toMatchObject({ title: "その他" });
+
+    await setRules([{ ...dev, name: "資料" }, { ...docs, name: "開発" }, other]);
+
+    await expect
+      .poll(async () => Promise.all([groupOf("/dev/1"), groupOf("/docs/1")]))
+      .toStrictEqual([
+        { ...devGroup, title: "資料" },
+        { ...docsGroup, title: "開発" },
+      ]);
+  });
 });
 
 test.fixme(
