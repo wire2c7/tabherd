@@ -41,6 +41,10 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - CI の共通の検査（`ci` ジョブ）と Renovate の共通設定は [wire2c7/workflows](https://github.com/wire2c7/workflows) で管理しており、このリポジトリはそれを参照するだけ。共通の検査を変える場合はそちらを変更する。このリポジトリ固有の整形・lint・型チェック・テスト・ビルドは `.github/workflows/ci.yaml` の `build` ジョブで実行する
 - `openspec/` — OpenSpec で管理する Spec。`.claude/skills/openspec-*`・`.claude/commands/opsx/`・`.agents/skills/openspec-*` は `openspec init` / `openspec update` の生成物のため、手で編集しない
 - `entrypoints/` — WXT のエントリポイント。ファイル構成から `manifest.json` が生成される。manifest の追加項目（権限等）は `wxt.config.ts` に書く
+  - エントリポイントになるのは直下のファイルと `<名前>/index.*` だけで、`<名前>/` のほかのファイルはならない。WXT による API の実装は `entrypoints/platform/` に置く
+- WXT・Preact・LogTape をいつでも置き換えられるよう、使えるディレクトリを分けている（ADR 0021）。WXT は `entrypoints/`、Preact は `components/` と `entrypoints/`、LogTape は `utils/logging/setup.ts` だけで使う。`utils/` はブラウザの API（タブ・ストレージ）をインターフェースとして定義し、エントリポイントが WXT による実装を引数・props で渡す
+  - 違反は `pnpm lint`（`.oxlintrc.jsonc` の `overrides` の `no-restricted-imports`）で検出される。`utils/`・`components/` で新しいパッケージを使うには、そこに許可を加える
+  - WXT の自動インポートは無効（`wxt.config.ts` の `imports: false`）。WXT の API も import して使う
 - Oxfmt・Oxlint は `node_modules` を必要とするため、`nix flake check`（treefmt）ではなく prek のフックと CI の `build` ジョブで実行する。prek のフックは `pnpm exec` 経由のため、`node_modules` が無ければ pnpm が先に自動でインストールする（`ci` ジョブの prek もこれで動く）
 - Node.js・pnpm は Nix devShell から供給する。`package.json` に `packageManager` を書かない（corepack や pnpm 自身のバージョン管理と二重管理になるため）
 - `.pre-commit-config.yaml` — Gitフックのエントリポイント（prek）。フックはNix devShellのツールを使う（`language: system`）ため、devShell 外では動かない。devShell に入ると自動でインストールされる

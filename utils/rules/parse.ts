@@ -31,7 +31,7 @@ const RepairableRuleSchema = object({
 });
 
 /**
- * 保存値をルールの一覧に直す。WXT の storage は保存した値の形を確かめずに返すため、壊れた値はここで直す。
+ * 保存値をルールの一覧に直す。StorageItem は保存した値の形を確かめずに返すため、壊れた値はここで直す。
  * 読めないルール・条件は除き、読めない条件の一覧は空に、読めない色は grey にする。型に無いプロパティは捨てるが、壊れていたことには数えない
  */
 export function parseRules(value: unknown): ParsedRules {

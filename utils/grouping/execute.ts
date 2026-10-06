@@ -1,6 +1,5 @@
-import { browser } from "wxt/browser";
-
 import { getAppLogger } from "../logging/setup";
+import type { TabsApi } from "./tabs";
 import type { GroupOperation } from "./types";
 
 const logger = getAppLogger("grouping");
@@ -70,35 +69,33 @@ export async function retryWhileTabsBusy<T>(action: () => Promise<T>, delays = R
   }
 }
 
-async function executeOperation(operation: GroupOperation): Promise<void> {
+async function executeOperation(api: TabsApi, operation: GroupOperation): Promise<void> {
   switch (operation.type) {
     case "add-to-group": {
-      await retryWhileTabsBusy(async () =>
-        browser.tabs.group({ groupId: operation.groupId, tabIds: operation.tabIds }),
-      );
+      await retryWhileTabsBusy(async () => api.group(operation.tabIds, { groupId: operation.groupId }));
       return;
     }
     case "create-group": {
       const groupId = await retryWhileTabsBusy(async () =>
-        browser.tabs.group({ createProperties: { windowId: operation.windowId }, tabIds: operation.tabIds }),
+        api.group(operation.tabIds, { windowId: operation.windowId }),
       );
       await retryWhileTabsBusy(async () =>
-        browser.tabGroups.update(groupId, { title: operation.title, color: operation.color }),
+        api.updateGroup(groupId, { title: operation.title, color: operation.color }),
       );
       return;
     }
     case "ungroup": {
-      await retryWhileTabsBusy(async () => browser.tabs.ungroup(operation.tabIds));
+      await retryWhileTabsBusy(async () => api.ungroup(operation.tabIds));
       return;
     }
     case "update-group": {
       await retryWhileTabsBusy(async () =>
-        browser.tabGroups.update(operation.groupId, { title: operation.title, color: operation.color }),
+        api.updateGroup(operation.groupId, { title: operation.title, color: operation.color }),
       );
       return;
     }
     case "move-group": {
-      await retryWhileTabsBusy(async () => browser.tabGroups.move(operation.groupId, { index: operation.index }));
+      await retryWhileTabsBusy(async () => api.moveGroup(operation.groupId, operation.index));
       return;
     }
     default: {
@@ -108,16 +105,16 @@ async function executeOperation(operation: GroupOperation): Promise<void> {
 }
 
 /**
- * 計画の操作を順にブラウザの API で実行する。
+ * 計画の操作を順に api で実行する。
  * 操作が失敗したら（スナップショットの後にタブが閉じられた等）ログに出し、残りの操作を続ける
  */
-export async function executeOperations(operations: readonly GroupOperation[]): Promise<void> {
+export async function executeOperations(api: TabsApi, operations: readonly GroupOperation[]): Promise<void> {
   for (const operation of operations) {
     try {
       logger.debug("操作 {operation} を実行します", { operation: toLoggedOperation(operation) });
       // 前の操作でタブの位置・グループが変わるため、順に実行する
       // oxlint-disable-next-line no-await-in-loop
-      await executeOperation(operation);
+      await executeOperation(api, operation);
     } catch (error) {
       logger.error("グループの操作 {operation} に失敗しました", { operation: toLoggedOperation(operation), error });
     }

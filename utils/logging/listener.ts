@@ -1,4 +1,4 @@
-import type { Logger } from "@logtape/logtape";
+import type { Logger } from "./logger";
 
 /**
  * イベントのリスナーを包み、リスナーが同期的に投げた例外をログに残してから投げ直す。
