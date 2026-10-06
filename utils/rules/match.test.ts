@@ -166,12 +166,18 @@ describe("無効なルールが持ち続けるタイトル", () => {
 });
 
 describe("使われないルールの件数", () => {
-  it("空のグループ名と重複したグループ名のルールを数える", () => {
-    expect(countUnusedRules([rule("開発", []), rule("", []), rule("資料", []), rule("開発", [])])).toBe(2);
+  it("重複したグループ名のルールと、グループのタイトルを持っていて名前が空のルールを数える", () => {
+    const emptied: Rule = { id: "emptied", name: "", color: "blue", conditions: [] };
+    const rules = [rule("開発", []), emptied, rule("資料", []), { ...rule("開発", []), id: "dup" }];
+    expect(countUnusedRules(rules, new Map([["emptied", "業務"]]))).toBe(2);
+  });
+
+  it("名前が空でもグループのタイトルを持っていない（追加したばかりの）ルールは数えない", () => {
+    expect(countUnusedRules([rule("開発", []), rule("", [])], new Map())).toBe(0);
   });
 
   it("すべて有効なら 0", () => {
-    expect(countUnusedRules([rule("開発", []), rule("資料", [])])).toBe(0);
+    expect(countUnusedRules([rule("開発", []), rule("資料", [])], new Map())).toBe(0);
   });
 });
 

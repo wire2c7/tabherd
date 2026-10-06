@@ -101,9 +101,19 @@ export function findRuleProblems(rules: readonly Rule[], titles: RuleTitles = NO
   });
 }
 
-/** 使われない（無効な）ルールの件数 */
-export function countUnusedRules(rules: readonly Rule[], titles: RuleTitles = NO_TITLES): number {
-  return findRuleProblems(rules, titles).filter((problem) => problem !== null).length;
+/**
+ * 使われない（無効な）ルールの件数。problems は findRuleProblems(rules, titles) の結果（求め済みなら渡す）。
+ * 名前が空でグループのタイトルを持っていないルール（追加したばかりで名前を入れていないルール）は数えない
+ */
+export function countUnusedRules(
+  rules: readonly Rule[],
+  titles: RuleTitles,
+  problems: readonly (RuleProblem | null)[] = findRuleProblems(rules, titles),
+): number {
+  return rules.filter((rule, index) => {
+    const problem = problems[index] ?? null;
+    return problem === "duplicate-name" || (problem === "empty-name" && titles.has(rule.id));
+  }).length;
 }
 
 /** 判定の対象になる有効なルールだけを、一覧の順のまま返す */
