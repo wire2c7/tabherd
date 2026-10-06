@@ -21,7 +21,8 @@ export interface RulesState {
 /**
  * store に保存されたルールの一覧と、それを変更して即座に保存する関数を返す。
  * 壊れた保存値は直して表示するが、書き戻すのは利用者が変更したときだけにする。
- * ほかの画面（ポップアップとオプションページ）での変更は、ストレージの watch で受け取る
+ * ほかの画面（ポップアップとオプションページ）での変更は、ストレージの watch で受け取る。
+ * store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
  */
 export function useRules(store: RulesStore): RulesState {
   const [rules, setRules] = useState<readonly Rule[] | null>(null);
@@ -72,19 +73,19 @@ interface RulesSubscription {
 
 /** store の一覧を読み込み、変更を購読する。購読をやめる関数を返す */
 function subscribeRules(store: RulesStore, { latest, pendingWrites, onChange }: RulesSubscription): () => void {
-  // 保存先が替わったら、新しい保存先から読み込んだ一覧を捨てないよう、前の保存先の一覧を忘れる
-  latest.current = null;
-  // 購読をやめた後に届いた読み込みは、前の保存先のものとして捨てる
-  let active = true;
   function apply(parsed: ParsedRules): void {
     latest.current = parsed.rules;
     onChange(parsed);
   }
   async function load(): Promise<void> {
-    const value = await store.read();
-    // 読み込みより先に watch で受け取っていれば、そちらが新しい
-    if (active && latest.current === null) {
-      apply(value);
+    try {
+      const value = await store.read();
+      // 読み込みより先に watch で受け取っていれば、そちらが新しい
+      if (latest.current === null) {
+        apply(value);
+      }
+    } catch (error) {
+      console.error("ルールの一覧を読み込めませんでした", error);
     }
   }
   const unwatch = store.watch((value) => {
@@ -95,10 +96,7 @@ function subscribeRules(store: RulesStore, { latest, pendingWrites, onChange }: 
     }
   });
   void load();
-  return () => {
-    active = false;
-    unwatch();
-  };
+  return unwatch;
 }
 
 interface SaveOptions {
