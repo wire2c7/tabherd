@@ -34,6 +34,8 @@ function mockWindow(): MockTabsApi {
 
 describe("グループ化とグループの並び", () => {
   it("ルールの順番だけを変えると、グループを動かさずに並びだけを変える", async () => {
+    // 前提: 新旧で同じルール（DEV, WORK）だが、変更後は [WORK, DEV] の順に並べ替える
+    // 検証: グループ化（api.group）は呼ばれず、業務のグループ(200)を先頭へ動かす api.moveGroup だけが呼ばれる
     const api = mockWindow();
 
     await applyRuleChange(api, [DEV, WORK], { rules: [WORK, DEV], titles: NO_TITLES });
@@ -43,6 +45,8 @@ describe("グループ化とグループの並び", () => {
   });
 
   it("並びがすでに正しいときは、グループを移動しない", async () => {
+    // 前提: ウィンドウの実際のグループの並びが、ルールの順（DEV, WORK）とすでに一致している
+    // 検証: api.moveGroup が呼ばれない
     const api = mockWindow();
 
     await regroupAllWindows(api, { rules: [DEV, WORK], titles: NO_TITLES });
@@ -51,6 +55,8 @@ describe("グループ化とグループの並び", () => {
   });
 
   it("グループ化の操作をしたときは、スナップショットを取り直してから並びを計画する", async () => {
+    // 前提: queryTabs の1回目の応答に、グループ化が必要な新しいタブ(12, groupId -1)を含める
+    // 検証: 新しいタブが「開発」グループ(100)へ入り、並びの計画の前に queryTabs が計2回呼ばれる（グループ化後にスナップショットを取り直す）
     const api = mockWindow();
     api.queryTabs.mockResolvedValueOnce([
       browserTab(0, "https://github.com/", 100),
@@ -67,6 +73,8 @@ describe("グループ化とグループの並び", () => {
 
 describe("グループ化のログ", () => {
   it("操作が失敗しても、ログにグループ名・URL を出さない", async () => {
+    // 前提: 新しいタブの URL に秘密のトークンを含み、一致するルール名も秘密で、api.group が失敗する
+    // 検証: error レベルのログは残るが、保存されたログ文字列にグループ名・URL・トークン・色等の秘密情報は一切含まれない（操作の種別は残る）
     const logs = captureLogs();
     const api = mockWindow();
     api.queryTabs.mockResolvedValue([

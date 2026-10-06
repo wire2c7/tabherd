@@ -19,6 +19,7 @@ function stub<T, K extends keyof T>(target: T, key: K, value: T[K]): void {
 
 describe("browser による TabsApi", () => {
   it("タブは通常のウィンドウだけを、ウィンドウを指定したときはそのウィンドウだけを取得する", async () => {
+    // 前提/検証: windowId 省略時は { windowType: "normal" } のみ、指定時は windowId も含めて tabs.query に渡る
     const query = vi.fn<(queryInfo: Browser.tabs.QueryInfo) => Promise<Browser.tabs.Tab[]>>().mockResolvedValue([]);
     stub(fakeBrowser.tabs, "query", query);
     await browserTabs.queryTabs();
@@ -27,6 +28,7 @@ describe("browser による TabsApi", () => {
   });
 
   it("タブグループは、ウィンドウを指定したときだけそのウィンドウに絞る", async () => {
+    // 前提/検証: windowId 省略時は空のクエリ {}、指定時は { windowId } が tabGroups.query に渡る
     const query = vi
       .fn<(queryInfo: Browser.tabGroups.QueryInfo) => Promise<Browser.tabGroups.TabGroup[]>>()
       .mockResolvedValue([]);
@@ -37,6 +39,7 @@ describe("browser による TabsApi", () => {
   });
 
   it("既存のグループへ入れるときは groupId、新しく作るときは createProperties の windowId を渡す", async () => {
+    // 前提/検証: groupId 指定時は { groupId, tabIds } が渡り戻り値は 100、windowId 指定時は { createProperties: { windowId }, tabIds } が渡る
     const group = vi.fn<(options: Browser.tabs.GroupOptions) => Promise<number>>().mockResolvedValue(100);
     stub(fakeBrowser.tabs, "group", group);
     await expect(browserTabs.group([10], { groupId: 100 })).resolves.toBe(100);
@@ -48,6 +51,7 @@ describe("browser による TabsApi", () => {
   });
 
   it("グループから外す・タイトルと色を変える・移動する", async () => {
+    // 前提/検証: ungroup には tabIds がそのまま、update には groupId とプロパティが、move には groupId と { index } が渡る
     const ungroup = vi.fn<(tabIds: number | [number, ...number[]]) => Promise<undefined>>();
     const update = vi.fn<(groupId: number, properties: Browser.tabGroups.UpdateProperties) => Promise<undefined>>();
     const move = vi.fn<(groupId: number, properties: Browser.tabGroups.MoveProperties) => Promise<undefined>>();

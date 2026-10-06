@@ -41,6 +41,8 @@ function foreignTargetIds({ window, options }: GroupingInput): number[] {
 
 describe("性質のテストの入力", () => {
   it("スナップショットは Chrome の制約を満たす", () => {
+    // 前提: windowArb が生成するランダムなウィンドウのスナップショット
+    // 検証: タブの ID が重複せず、ピン留めタブが先頭に連続し、各グループのタブが連続していて、スナップショットの groups 全てに対応するタブがある（snapshotProblems が空）
     assert(
       property(windowArb, (window) => {
         expect(snapshotProblems(window)).toStrictEqual([]);
@@ -49,6 +51,8 @@ describe("性質のテストの入力", () => {
   });
 
   it("planGrouping の判定の対象は、ウィンドウのタブから選ばれる", () => {
+    // 前提: groupingInputArb が生成するランダムなウィンドウ・ルール・オプション（targetTabIds を含む）の組
+    // 検証: options.targetTabIds に、そのウィンドウに存在しないタブ ID が含まれない（foreignTargetIds が空）
     assert(
       property(groupingInputArb, (input) => {
         expect(foreignTargetIds(input)).toStrictEqual([]);

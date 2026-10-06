@@ -17,6 +17,8 @@ function rulesOf(names: readonly string[]): Rule[] {
 
 describe("ルールの変更の差分の性質", () => {
   it("返す記録では、有効なルールはどれも自分の名前を持ち、もう一度求めても記録が変わらない", () => {
+    // 前提: 名前の種類を絞って重複・入れ替え・タイトルの引き継ぎが起きやすくしたランダムなルール名の組（変更前後）と記録 (titles)
+    // 検証: 変更後の有効なルールはすべて記録上で自分の名前を持ち、同じルールのまま再度 diffRules を呼んでも記録（titles）が変わらない（安定する）
     assert(
       property(namesArb, namesArb, titlesArb, (oldNames, newNames, titles) => {
         const newRules = rulesOf(newNames);

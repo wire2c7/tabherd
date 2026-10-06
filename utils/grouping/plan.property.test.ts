@@ -111,6 +111,8 @@ const EMPTIED_BY_MOVE_EXAMPLE: GroupingInput = {
 
 describe("planGrouping の性質", () => {
   it("計画を適用すると、操作してよいタブは一致したルールのグループに入り、ほかのタブの所属は変わらない", () => {
+    // 前提: ランダムに生成したウィンドウ・ルール・オプションの組 (groupingInputArb)。#47 の反例2件も固定ケースとして含める
+    // 検証: 計画を適用した後、操作してよいタブは期待するグループに入り、触れないタブの所属は変わらない（membershipProblems が空）
     assert(
       property(groupingInputArb, (input) => {
         expect(membershipProblems(input)).toStrictEqual([]);
@@ -120,6 +122,8 @@ describe("planGrouping の性質", () => {
   });
 
   it("触れないタブとすでに正しいグループにあるタブには操作を出さず、各タブは高々1つの操作に現れる", () => {
+    // 前提: ランダムに生成したウィンドウ・ルール・オプションの組 (groupingInputArb)。#47 の反例2件も固定ケースとして含める
+    // 検証: 触れないタブ・すでに正しいグループにあるタブに操作が出ず、同じタブが複数の操作に現れない（operationProblems が空）
     assert(
       property(groupingInputArb, (input) => {
         expect(operationProblems(input)).toStrictEqual([]);
@@ -129,6 +133,8 @@ describe("planGrouping の性質", () => {
   });
 
   it("計画を適用した後にもう一度計画すると、操作は空になる", () => {
+    // 前提: ランダムに生成したウィンドウ・ルール・オプションの組 (groupingInputArb)。#47 の反例2件も固定ケースとして含める
+    // 検証: 一度計画を適用した結果に対してもう一度 planGrouping を呼ぶと、操作が出ない（冪等）
     assert(
       property(groupingInputArb, (input) => {
         expect(replanAfterApplying(input)).toStrictEqual([]);

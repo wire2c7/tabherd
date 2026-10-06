@@ -53,6 +53,8 @@ function sortedById(tabs: readonly TabSnapshot[]): TabSnapshot[] {
 
 describe("planGroupOrder の性質", () => {
   it("計画を適用すると、ピン留めのタブの直後に管理対象のグループがルールの順に並び、残りは元の順のまま続く", () => {
+    // 前提: ランダムに生成したウィンドウのスナップショットとルールの組 (orderInputArb)
+    // 検証: planGroupOrder の計画を適用した後のタブの ID の並びが、expectedTabIds の期待する並びと一致する
     assert(
       property(orderInputArb, ([window, rules]) => {
         expect(arrange(window, rules).tabs.map(({ id }) => id)).toStrictEqual(expectedTabIds(window, rules));
@@ -61,6 +63,8 @@ describe("planGroupOrder の性質", () => {
   });
 
   it("グループを今より左（または同じ位置）へ動かす操作だけを出し、ピン留めのタブより左へは動かさない", () => {
+    // 前提: ランダムに生成したウィンドウのスナップショットとルールの組 (orderInputArb)
+    // 検証: ピン留めのタブより左を指す move-group 操作が出ず（movesIntoPinned が空）、計画の適用が例外を投げない
     assert(
       property(orderInputArb, ([window, rules]) => {
         expect(movesIntoPinned(window, rules)).toStrictEqual([]);
@@ -70,6 +74,8 @@ describe("planGroupOrder の性質", () => {
   });
 
   it("計画を適用しても、タブの集合と各タブの所属は変わらない", () => {
+    // 前提: ランダムに生成したウィンドウのスナップショットとルールの組 (orderInputArb)
+    // 検証: 計画を適用した後のタブ集合（ID でソート済み）が、適用前のタブ集合と一致する（並びだけが変わる）
     assert(
       property(orderInputArb, ([window, rules]) => {
         expect(sortedById(arrange(window, rules).tabs)).toStrictEqual(sortedById(window.tabs));
@@ -78,6 +84,8 @@ describe("planGroupOrder の性質", () => {
   });
 
   it("計画を適用した後にもう一度計画すると、操作は空になる", () => {
+    // 前提: ランダムに生成したウィンドウのスナップショットとルールの組 (orderInputArb)
+    // 検証: 一度計画を適用した結果に対してもう一度 planGroupOrder を呼ぶと、操作が出ない（冪等）
     assert(
       property(orderInputArb, ([window, rules]) => {
         expect(planGroupOrder(arrange(window, rules), rules)).toStrictEqual([]);
