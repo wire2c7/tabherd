@@ -4,7 +4,7 @@ import { createSerialQueue } from "../../utils/grouping/serial";
 import { configureLogging } from "../../utils/logging/setup";
 import { LOGS_ITEM } from "../../utils/logging/storage";
 import { defineStorageItem } from "../platform/storage";
-import { regroupOnEvents } from "./grouping";
+import { refreshUnusedRulesBadge, regroupOnEvents } from "./grouping";
 import { handleLogsRequests, logUncaughtErrors } from "./logs";
 
 export default defineBackground(() => {
@@ -16,4 +16,5 @@ export default defineBackground(() => {
   // 各処理は開始時にルールとスナップショットを読み直す
   const enqueue = createSerialQueue();
   regroupOnEvents(enqueue);
+  void enqueue(refreshUnusedRulesBadge);
 });

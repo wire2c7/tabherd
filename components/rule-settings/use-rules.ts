@@ -1,6 +1,8 @@
 import type { MutableRef } from "preact/hooks";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 
+import type { RuleProblem } from "../../utils/rules/match";
+import { findRuleProblems } from "../../utils/rules/match";
 import type { ParsedRules } from "../../utils/rules/parse";
 import type { RuleTitlesStore, RulesStore } from "../../utils/rules/storage";
 import type { Rule, RuleTitles } from "../../utils/rules/types";
@@ -154,4 +156,25 @@ export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
     return unwatch;
   }, [store]);
   return titles;
+}
+
+/**
+ * 表示するルールの問題。重複はルールが持っているタイトルで決まるため、記録を読み込むまでは出さない
+ * （読み込む前に一覧で上のルールを優先して判定すると、エラーが別のルールへ移って見える）
+ */
+function findProblemsToShow(rules: readonly Rule[], titles: RuleTitles | null): (RuleProblem | null)[] {
+  if (titles === null) {
+    return findRuleProblems(rules).map((problem) => (problem === "duplicate-name" ? null : problem));
+  }
+  return findRuleProblems(rules, titles);
+}
+
+/** ルールが持っているグループのタイトル（読み込むまでは null）と、rules のそれぞれの表示する問題を返す */
+export function useRuleProblems(
+  store: RuleTitlesStore,
+  rules: readonly Rule[] | null,
+): { titles: RuleTitles | null; problems: (RuleProblem | null)[] } {
+  const titles = useRuleTitles(store);
+  const problems = useMemo(() => (rules === null ? [] : findProblemsToShow(rules, titles)), [rules, titles]);
+  return { titles, problems };
 }

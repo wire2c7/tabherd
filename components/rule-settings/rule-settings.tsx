@@ -2,7 +2,7 @@ import type { JSX, RefObject } from "preact";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 
 import type { RuleProblem } from "../../utils/rules/match";
-import { findRuleProblems } from "../../utils/rules/match";
+import { countUnusedRules } from "../../utils/rules/match";
 import type { RuleTitlesStore, RulesStore } from "../../utils/rules/storage";
 import type { Rule, RuleTitles } from "../../utils/rules/types";
 
@@ -10,7 +10,7 @@ import { addRule, moveRule, removeRule, updateRule } from "./edit";
 import type { MoveDirection } from "./reorder";
 import { RuleEditor } from "./rule-editor";
 import { useDragReorder } from "./use-drag-reorder";
-import { useRuleTitles, useRules } from "./use-rules";
+import { useRuleProblems, useRules } from "./use-rules";
 
 import "./rule-settings.css";
 
@@ -24,7 +24,7 @@ interface RuleSettingsProps {
 /** ルールの設定画面。ポップアップとオプションページの両方で描画する */
 export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Element {
   const { rules, isDamaged, update } = useRules(store);
-  const titles = useRuleTitles(titlesStore);
+  const { titles, problems } = useRuleProblems(titlesStore, rules);
   const [newRuleId, setNewRuleId] = useState<string | null>(null);
 
   const handleUpdate = useCallback(
@@ -51,13 +51,13 @@ export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Ele
           "URL が条件に一致するタブを、ルールのグループ名のタブグループへ自動でまとめます。複数のルールに一致するときは上のルールが優先されます。ルールと同じ名前のタブグループは、手で作ったものもそのルールのグループとして扱います。"
         }
       </p>
-      {isDamaged && <DamageWarning />}
+      <RuleWarnings isDamaged={isDamaged} rules={rules} titles={titles} problems={problems} />
       {rules === null ? (
         <p class="hint">読み込み中…</p>
       ) : (
         <RuleList
           rules={rules}
-          titles={titles}
+          problems={problems}
           newRuleId={newRuleId}
           onUpdate={handleUpdate}
           onRemove={handleRemove}
@@ -70,6 +70,38 @@ export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Ele
         </button>
       </div>
     </div>
+  );
+}
+
+interface RuleWarningsProps {
+  isDamaged: boolean;
+  /** 読み込みが終わるまでは null */
+  rules: readonly Rule[] | null;
+  /** 読み込みが終わるまでは null */
+  titles: RuleTitles | null;
+  /** rules のそれぞれの、表示する問題 */
+  problems: readonly (RuleProblem | null)[];
+}
+
+/**
+ * 一覧の上に出す警告。保存されたルールが壊れていたことと、使われないルールの件数。
+ * 件数は、一覧が長く、エラーのあるルールが画面の外にあっても気づけるよう出す。
+ * 件数の表示は、出たことを読み上げるよう、aria-live の領域を常に置いて中身だけを替える
+ */
+function RuleWarnings({ isDamaged, rules, titles, problems }: RuleWarningsProps): JSX.Element {
+  // 重複はタイトルの記録で決まるため、記録を読み込むまで数えない（入力欄の下のエラーと同じ）
+  const unusedCount = rules === null || titles === null ? 0 : countUnusedRules(rules, titles, problems);
+  return (
+    <>
+      {isDamaged && <DamageWarning />}
+      <div aria-live="polite">
+        {unusedCount > 0 && (
+          <p class="error">
+            {`使われないルールが ${unusedCount} 件あります。エラーが表示されているルールのグループ名を確かめてください。`}
+          </p>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -87,8 +119,8 @@ function DamageWarning(): JSX.Element {
 
 interface RuleListProps {
   rules: readonly Rule[];
-  /** 読み込みが終わるまでは null */
-  titles: RuleTitles | null;
+  /** rules のそれぞれの、表示する問題 */
+  problems: readonly (RuleProblem | null)[];
   newRuleId: string | null;
   onUpdate: (id: string, update: (rule: Rule) => Rule) => void;
   onRemove: (id: string) => void;
@@ -96,21 +128,9 @@ interface RuleListProps {
   onMove: (id: string, to: number) => void;
 }
 
-/**
- * 表示するルールの問題。重複はルールが持っているタイトルで決まるため、記録を読み込むまでは出さない
- * （読み込む前に一覧で上のルールを優先して判定すると、エラーが別のルールへ移って見える）
- */
-function findProblemsToShow(rules: readonly Rule[], titles: RuleTitles | null): (RuleProblem | null)[] {
-  if (titles === null) {
-    return findRuleProblems(rules).map((problem) => (problem === "duplicate-name" ? null : problem));
-  }
-  return findRuleProblems(rules, titles);
-}
-
 /** ルールの一覧。一覧の順が優先度とタブバー上の並びを表す。ハンドルのドラッグと「上へ」「下へ」のボタンで並び替える */
-function RuleList({ rules, titles, newRuleId, onUpdate, onRemove, onMove }: RuleListProps): JSX.Element {
+function RuleList({ rules, problems, newRuleId, onUpdate, onRemove, onMove }: RuleListProps): JSX.Element {
   const listRef = useRef<HTMLOListElement>(null);
-  const problems = useMemo(() => findProblemsToShow(rules, titles), [rules, titles]);
   const ids = useMemo(() => rules.map((rule) => rule.id), [rules]);
   const drag = useDragReorder(listRef, ids, onMove);
   const handleStep = useStepWithFocus(listRef, ids, onMove);

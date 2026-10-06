@@ -6,33 +6,36 @@ import { applyRuleChange, regroupTabs } from "../../utils/grouping/regroup";
 import type { createSerialQueue } from "../../utils/grouping/serial";
 import { logListenerErrors } from "../../utils/logging/listener";
 import { getAppLogger } from "../../utils/logging/setup";
-import { DAMAGE_WARNED_ITEM, createRulesReader } from "../../utils/rules/reader";
-import { RULES_ITEM, RULE_TITLES_ITEM, createRuleTitlesStore, createRulesStore } from "../../utils/rules/storage";
-import { defineStorageItem } from "../platform/storage";
 import { browserTabs } from "../platform/tabs";
+import { showUnusedRules } from "./badge";
+import { readRulesState, rulesReader, titlesStore } from "./rules";
 
 /** 設定画面は入力のたびに保存するため、入力途中の名前でグループを作り直し続けないよう待つ時間 */
 const RULE_CHANGE_DEBOUNCE_MS = 300;
 
 const logger = getAppLogger("background");
 
-const rulesReader = createRulesReader(
-  createRulesStore(defineStorageItem(RULES_ITEM)),
-  defineStorageItem(DAMAGE_WARNED_ITEM),
-  logger,
-);
-
-/** ルールが持っているグループのタイトル。反映するたびに書き直す */
-const titlesStore = createRuleTitlesStore(defineStorageItem(RULE_TITLES_ITEM));
-
-async function readRulesState(): Promise<RulesState> {
-  const [rules, titles] = await Promise.all([rulesReader.read(), titlesStore.read()]);
-  return { rules, titles };
+/**
+ * oldRules から state.rules への変更を反映し、変更後にルールが持っているタイトルを保存する。
+ * 使われないルールのバッジも、反映後のタイトルで数えて更新する（300ms まとめた後のため、打ち直しの途中でちらつきにくい）。
+ * 反映が失敗しても、ルールの変更をバッジに映すため、それまでのタイトルで更新する
+ */
+async function applyAndSaveTitles(oldRules: RulesState["rules"], state: RulesState): Promise<void> {
+  let { titles } = state;
+  try {
+    titles = await applyRuleChange(browserTabs, oldRules, state);
+    await titlesStore.write(titles);
+  } finally {
+    await showUnusedRules({ rules: state.rules, titles });
+  }
 }
 
-/** oldRules から state.rules への変更を反映し、変更後にルールが持っているタイトルを保存する */
-async function applyAndSaveTitles(oldRules: RulesState["rules"], state: RulesState): Promise<void> {
-  await titlesStore.write(await applyRuleChange(browserTabs, oldRules, state));
+/**
+ * 保存されたルールで、使われないルールのバッジを更新する。Service Worker の起動時に呼ぶ。
+ * 拡張機能を無効にしてから有効に戻すと、アイコンの状態が消え、インストール・ブラウザの起動のイベントも来ないため
+ */
+export async function refreshUnusedRulesBadge(): Promise<void> {
+  await showUnusedRules(await readRulesState());
 }
 
 /** すべてのタブを判定し直す。記録したタイトルとルールが食い違っていれば、グループのタイトル・色も直す */
