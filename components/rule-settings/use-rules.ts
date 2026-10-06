@@ -126,10 +126,10 @@ async function saveRules(store: RulesStore, rules: Rule[], { pendingWrites, onSa
 
 /**
  * ルールが持っているグループのタイトルを返す。background が反映のたびに書き直すため、変更を watch で受け取る。
- * 読み込みが終わるまでと読めなかったときは、どのルールもタイトルを持っていないものとする
+ * 読み込みが終わるまでは null。読めなかったときは、どのルールもタイトルを持っていないものとする
  */
-export function useRuleTitles(store: RuleTitlesStore): RuleTitles {
-  const [titles, setTitles] = useState<RuleTitles>(NO_TITLES);
+export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
+  const [titles, setTitles] = useState<RuleTitles | null>(null);
   useEffect(() => {
     // 読み込みより先に watch で受け取っていれば、そちらが新しい
     let received = false;
@@ -145,6 +145,9 @@ export function useRuleTitles(store: RuleTitlesStore): RuleTitles {
         }
       } catch (error) {
         console.error("ルールが持っているグループのタイトルを読み込めませんでした", error);
+        if (!received) {
+          setTitles(NO_TITLES);
+        }
       }
     })();
     return unwatch;
