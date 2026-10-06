@@ -70,7 +70,7 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - 作業は Issue（範囲と受入条件）→ Spec（OpenSpec で、何を・どうやって作るか）→ 実装の順に進め、判断を下したら ADR を書く。役割の分け方は `docs/adr/0009-issue-spec-adr-workflow.md` を参照
 - Issue は1つの PR で閉じられる粒度にする。大きい場合は親 Issue を作り、子 Issue を Sub-issue として紐付ける
 - Spec は実装と食い違ったら実装を正として直す。背景と受入条件は Issue に書き、Spec からは Issue 番号を参照する
-- PR の宛先は Stacked PR でも `develop` にする（`Closes #N` はデフォルトブランチへのマージでしか効かない）
+- 子 Issue 同士が依存する等で Stacked PR にする場合は `gh-stack`（`gh stack`）を使う。宛先・マージ方法は `docs/adr/0023-stacked-pr-with-gh-stack.md` を参照
 
 ## ブランチ・マージ
 
