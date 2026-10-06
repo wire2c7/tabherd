@@ -20,8 +20,12 @@ export interface DragReorder {
 
 /**
  * HTML5 Drag and Drop でのルールの並び替え。
- * 一覧（listRef）の直下の要素をルールの並びとみなし、ポインターの位置から差し込み先を決める。
- * ルールの間の隙間でもドロップできるよう、dragover・drop は各ルールではなく一覧で受ける
+ *
+ * @param listRef - ルールの一覧（ol）の ref
+ * @param ids - 表示順のルールの id の一覧
+ * @param onMove - ドロップでルールを動かすときに呼ぶ関数
+ * @returns ドラッグ・ドロップの状態とハンドラ
+ * @remarks 一覧（listRef）の直下の要素をルールの並びとみなし、ポインターの位置から差し込み先を決める。ルールの間の隙間でもドロップできるよう、dragover・drop は各ルールではなく一覧で受ける
  */
 export function useDragReorder(
   listRef: RefObject<HTMLOListElement>,

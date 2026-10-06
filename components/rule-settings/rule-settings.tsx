@@ -21,7 +21,13 @@ interface RuleSettingsProps {
   titlesStore: RuleTitlesStore;
 }
 
-/** ルールの設定画面。ポップアップとオプションページの両方で描画する */
+/**
+ * ルールの設定画面。
+ *
+ * @param props - ルールの一覧とグループのタイトルの読み書き先
+ * @returns ルールの設定画面
+ * @remarks ポップアップとオプションページの両方で描画する
+ */
 export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Element {
   const { rules, isDamaged, update } = useRules(store);
   const { titles, problems } = useRuleProblems(titlesStore, rules);

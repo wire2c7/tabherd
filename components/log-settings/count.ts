@@ -10,9 +10,12 @@ export type StoredLogCount =
   | { status: "failed" };
 
 /**
- * LOGS_ITEM の StorageItem に保存したログの件数の状態を、読み込んだときと変わったときに listener へ渡す。戻り値は購読をやめる関数。
- * 最初の読み込みより先に変更の通知が来たら、通知の方が新しいため、読み込みの結果（成功・失敗とも）は渡さない。
- * 読み込みの途中で購読をやめたときも渡さない
+ * LOGS_ITEM の StorageItem に保存したログの件数の状態を、読み込んだときと変わったときに listener へ渡す。
+ *
+ * @param item - 読む元の StorageItem
+ * @param listener - 件数の状態を受け取るリスナー
+ * @returns 購読をやめる関数
+ * @remarks 最初の読み込みより先に変更の通知が来たら、通知の方が新しいため、読み込みの結果（成功・失敗とも）は渡さない。読み込みの途中で購読をやめたときも渡さない
  */
 export function watchStoredLogCount(
   item: StorageItem<StoredLogEntry[]>,
@@ -46,8 +49,10 @@ export function watchStoredLogCount(
 
 /**
  * 件数の状態から、「ログを消去」を押せるかを決める。
- * 読み込み中は押せない。0 件でも、エラーの直前の文脈として background のメモリに溜めたログを消せるよう押せる。
- * 読み込みに失敗したときは、壊れた保存データを消して戻せるよう押せる
+ *
+ * @param count - 判定する件数の状態
+ * @returns 押せれば true
+ * @remarks 読み込み中は押せない。0 件でも、エラーの直前の文脈として background のメモリに溜めたログを消せるよう押せる。読み込みに失敗したときは、壊れた保存データを消して戻せるよう押せる
  */
 export function canClearLogs(count: StoredLogCount): boolean {
   switch (count.status) {

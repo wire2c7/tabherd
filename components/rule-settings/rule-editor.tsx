@@ -43,6 +43,12 @@ interface Props {
   onStep: (id: string, direction: MoveDirection) => void;
 }
 
+/**
+ * 1件のルールの編集欄。
+ *
+ * @param props - 編集するルール・表示する問題・一覧での位置と、更新・削除・並び替えのハンドラ
+ * @returns ルールの編集欄
+ */
 export function RuleEditor({ rule, problem, isNew, onUpdate, onRemove, isFirst, isLast, onStep }: Props): JSX.Element {
   const { id } = rule;
 
