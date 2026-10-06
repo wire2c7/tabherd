@@ -52,6 +52,8 @@
               ".agents/skills/openspec-*/*"
               ".claude/skills/openspec-*/*"
               ".claude/commands/opsx/*"
+              # gh-stack スキルの生成物（`gh skill install` で上書きされる）は整形しない
+              ".claude/skills/gh-stack/*"
             ];
           };
 
@@ -62,6 +64,7 @@
                 pkgs.actionlint
                 pkgs.betterleaks
                 pkgs.commitlint
+                pkgs.gh-stack
                 pkgs.jq
                 # WXT は Node.js >= 22 を要求する。LTS の 24 系に固定する
                 pkgs.nodejs_24
