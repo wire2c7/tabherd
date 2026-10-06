@@ -21,14 +21,23 @@ export const MAX_STORED_LOGS = 500;
 export const LOGS_ITEM: StorageItemDefinition<StoredLogEntry[]> = { key: "local:logs", fallback: [] };
 
 /**
- * 保存した値がログの一覧（配列）か。StorageItem は保存した値の形を確かめずに返すため、壊れた値はここで見分ける。
- * 中の1件ごとの形までは確かめない
+ * 保存した値がログの一覧（配列）か確かめる。
+ *
+ * @param value - 確かめる値
+ * @returns value がログの配列なら true
+ * @remarks StorageItem は保存した値の形を確かめずに返すため、壊れた値はここで見分ける。中の1件ごとの形までは確かめない
  */
 export function isStoredLogs(value: unknown): value is StoredLogEntry[] {
   return Array.isArray(value);
 }
 
-/** LOGS_ITEM の StorageItem から、保存したログを読む。保存した値が壊れていて配列でなければ、例外を投げる */
+/**
+ * LOGS_ITEM の StorageItem から、保存したログを読む。
+ *
+ * @param item - 読む元の StorageItem
+ * @returns 保存したログ
+ * @remarks 保存した値が壊れていて配列でなければ、例外を投げる
+ */
 export async function readStoredLogs(item: StorageItem<StoredLogEntry[]>): Promise<StoredLogEntry[]> {
   const logs = await item.getValue();
   if (!isStoredLogs(logs)) {
@@ -39,7 +48,10 @@ export async function readStoredLogs(item: StorageItem<StoredLogEntry[]>): Promi
 
 /**
  * 保存したログの末尾に entries を足し、直近の MAX_STORED_LOGS 件に切る。
- * 保存した値が壊れていて配列でなければ、読めない値のため捨てて entries だけを保存する。止めると、利用者が消去するまでログを保存できなくなるため
+ *
+ * @param item - 保存先の StorageItem
+ * @param entries - 足すログ
+ * @remarks 保存した値が壊れていて配列でなければ、読めない値のため捨てて entries だけを保存する。止めると、利用者が消去するまでログを保存できなくなるため
  */
 export async function appendLogs(
   item: StorageItem<StoredLogEntry[]>,

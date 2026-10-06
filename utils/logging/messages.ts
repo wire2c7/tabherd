@@ -12,6 +12,12 @@ export type LogsResponse = { ok: true } | { ok: false; error: string };
 
 const LOGS_REQUEST_TYPES: ReadonlySet<unknown> = new Set<LogsRequest["type"]>(["clear-logs", "settle-logs"]);
 
+/**
+ * 受け取った値が LogsRequest か判定する。
+ *
+ * @param message - 判定する値
+ * @returns message が LogsRequest なら true
+ */
 export function isLogsRequest(message: unknown): message is LogsRequest {
   return typeof message === "object" && message !== null && "type" in message && LOGS_REQUEST_TYPES.has(message.type);
 }
@@ -20,8 +26,12 @@ export function isLogsRequest(message: unknown): message is LogsRequest {
 export type SendLogsRequest = (message: LogsRequest) => Promise<unknown>;
 
 /**
- * background にログについての依頼を送り、終わったら ok: true を返す。
- * background が依頼を受けられない（Service Worker が止まる途中等）ときも例外を投げず、ok: false を返す
+ * background にログについての依頼を送る。
+ *
+ * @param send - 依頼を送る関数（runtime.sendMessage）
+ * @param type - 送る依頼の種類
+ * @returns 終わったら ok: true、失敗したら ok: false とその理由
+ * @remarks background が依頼を受けられない（Service Worker が止まる途中等）ときも例外を投げず、ok: false を返す
  */
 export async function requestLogs(send: SendLogsRequest, type: LogsRequest["type"]): Promise<LogsResponse> {
   try {

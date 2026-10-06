@@ -69,7 +69,12 @@ function appendTabId<K>(map: Map<K, TabIds>, key: K, tabId: number): void {
 
 /**
  * ウィンドウのスナップショットとルールの一覧から、タブをルールのグループへ入れる・外す操作の計画を組み立てる。
- * ピン留めされたタブと、管理対象でないグループのタブには操作を出さない
+ *
+ * @param window - 計画の対象のウィンドウのスナップショット
+ * @param rules - 判定に使うルールの一覧
+ * @param options - 判定するタブ・管理対象のグループ名等
+ * @returns グループへ入れる・外す操作の一覧
+ * @remarks ピン留めされたタブと、管理対象でないグループのタブには操作を出さない
  */
 export function planGrouping(
   window: WindowSnapshot,

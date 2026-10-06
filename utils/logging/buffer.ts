@@ -23,6 +23,11 @@ export interface BufferingSink {
 
 /**
  * triggerLevel より下のログを溜め、triggerLevel 以上のログが来たら、溜めたログとそのログを write へ流して空にする。
+ *
+ * @param write - 溜めたログ・流すログを渡す書き込み先
+ * @param options - 流すきっかけのレベルと、溜める件数の上限
+ * @returns ログを受け取る sink。溜めたログを捨てる clear も持つ
+ * @remarks
  * LogTape の fingersCrossed と違い、流した後は元の状態に戻り、次の triggerLevel 以上のログまで流さない。
  * LogTape はログに渡された値を一段しか写さないため、呼び出し側が後で配列・オブジェクトを書き換えても溜めた内容が変わらないよう、
  * 受け取った時点で保存する形（JSON の写し）に変えて溜める

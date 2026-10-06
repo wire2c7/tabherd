@@ -2,8 +2,12 @@ import type { TabsApi } from "./tabs";
 import type { WindowSnapshot } from "./types";
 
 /**
- * 通常のウィンドウのスナップショットを取る。windowId を省略するとすべての通常のウィンドウを対象にする。
- * タブグループは通常のウィンドウにしか作れないため、ポップアップ等のウィンドウは含めない
+ * 通常のウィンドウのスナップショットを取る。
+ *
+ * @param api - スナップショットを取るタブの API
+ * @param windowId - 対象のウィンドウの ID。省略するとすべての通常のウィンドウを対象にする
+ * @returns ウィンドウごとのスナップショット
+ * @remarks タブグループは通常のウィンドウにしか作れないため、ポップアップ等のウィンドウは含めない
  */
 export async function takeWindowSnapshots(api: TabsApi, windowId?: number): Promise<WindowSnapshot[]> {
   const [tabs, groups] = await Promise.all([api.queryTabs(windowId), api.queryGroups(windowId)]);

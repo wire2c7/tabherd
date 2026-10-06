@@ -8,7 +8,13 @@ const LOG_LEVELS = ["trace", "debug", "info", "warning", "error", "fatal"] as co
 
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
-/** a が b より低ければ負、同じなら 0、高ければ正の数を返す */
+/**
+ * ログレベルの高低を比較する。
+ *
+ * @param a - 比較する一方のログレベル
+ * @param b - 比較するもう一方のログレベル
+ * @returns a が b より低ければ負、同じなら 0、高ければ正の数
+ */
 export function compareLogLevel(a: LogLevel, b: LogLevel): number {
   return LOG_LEVELS.indexOf(a) - LOG_LEVELS.indexOf(b);
 }

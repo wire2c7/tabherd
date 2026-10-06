@@ -35,6 +35,10 @@ async function runJob(item: StorageItem<StoredLogEntry[]>, job: WriteJob): Promi
 
 /**
  * 受け取ったログを、LOGS_ITEM の StorageItem に保存する書き込み口を作る。
+ *
+ * @param item - 保存先の StorageItem
+ * @returns 保存・消去を行う LogWriter
+ * @remarks
  * chrome.storage には条件付きの書き込みが無く、追記は「読む → 足す → 書く」になるため、追記と消去を1本の待ち行列で受け取った順に1つずつ行う。
  * write は同期で呼ばれるため、まだ始めていない追記が待ち行列の末尾にあれば、そこへまとめる
  */

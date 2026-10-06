@@ -12,6 +12,9 @@ interface PathEntry {
 
 /**
  * JSON.stringify に渡す変換を作る。
+ *
+ * @returns JSON.stringify の replacer として渡す関数
+ * @remarks
  * - Error は {} になるため、名前・メッセージ・スタックトレースを残す。原因の例外（cause。WXT の storage の MigrationError 等が持つ）と、
  *   AggregateError がまとめた例外（errors）も残す。返したオブジェクトの中の値も同じ変換を通るため、入れ子の Error も同じ形になる
  * - 循環している参照は CIRCULAR_REFERENCE に置き換える。JSON.stringify が例外を投げて値全体が文字列になり、外側のエラーの情報まで失うのを防ぐ。
@@ -55,8 +58,11 @@ function createReplacer(): (this: unknown, key: string, value: unknown) => unkno
 export const UNSERIALIZABLE_VALUE = "[ログに記録できない値]";
 
 /**
- * 値を JSON にできる形に変える。循環している参照は CIRCULAR_REFERENCE に置き換え、それでも変えられない値（読むと例外を投げるプロパティを持つもの等）は文字列にする。
- * 1件の変換の失敗で、一緒に保存するログやエラー本体を失わないよう、例外を投げない
+ * 値を JSON にできる形に変える。
+ *
+ * @param value - 変換する値
+ * @returns JSON にできる形に変えた値。循環している参照は CIRCULAR_REFERENCE に、それでも変えられない値は文字列にする
+ * @remarks 1件の変換の失敗で、一緒に保存するログやエラー本体を失わないよう、例外を投げない
  */
 export function toJsonValue(value: unknown): unknown {
   try {
@@ -73,7 +79,12 @@ export function toJsonValue(value: unknown): unknown {
   }
 }
 
-/** メッセージに埋める値を文字列にする */
+/**
+ * メッセージに埋める値を文字列にする。
+ *
+ * @param value - メッセージに埋める値
+ * @returns 文字列にした値
+ */
 function formatValue(value: unknown): string {
   if (typeof value === "string") {
     return value;
@@ -86,6 +97,10 @@ function formatValue(value: unknown): string {
 
 /**
  * ログを、端末に保存する形に変える。
+ *
+ * @param record - ロガーから sink へ渡るログの1件
+ * @returns 端末に保存する形に変えたログ
+ * @remarks
  * バッファが受け取った時点で写すため、多くは保存されずに捨てられる debug のログも、1件ごとに JSON にする。
  * メッセージに埋める値は、メッセージの文字列とプロパティの両方のために2回 JSON にする。
  * どちらもログに渡すのは ID・件数等の小さい値で、件数も判定・操作の数ほどのため、まとめて減らす複雑さに見合わない

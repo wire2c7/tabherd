@@ -15,7 +15,12 @@ export type LoggedOperation =
   | { type: "update-group"; groupId: number }
   | { type: "move-group"; groupId: number; index: number };
 
-/** 操作から、ログに出すフィールドだけを写す */
+/**
+ * 操作から、ログに出すフィールドだけを写す。
+ *
+ * @param operation - 元の操作
+ * @returns ログに出すフィールドだけを持つ操作
+ */
 export function toLoggedOperation(operation: GroupOperation): LoggedOperation {
   switch (operation.type) {
     case "add-to-group": {
@@ -55,7 +60,13 @@ async function sleep(ms: number): Promise<void> {
   });
 }
 
-/** action を実行し、タブの編集ができないエラーのときだけ RETRY_DELAYS_MS の時間を待ってやり直す */
+/**
+ * action を実行し、タブの編集ができないエラーのときだけ RETRY_DELAYS_MS の時間を待ってやり直す。
+ *
+ * @param action - 実行する処理
+ * @param delays - やり直すまでに待つ時間（ミリ秒）の配列。先頭から順に使う
+ * @returns action の返り値
+ */
 export async function retryWhileTabsBusy<T>(action: () => Promise<T>, delays = RETRY_DELAYS_MS): Promise<T> {
   try {
     return await action();
@@ -106,7 +117,10 @@ async function executeOperation(api: TabsApi, operation: GroupOperation): Promis
 
 /**
  * 計画の操作を順に api で実行する。
- * 操作が失敗したら（スナップショットの後にタブが閉じられた等）ログに出し、残りの操作を続ける
+ *
+ * @param api - 操作を実行するタブの API
+ * @param operations - 順に実行する操作
+ * @remarks 操作が失敗したら（スナップショットの後にタブが閉じられた等）ログに出し、残りの操作を続ける
  */
 export async function executeOperations(api: TabsApi, operations: readonly GroupOperation[]): Promise<void> {
   for (const operation of operations) {

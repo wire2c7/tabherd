@@ -53,7 +53,13 @@ async function groupAndArrange(
   }
 }
 
-/** ウィンドウの指定したタブだけを判定し、ルールのグループへ入れる・外す。その後にウィンドウのグループの並びを揃える */
+/**
+ * ウィンドウの指定したタブだけを判定し、ルールのグループへ入れる・外す。その後にウィンドウのグループの並びを揃える。
+ *
+ * @param api - 操作を実行するタブの API
+ * @param state - 判定に使うルールの一覧と、ルールが持っているグループのタイトル
+ * @param target - 判定するウィンドウとタブの ID
+ */
 export async function regroupTabs(
   api: TabsApi,
   { rules, titles }: RulesState,
@@ -69,8 +75,12 @@ export async function regroupTabs(
 }
 
 /**
- * すべてのウィンドウのすべてのタブを判定し直し、グループの並びを揃える。retiredNames のグループも管理対象として扱う。
- * ルールの順番だけが変わったときは、グループ化の操作がなく並びだけが変わる
+ * すべてのウィンドウのすべてのタブを判定し直し、グループの並びを揃える。
+ *
+ * @param api - 操作を実行するタブの API
+ * @param state - 判定に使うルールの一覧と、ルールが持っているグループのタイトル
+ * @param retiredNames - 管理対象として扱う、削除されたルール等の旧い名前
+ * @remarks ルールの順番だけが変わったときは、グループ化の操作がなく並びだけが変わる
  */
 export async function regroupAllWindows(
   api: TabsApi,
@@ -86,9 +96,13 @@ export async function regroupAllWindows(
 }
 
 /**
- * ルールの変更を開いているタブに反映し、変更後にルールが持っているタイトルを返す。state.titles は変更前にルールが持っていたタイトル。
- * 名前・色が変わったルールのグループのタイトル・色を先に変え、その後にスナップショットを取り直して全体を判定し直す。
- * 起動時は oldRules に今のルールを渡し、記録とルールの食い違いを直す
+ * ルールの変更を開いているタブに反映し、変更後にルールが持っているタイトルを返す。
+ *
+ * @param api - 操作を実行するタブの API
+ * @param oldRules - 変更前のルールの一覧
+ * @param state - 変更後のルールの一覧と、変更前にルールが持っていたタイトル（state.titles）
+ * @returns 変更後にルールが持っているタイトル
+ * @remarks 名前・色が変わったルールのグループのタイトル・色を先に変え、その後にスナップショットを取り直して全体を判定し直す。起動時は oldRules に今のルールを渡し、記録とルールの食い違いを直す
  */
 export async function applyRuleChange(
   api: TabsApi,
