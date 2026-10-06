@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseRules } from "./parse";
+import { parseRuleTitles, parseRules } from "./parse";
 import type { Rule } from "./types";
 
 const DEV: Rule = { id: "a", name: "開発", color: "blue", conditions: [{ type: "contains", value: "/dev/" }] };
@@ -79,5 +79,24 @@ describe("ルールの項目の読み込み", () => {
     expect(
       parseRules([{ ...DEV, extra: true, conditions: [{ type: "contains", value: "/dev/", extra: 1 }] }]),
     ).toStrictEqual({ rules: [DEV], damage: null });
+  });
+});
+
+describe("ルールが持っているグループのタイトルの読み込み", () => {
+  it("ルールの ID からタイトルへの対応として読む", () => {
+    expect(parseRuleTitles({ dev: "開発", docs: "資料" })).toStrictEqual(
+      new Map([
+        ["dev", "開発"],
+        ["docs", "資料"],
+      ]),
+    );
+  });
+
+  it("値が文字列でない項目だけを除く", () => {
+    expect(parseRuleTitles({ dev: "開発", docs: 1 })).toStrictEqual(new Map([["dev", "開発"]]));
+  });
+
+  it("オブジェクトでなければ、どのルールもタイトルを持っていないものとする", () => {
+    expect(parseRuleTitles("broken")).toStrictEqual(new Map());
   });
 });

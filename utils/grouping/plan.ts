@@ -1,5 +1,5 @@
 import { matchesRule, validRules } from "../rules/match";
-import type { Rule } from "../rules/types";
+import type { Rule, RuleTitles } from "../rules/types";
 import type { GroupOperation, GroupSnapshot, TabIds, TabSnapshot, WindowSnapshot } from "./types";
 
 /** tabGroups.TAB_GROUP_ID_NONE。純粋関数からブラウザの API を参照しないよう値で持つ */
@@ -10,6 +10,8 @@ export interface PlanGroupingOptions {
   targetTabIds?: ReadonlySet<number>;
   /** 削除されたルール等の旧い名前。有効なルールの名前でなくても、このタイトルのグループを管理対象として扱う */
   retiredNames?: readonly string[];
+  /** ルールが持っているタイトル。名前が重なったルールのどれを有効にするかを決める */
+  titles?: RuleTitles;
 }
 
 /** 1つのタブの判定の結果。keep は操作なし、ungroup はグループから外す、group はルールのグループへ入れる */
@@ -74,8 +76,8 @@ export function planGrouping(
   rules: readonly Rule[],
   options: PlanGroupingOptions = {},
 ): GroupOperation[] {
-  const { targetTabIds, retiredNames = [] } = options;
-  const activeRules = validRules(rules);
+  const { targetTabIds, retiredNames = [], titles } = options;
+  const activeRules = validRules(rules, titles);
   const groupsById = new Map(window.groups.map((group) => [group.id, group]));
   const context: DecisionContext = {
     activeRules,

@@ -1,12 +1,13 @@
 import { browser } from "wxt/browser";
 
 import { debounceChanges } from "../../utils/grouping/debounce";
-import { applyRuleChange, regroupAllWindows, regroupTabs } from "../../utils/grouping/regroup";
+import type { RulesState } from "../../utils/grouping/regroup";
+import { applyRuleChange, regroupTabs } from "../../utils/grouping/regroup";
 import type { createSerialQueue } from "../../utils/grouping/serial";
 import { logListenerErrors } from "../../utils/logging/listener";
 import { getAppLogger } from "../../utils/logging/setup";
 import { DAMAGE_WARNED_ITEM, createRulesReader } from "../../utils/rules/reader";
-import { RULES_ITEM, createRulesStore } from "../../utils/rules/storage";
+import { RULES_ITEM, RULE_TITLES_ITEM, createRuleTitlesStore, createRulesStore } from "../../utils/rules/storage";
 import { defineStorageItem } from "../platform/storage";
 import { browserTabs } from "../platform/tabs";
 
@@ -21,13 +22,28 @@ const rulesReader = createRulesReader(
   logger,
 );
 
+/** ルールが持っているグループのタイトル。反映するたびに書き直す */
+const titlesStore = createRuleTitlesStore(defineStorageItem(RULE_TITLES_ITEM));
+
+async function readRulesState(): Promise<RulesState> {
+  const [rules, titles] = await Promise.all([rulesReader.read(), titlesStore.read()]);
+  return { rules, titles };
+}
+
+/** oldRules から state.rules への変更を反映し、変更後にルールが持っているタイトルを保存する */
+async function applyAndSaveTitles(oldRules: RulesState["rules"], state: RulesState): Promise<void> {
+  await titlesStore.write(await applyRuleChange(browserTabs, oldRules, state));
+}
+
+/** すべてのタブを判定し直す。記録したタイトルとルールが食い違っていれば、グループのタイトル・色も直す */
 async function regroupAll(): Promise<void> {
-  await regroupAllWindows(browserTabs, await rulesReader.read());
+  const state = await readRulesState();
+  await applyAndSaveTitles(state.rules, state);
 }
 
 /** ウィンドウ windowId のタブ tabId を判定し直す処理を作る */
 function regroupTab(windowId: number, tabId: number): () => Promise<void> {
-  return async () => regroupTabs(browserTabs, await rulesReader.read(), { windowId, tabIds: [tabId] });
+  return async () => regroupTabs(browserTabs, await readRulesState(), { windowId, tabIds: [tabId] });
 }
 
 /** タブ・ルールの変更や起動のイベントを受け、グループを作り直す処理を enqueue に積む */
@@ -73,7 +89,7 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
           oldCount: oldRules.length,
           newCount: newRules.length,
         });
-        void enqueue(async () => applyRuleChange(browserTabs, oldRules, newRules));
+        void enqueue(async () => applyAndSaveTitles(oldRules, { rules: newRules, titles: await titlesStore.read() }));
       }),
     ),
   );

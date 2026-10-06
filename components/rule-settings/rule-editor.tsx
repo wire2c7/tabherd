@@ -25,7 +25,7 @@ const GROUP_COLOR_LABELS: Record<GroupColor, string> = {
 
 const PROBLEM_MESSAGES: Record<RuleProblem, string> = {
   "empty-name": "グループ名を入力してください",
-  "duplicate-name": "上のルールと同じグループ名です。このルールは使われません",
+  "duplicate-name": "ほかのルールが使っているグループ名です。このルールは使われません",
 };
 
 type RuleUpdate = (id: string, update: (rule: Rule) => Rule) => void;

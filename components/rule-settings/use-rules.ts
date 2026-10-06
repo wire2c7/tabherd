@@ -2,8 +2,9 @@ import type { MutableRef } from "preact/hooks";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 
 import type { ParsedRules } from "../../utils/rules/parse";
-import type { RulesStore } from "../../utils/rules/storage";
-import type { Rule } from "../../utils/rules/types";
+import type { RuleTitlesStore, RulesStore } from "../../utils/rules/storage";
+import type { Rule, RuleTitles } from "../../utils/rules/types";
+import { NO_TITLES } from "../../utils/rules/types";
 
 /** ルールの一覧を変更する関数。今の一覧を受け取り、新しい一覧を返す */
 export type RulesUpdater = (rules: readonly Rule[]) => Rule[];
@@ -121,4 +122,36 @@ async function saveRules(store: RulesStore, rules: Rule[], { pendingWrites, onSa
   if (saved) {
     onSaved();
   }
+}
+
+/**
+ * ルールが持っているグループのタイトルを返す。background が反映のたびに書き直すため、変更を watch で受け取る。
+ * 読み込みが終わるまでは null。読めなかったときは、どのルールもタイトルを持っていないものとする。
+ * store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
+ */
+export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
+  const [titles, setTitles] = useState<RuleTitles | null>(null);
+  useEffect(() => {
+    // 読み込みより先に watch で受け取っていれば、そちらが新しい
+    let received = false;
+    const unwatch = store.watch((value) => {
+      received = true;
+      setTitles(value);
+    });
+    void (async () => {
+      try {
+        const value = await store.read();
+        if (!received) {
+          setTitles(value);
+        }
+      } catch (error) {
+        console.error("ルールが持っているグループのタイトルを読み込めませんでした", error);
+        if (!received) {
+          setTitles(NO_TITLES);
+        }
+      }
+    })();
+    return unwatch;
+  }, [store]);
+  return titles;
 }

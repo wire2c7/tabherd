@@ -1,4 +1,5 @@
 import { expect, rule, test } from "./fixtures";
+import { storedTitles } from "./rule-titles";
 
 // テストの名前は openspec/specs/auto-grouping/spec.md の「タブバー上のグループの並び」の Scenario に対応させる。
 // 「何も起きない」ことの確かめ方は auto-grouping.e2e.ts と同じ
@@ -82,5 +83,21 @@ test.describe("タブバー上のグループの並び", () => {
     await expect.poll(async () => groupOf("/dev/3")).toMatchObject({ title: "開発" });
 
     expect(await serviceWorker.evaluate(() => Reflect.get(globalThis, "e2eGroupMoves") as unknown)).toStrictEqual([]);
+  });
+
+  test("無効なルールのグループ", async ({ serviceWorker, setRules, groupOf, groupOrders, openTab }) => {
+    const docs = rule("docs", "資料", "green");
+    await openTab("/dev/1");
+    await openTab("/work/1");
+    await openTab("/docs/1");
+    await setRules([dev, work]);
+    await expect.poll(async () => storedTitles(serviceWorker)).toStrictEqual({ dev: "開発", work: "業務" });
+    await expect.poll(async () => groupOrders()).toStrictEqual([["開発", "業務"]]);
+
+    // 「資料」のタブがグループに入れば、名前を空にした変更の反映も終わっている
+    await setRules([{ ...dev, name: "" }, work, docs]);
+    await expect.poll(async () => groupOf("/docs/1")).toMatchObject({ title: "資料" });
+
+    expect(await groupOrders()).toStrictEqual([["開発", "業務", "資料"]]);
   });
 });

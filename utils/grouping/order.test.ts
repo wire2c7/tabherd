@@ -71,3 +71,13 @@ describe("タブバー上のグループの並び", () => {
     expect(planGroupOrder(window, [WORK, DEV, rule("")])).toStrictEqual([]);
   });
 });
+
+describe("無効なルールのグループの並び", () => {
+  it("無効なルールが持ち続けるタイトルのグループは、そのルールの位置に置く", () => {
+    const emptied: Rule = { ...DEV, name: "" };
+    const window = windowOf([tab(1, 200), tab(2, 100)], GROUPS);
+    expect(planGroupOrder(window, [emptied, WORK], new Map([[DEV.id, "開発"]]))).toStrictEqual([
+      { type: "move-group", groupId: 100, index: 0 },
+    ]);
+  });
+});

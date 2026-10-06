@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { toStoredLogEntry } from "../logging/entry";
 import { captureLogs } from "../logging/testing/capture";
 import type { Rule } from "../rules/types";
+import { NO_TITLES } from "../rules/types";
 import { applyRuleChange, regroupAllWindows, regroupTabs } from "./regroup";
 import type { BrowserTab, BrowserTabGroup } from "./tabs";
 import type { MockTabsApi } from "./testing/tabs";
@@ -35,7 +36,7 @@ describe("グループ化とグループの並び", () => {
   it("ルールの順番だけを変えると、グループを動かさずに並びだけを変える", async () => {
     const api = mockWindow();
 
-    await applyRuleChange(api, [DEV, WORK], [WORK, DEV]);
+    await applyRuleChange(api, [DEV, WORK], { rules: [WORK, DEV], titles: NO_TITLES });
 
     expect(api.group).not.toHaveBeenCalled();
     expect(api.moveGroup).toHaveBeenCalledWith(200, 0);
@@ -44,7 +45,7 @@ describe("グループ化とグループの並び", () => {
   it("並びがすでに正しいときは、グループを移動しない", async () => {
     const api = mockWindow();
 
-    await regroupAllWindows(api, [DEV, WORK]);
+    await regroupAllWindows(api, { rules: [DEV, WORK], titles: NO_TITLES });
 
     expect(api.moveGroup).not.toHaveBeenCalled();
   });
@@ -57,7 +58,7 @@ describe("グループ化とグループの並び", () => {
       browserTab(2, "https://github.com/new", -1),
     ]);
 
-    await regroupTabs(api, [DEV, WORK], { windowId: 1, tabIds: [12] });
+    await regroupTabs(api, { rules: [DEV, WORK], titles: NO_TITLES }, { windowId: 1, tabIds: [12] });
 
     expect(api.group).toHaveBeenCalledWith([12], { groupId: 100 });
     expect(api.queryTabs).toHaveBeenCalledTimes(2);
@@ -81,7 +82,7 @@ describe("グループ化のログ", () => {
       conditions: [{ type: "contains", value: "secret.example" }],
     };
 
-    await regroupTabs(api, [DEV, WORK, secret], { windowId: 1, tabIds: [12] });
+    await regroupTabs(api, { rules: [DEV, WORK, secret], titles: NO_TITLES }, { windowId: 1, tabIds: [12] });
 
     const stored = JSON.stringify(logs.map((record) => toStoredLogEntry(record)));
     expect(logs.some((record) => record.level === "error")).toBe(true);
