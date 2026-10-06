@@ -40,6 +40,7 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - `flake.nix` — `flake-parts` による単一の flake。フォーマッタ・リンタは `treefmt-nix` の `treefmt.programs` に集約し、`nix flake check` にも組み込まれる
 - CI の共通の検査（`ci` ジョブ）と Renovate の共通設定は [wire2c7/workflows](https://github.com/wire2c7/workflows) で管理しており、このリポジトリはそれを参照するだけ。共通の検査を変える場合はそちらを変更する。このリポジトリ固有の整形・lint・型チェック・テスト・ビルドは `.github/workflows/ci.yaml` の `build` ジョブで実行する
 - `openspec/` — OpenSpec で管理する Spec。`.claude/skills/openspec-*`・`.claude/commands/opsx/`・`.agents/skills/openspec-*` は `openspec init` / `openspec update` の生成物のため、手で編集しない
+- `.claude/skills/gh-stack/` — `gh skill install github/gh-stack gh-stack --agent claude-code` の生成物（`gh stack` の使い方）のため、手で編集しない。更新は `gh skill update` で行う
 - `entrypoints/` — WXT のエントリポイント。ファイル構成から `manifest.json` が生成される。manifest の追加項目（権限等）は `wxt.config.ts` に書く
   - エントリポイントになるのは直下のファイルと `<名前>/index.*` だけで、`<名前>/` のほかのファイルはならない。WXT による API の実装は `entrypoints/platform/` に置く
 - WXT・Preact・LogTape をいつでも置き換えられるよう、使えるディレクトリを分けている（ADR 0021）。WXT は `entrypoints/`、Preact は `components/` と `entrypoints/`、LogTape は `utils/logging/setup.ts` だけで使う。`utils/` はブラウザの API（タブ・ストレージ）をインターフェースとして定義し、エントリポイントが WXT による実装を引数・props で渡す
