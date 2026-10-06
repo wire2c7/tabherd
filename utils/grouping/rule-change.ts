@@ -62,7 +62,9 @@ export function diffRules(
     return titles.get(id) ?? oldById.get(id)?.name;
   }
   let next = nextTitles(newRules, titles, previousTitle);
-  // 有効になるルールは1回ごとに増えるか止まるため、ルールの数だけ求め直せば足りる。念のため回数で打ち切る
+  // 前の回に有効だったルールは自分の名前のタイトルを持つため次の回も有効で、有効なルールは増えるか止まる。
+  // 増えるのはタイトルを手放すルールが有効なときだけのため、増える回数はルールの数より少なく、ルールの数だけ求め直せば止まる
+  // （rule-change.property.test.ts で確かめている）。回数で打ち切るのは念のため
   let rounds = 0;
   let changed = true;
   while (changed && rounds < newRules.length) {
