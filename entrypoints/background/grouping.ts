@@ -31,8 +31,9 @@ async function applyAndSaveTitles(oldRules: RulesState["rules"], state: RulesSta
 }
 
 /**
- * 保存されたルールで、使われないルールのバッジを更新する。Service Worker の起動時に呼ぶ。
- * 拡張機能を無効にしてから有効に戻すと、アイコンの状態が消え、インストール・ブラウザの起動のイベントも来ないため
+ * 保存されたルールで、使われないルールのバッジを更新する。
+ *
+ * @remarks Service Worker の起動時に呼ぶ。拡張機能を無効にしてから有効に戻すと、アイコンの状態が消え、インストール・ブラウザの起動のイベントも来ないため
  */
 export async function refreshUnusedRulesBadge(): Promise<void> {
   await showUnusedRules(await readRulesState());
@@ -49,7 +50,11 @@ function regroupTab(windowId: number, tabId: number): () => Promise<void> {
   return async () => regroupTabs(browserTabs, await readRulesState(), { windowId, tabIds: [tabId] });
 }
 
-/** タブ・ルールの変更や起動のイベントを受け、グループを作り直す処理を enqueue に積む */
+/**
+ * タブ・ルールの変更や起動のイベントを受け、グループを作り直す処理を enqueue に積む。
+ *
+ * @param enqueue - 積んだ処理を直列に実行する関数
+ */
 export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
   browser.runtime.onInstalled.addListener(
     logListenerErrors(logger, (details) => {

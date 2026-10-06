@@ -14,7 +14,11 @@ export const rulesReader = createRulesReader(
 /** ルールが持っているグループのタイトル。反映するたびに書き直す */
 export const titlesStore = createRuleTitlesStore(defineStorageItem(RULE_TITLES_ITEM));
 
-/** 保存されたルールの一覧と、ルールが持っているグループのタイトルを読む */
+/**
+ * 保存されたルールの一覧と、ルールが持っているグループのタイトルを読む。
+ *
+ * @returns ルールの一覧とグループのタイトル
+ */
 export async function readRulesState(): Promise<RulesState> {
   const [rules, titles] = await Promise.all([rulesReader.read(), titlesStore.read()]);
   return { rules, titles };

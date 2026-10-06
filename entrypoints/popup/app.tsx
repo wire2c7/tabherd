@@ -7,6 +7,11 @@ import { defineStorageItem } from "../platform/storage";
 const rulesStore = createRulesStore(defineStorageItem(RULES_ITEM));
 const titlesStore = createRuleTitlesStore(defineStorageItem(RULE_TITLES_ITEM));
 
+/**
+ * ポップアップの画面。
+ *
+ * @returns ルールの設定を表示するページ
+ */
 export function App(): JSX.Element {
   return (
     <main class="page">

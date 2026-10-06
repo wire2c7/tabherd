@@ -9,7 +9,10 @@ import { getAppLogger } from "../../utils/logging/setup";
 const logger = getAppLogger("background");
 
 /**
- * 拡張機能のコードが捕捉しなかったエラーをログに残す。Service Worker の最初の評価の中で登録する必要がある。
+ * 拡張機能のコードが捕捉しなかったエラーをログに残す。
+ *
+ * @remarks
+ * Service Worker の最初の評価の中で登録する必要がある。
  * chrome.* のイベントのリスナーが同期的に投げた例外はここに届かないため、リスナーを logListenerErrors で包む
  */
 export function logUncaughtErrors(): void {
@@ -31,8 +34,9 @@ export function logUncaughtErrors(): void {
 
 /**
  * オプションページからのログについての依頼（消去・保存の待ち）を受ける。
- * 端末への書き込みを background だけで行い、保存と消去を受け取った順に処理するため、オプションページは直接消さずに依頼する。
- * 書き出しの前には、保存の途中のログが書き出したファイルから漏れないよう、保存が終わるのを待ってもらう
+ *
+ * @param storedLogs - 依頼を処理する先の、端末に保存したログの操作
+ * @remarks 端末への書き込みを background だけで行い、保存と消去を受け取った順に処理するため、オプションページは直接消さずに依頼する。書き出しの前には、保存の途中のログが書き出したファイルから漏れないよう、保存が終わるのを待ってもらう
  */
 export function handleLogsRequests(storedLogs: StoredLogs): void {
   browser.runtime.onMessage.addListener(
