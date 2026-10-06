@@ -46,20 +46,30 @@ async function regroupAll(): Promise<void> {
   await applyAndSaveTitles(state.rules, state);
 }
 
+/** regroupTab が判定に使う依存先 */
+export interface RegroupTabDeps {
+  /** 操作を実行するタブの API */
+  api: typeof browserTabs;
+  /** 進行中のルール変更のデバウンスの確定待ち（`DebouncedChanges.waitUntilSettled`） */
+  waitUntilSettled: () => Promise<void>;
+  /** ルールの一覧とグループのタイトルを読む関数 */
+  read: () => Promise<RulesState>;
+}
+
 /**
  * ウィンドウ windowId のタブ tabId を判定し直す処理を作る。
  *
- * @param waitUntilSettled - 進行中のルール変更のデバウンスの確定待ち（`DebouncedChanges.waitUntilSettled`）
+ * @param deps - 判定に使う依存先
  * @param windowId - 判定するタブのウィンドウの ID
  * @param tabId - 判定するタブの ID
  * @returns enqueue に積む処理
  * @remarks 読む前に待つことで、デバウンスの途中の中間状態のルールでグループを作ってしまい、確定後の差分では
  * その中間状態を見落として直せなくなることを防ぐ（Issue #36）
  */
-function regroupTab(waitUntilSettled: () => Promise<void>, windowId: number, tabId: number): () => Promise<void> {
+export function regroupTab(deps: RegroupTabDeps, windowId: number, tabId: number): () => Promise<void> {
   return async () => {
-    await waitUntilSettled();
-    return regroupTabs(browserTabs, await readRulesState(), { windowId, tabIds: [tabId] });
+    await deps.waitUntilSettled();
+    return regroupTabs(deps.api, await deps.read(), { windowId, tabIds: [tabId] });
   };
 }
 
@@ -79,6 +89,11 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
     });
     void enqueue(async () => applyAndSaveTitles(oldRules, { rules: newRules, titles: await titlesStore.read() }));
   });
+  const regroupTabDeps: RegroupTabDeps = {
+    api: browserTabs,
+    waitUntilSettled: ruleChangeDebounce.waitUntilSettled,
+    read: readRulesState,
+  };
 
   browser.runtime.onInstalled.addListener(
     logListenerErrors(logger, (details) => {
@@ -99,14 +114,14 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
     logListenerErrors(logger, (tabId, changeInfo, tab) => {
       if (changeInfo.url !== undefined) {
         logger.debug("タブ {tabId} の URL が変わりました", { tabId, windowId: tab.windowId });
-        void enqueue(regroupTab(ruleChangeDebounce.waitUntilSettled, tab.windowId, tabId));
+        void enqueue(regroupTab(regroupTabDeps, tab.windowId, tabId));
       }
     }),
   );
   browser.tabs.onAttached.addListener(
     logListenerErrors(logger, (tabId, attachInfo) => {
       logger.debug("タブ {tabId} がウィンドウ {windowId} へ移りました", { tabId, windowId: attachInfo.newWindowId });
-      void enqueue(regroupTab(ruleChangeDebounce.waitUntilSettled, attachInfo.newWindowId, tabId));
+      void enqueue(regroupTab(regroupTabDeps, attachInfo.newWindowId, tabId));
     }),
   );
 
