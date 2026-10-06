@@ -3,10 +3,10 @@ import { browser } from "wxt/browser";
 import type { RulesState } from "../../utils/grouping/regroup";
 import { countUnusedRules } from "../../utils/rules/match";
 
-/** manifest のアイコンの説明（WXT が popup の title から作る） */
+/** manifest のアイコンの説明（WXT が popup の title から作る）。無ければ拡張機能の名前 */
 function defaultTitle(): string {
   const manifest = browser.runtime.getManifest();
-  return manifest.manifest_version === 3 ? (manifest.action?.default_title ?? "") : "";
+  return (manifest.manifest_version === 3 ? manifest.action?.default_title : undefined) ?? manifest.name;
 }
 
 /**

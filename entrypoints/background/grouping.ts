@@ -17,12 +17,25 @@ const logger = getAppLogger("background");
 
 /**
  * oldRules から state.rules への変更を反映し、変更後にルールが持っているタイトルを保存する。
- * 使われないルールのバッジも、反映後のタイトルで数えて更新する（300ms まとめた後のため、打ち直しの途中でちらつきにくい）
+ * 使われないルールのバッジも、反映後のタイトルで数えて更新する（300ms まとめた後のため、打ち直しの途中でちらつきにくい）。
+ * 反映が失敗しても、ルールの変更をバッジに映すため、それまでのタイトルで更新する
  */
 async function applyAndSaveTitles(oldRules: RulesState["rules"], state: RulesState): Promise<void> {
-  const titles = await applyRuleChange(browserTabs, oldRules, state);
-  await titlesStore.write(titles);
-  await showUnusedRules({ rules: state.rules, titles });
+  let { titles } = state;
+  try {
+    titles = await applyRuleChange(browserTabs, oldRules, state);
+    await titlesStore.write(titles);
+  } finally {
+    await showUnusedRules({ rules: state.rules, titles });
+  }
+}
+
+/**
+ * 保存されたルールで、使われないルールのバッジを更新する。Service Worker の起動時に呼ぶ。
+ * 拡張機能を無効にしてから有効に戻すと、アイコンの状態が消え、インストール・ブラウザの起動のイベントも来ないため
+ */
+export async function refreshUnusedRulesBadge(): Promise<void> {
+  await showUnusedRules(await readRulesState());
 }
 
 /** すべてのタブを判定し直す。記録したタイトルとルールが食い違っていれば、グループのタイトル・色も直す */
