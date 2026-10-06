@@ -121,6 +121,28 @@ describe("タイトルを持っているルールの優先", () => {
   });
 });
 
+describe("名前の入れ替え", () => {
+  it("互いに相手の持っているタイトルを名前にしたルールは、どちらも有効になる", () => {
+    const dev: Rule = { id: "dev", name: "資料", color: "blue", conditions: [] };
+    const docs: Rule = { id: "docs", name: "開発", color: "green", conditions: [] };
+    const titles = new Map([
+      ["dev", "開発"],
+      ["docs", "資料"],
+    ]);
+    expect(findRuleProblems([dev, docs], titles)).toStrictEqual([null, null]);
+  });
+
+  it("相手が自分の名前のタイトルを持ったままなら、入れ替えではなく後から同じ名前にした方が無効になる", () => {
+    const dev: Rule = { id: "dev", name: "資料", color: "blue", conditions: [] };
+    const docs: Rule = { id: "docs", name: "資料", color: "green", conditions: [] };
+    const titles = new Map([
+      ["dev", "開発"],
+      ["docs", "資料"],
+    ]);
+    expect(findRuleProblems([dev, docs], titles)).toStrictEqual(["duplicate-name", null]);
+  });
+});
+
 describe("無効なルールが持ち続けるタイトル", () => {
   const dev: Rule = { id: "dev", name: "", color: "blue", conditions: [] };
   const docs: Rule = { id: "docs", name: "資料", color: "green", conditions: [] };

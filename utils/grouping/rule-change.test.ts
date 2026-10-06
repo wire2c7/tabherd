@@ -217,3 +217,38 @@ describe("ルールの削除の反映", () => {
     expect(planGrouping(window, [DOCS])).toStrictEqual([]);
   });
 });
+
+describe("名前の入れ替え・タイトルの引き継ぎ", () => {
+  it("記録があっても、名前を入れ替えたルールはどちらも有効になり、グループのタイトルを入れ替える", () => {
+    const titles = titlesOf([DEV, "開発"], [DOCS, "資料"]);
+    const swapped = [
+      { ...DEV, name: "資料" },
+      { ...DOCS, name: "開発" },
+    ];
+    expect(diffRules([{ ...DEV, name: "資料" }, DOCS], swapped, titles)).toStrictEqual({
+      updates: [
+        { oldName: "開発", name: "資料", color: "blue" },
+        { oldName: "資料", name: "開発", color: "green" },
+      ],
+      retiredNames: [],
+      titles: titlesOf([DEV, "資料"], [DOCS, "開発"]),
+    });
+  });
+
+  it("持ち主がタイトルを手放したら、同じ反映で、同じ名前の別のルールがそのタイトルを持つ", () => {
+    const other: Rule = { ...DOCS, id: "other", name: "開発" };
+    expect(diffRules([DEV, other], [{ ...DEV, name: "Dev" }, other], titlesOf([DEV, "開発"])).titles).toStrictEqual(
+      titlesOf([DEV, "Dev"], [other, "開発"]),
+    );
+  });
+
+  it("持ち主が削除したタイトルを引き継いだルールは、グループの色を自分の色に変える", () => {
+    const emptied: Rule = { ...DEV, name: "" };
+    const other: Rule = { ...DOCS, id: "other", name: "開発" };
+    expect(diffRules([emptied, other], [other], titlesOf([DEV, "開発"]))).toStrictEqual({
+      updates: [{ oldName: "開発", name: "開発", color: "green" }],
+      retiredNames: [],
+      titles: titlesOf([other, "開発"]),
+    });
+  });
+});

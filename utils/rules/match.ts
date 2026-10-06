@@ -45,9 +45,33 @@ export function matchesRule(url: string, rule: Rule): boolean {
 export type RuleProblem = "empty-name" | "duplicate-name";
 
 /**
+ * 互いに相手の持っているタイトルを名前にしているルール（名前の入れ替え）を返す。
+ * 名前のタイトルを持っているルールをたどり、元のルールに戻れば、たどったルールはすべて入れ替えの輪に入っている
+ */
+function findSwappingRules(rules: readonly Rule[], holderByTitle: ReadonlyMap<string, Rule>): Set<Rule> {
+  const swapping = new Set<Rule>();
+  for (const rule of rules) {
+    const chain = [rule];
+    let next = holderByTitle.get(rule.name);
+    while (next !== undefined && next !== rule && !chain.includes(next)) {
+      chain.push(next);
+      next = holderByTitle.get(next.name);
+    }
+    // 自分の名前のタイトルを自分で持っているルール（chain が1件で戻る）は入れ替えではない
+    if (next === rule && chain.length > 1) {
+      for (const member of chain) {
+        swapping.add(member);
+      }
+    }
+  }
+  return swapping;
+}
+
+/**
  * ルールの一覧のそれぞれについて、無効になる理由を返す（有効なら null）。返す配列の添字は rules と対応する。
  * グループ名が、ほかのルールが titles で持っているタイトル（無効なあいだ持ち続けるものを含む）と同じルールは無効にする。
  * 後から同じ名前にしたルールのために、すでにあるグループのタイトルを別のルールのものにしないため。
+ * ただし、互いに相手のタイトルを名前にしているルール（名前の入れ替え）は、どれも有効にする。
  * どのルールも持っていない名前が重なったときは、一覧で最も上のルールを有効にする
  */
 export function findRuleProblems(rules: readonly Rule[], titles: RuleTitles = NO_TITLES): (RuleProblem | null)[] {
@@ -62,11 +86,17 @@ export function findRuleProblems(rules: readonly Rule[], titles: RuleTitles = NO
       firstByName.set(rule.name, rule);
     }
   }
+  const swapping = findSwappingRules(rules, holderByTitle);
   return rules.map((rule) => {
     if (rule.name.trim() === "") {
       return "empty-name";
     }
-    const chosen = holderByTitle.get(rule.name) ?? firstByName.get(rule.name);
+    if (swapping.has(rule)) {
+      return null;
+    }
+    const holder = holderByTitle.get(rule.name);
+    // 入れ替えで手放すタイトルは、入れ替えの相手のものになる
+    const chosen = holder !== undefined && swapping.has(holder) ? undefined : (holder ?? firstByName.get(rule.name));
     return chosen === rule ? null : "duplicate-name";
   });
 }
@@ -108,6 +138,6 @@ export function groupTitlesInOrder(rules: readonly Rule[], titles: RuleTitles = 
 }
 
 /** URL が一致するルールを返す。複数に一致するときは一覧で最も上のもの、どれにも一致しなければ null */
-export function findMatchingRule(url: string, rules: readonly Rule[]): Rule | null {
-  return validRules(rules).find((rule) => matchesRule(url, rule)) ?? null;
+export function findMatchingRule(url: string, rules: readonly Rule[], titles: RuleTitles = NO_TITLES): Rule | null {
+  return validRules(rules, titles).find((rule) => matchesRule(url, rule)) ?? null;
 }
