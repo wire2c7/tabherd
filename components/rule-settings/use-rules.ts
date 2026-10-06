@@ -131,8 +131,11 @@ async function saveRules(store: RulesStore, rules: Rule[], { pendingWrites, onSa
 export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
   const [titles, setTitles] = useState<RuleTitles | null>(null);
   useEffect(() => {
-    // 読み込みより先に watch で受け取っていれば、そちらが新しい
+    // 保存先が替わったら、前の保存先のタイトルで判定しないよう読み込み中に戻す
+    setTitles(null);
+    // 読み込みより先に watch で受け取っていれば、そちらが新しい。購読をやめた後に届いた読み込みは捨てる
     let received = false;
+    let active = true;
     const unwatch = store.watch((value) => {
       received = true;
       setTitles(value);
@@ -140,17 +143,20 @@ export function useRuleTitles(store: RuleTitlesStore): RuleTitles | null {
     void (async () => {
       try {
         const value = await store.read();
-        if (!received) {
+        if (active && !received) {
           setTitles(value);
         }
       } catch (error) {
         console.error("ルールが持っているグループのタイトルを読み込めませんでした", error);
-        if (!received) {
+        if (active && !received) {
           setTitles(NO_TITLES);
         }
       }
     })();
-    return unwatch;
+    return () => {
+      active = false;
+      unwatch();
+    };
   }, [store]);
   return titles;
 }
