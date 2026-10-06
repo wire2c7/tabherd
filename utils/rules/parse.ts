@@ -89,10 +89,18 @@ function parseConditions(values: readonly unknown[]): Condition[] {
   });
 }
 
-const RuleTitlesSchema = record(string(), string());
+const RuleTitlesSchema = record(string(), unknown());
 
-/** 保存値を RuleTitles に直す。形が壊れていれば、どのルールもタイトルを持っていないものとする（次の反映で書き直される） */
+/**
+ * 保存値を RuleTitles に直す。オブジェクトでなければ、どのルールもタイトルを持っていないものとし、
+ * 値が文字列でない項目はその項目だけを除く（次の反映で書き直される）
+ */
 export function parseRuleTitles(value: unknown): RuleTitles {
   const parsed = safeParse(RuleTitlesSchema, value);
-  return parsed.success ? new Map(Object.entries(parsed.output)) : new Map();
+  if (!parsed.success) {
+    return new Map();
+  }
+  return new Map(
+    Object.entries(parsed.output).flatMap(([id, title]) => (typeof title === "string" ? [[id, title] as const] : [])),
+  );
 }
