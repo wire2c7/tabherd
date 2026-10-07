@@ -66,14 +66,14 @@ function onRulesChanged(
 ): (newRules: RulesState["rules"], oldRules: RulesState["rules"]) => void {
   let isBurstPending = false;
   return (newRules, oldRules) => {
-    logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
-      oldCount: oldRules.length,
-      newCount: newRules.length,
-    });
     ruleChangeDebounce.onChange(newRules, oldRules);
     if (isBurstPending) {
       return;
     }
+    logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
+      oldCount: oldRules.length,
+      newCount: newRules.length,
+    });
     isBurstPending = true;
     void enqueue(async () => {
       await ruleChangeDebounce.waitUntilSettled();
