@@ -64,21 +64,15 @@ export function regroupTab(windowId: number, tabId: number): () => Promise<void>
  * @returns rulesReader.watch へ渡すリスナー
  * @remarks デバウンスの確定を待つのはこの反映のタスク自身で、enqueue するタイミングはバーストの最初の変更が
  * あった時点のまま動かさない。これにより、確定前にタブイベントがキューへ積まれても、この反映のタスクより
- * 後ろに並ぶため、確定した後の正しい rules・titles で判定できる（Issue #36・#81）。
- * rules はこのリスナー自身が受け取った最新の値をそのまま使い、rulesReader.read() を読み直さない
- * （壊れたルールの警告の保存に失敗しても、この反映自体は失敗しないようにするため）
+ * 後ろに並ぶため、確定した後の正しい rules・titles で判定できる（Issue #36・#81）
  */
 export function onRulesChanged(
   enqueue: ReturnType<typeof createSerialQueue>,
   ruleChangeSettleGate: ReturnType<typeof createSettleGate>,
 ): (newRules: RulesState["rules"], oldRules: RulesState["rules"]) => void {
   let isBurstPending = false;
-  // バーストの最初の変更前の値（反映の基準）。最新の変更後の値は呼ばれるたびに更新し、反映時に使う
-  let burstOldRules: RulesState["rules"];
-  let latestRules: RulesState["rules"];
   return (newRules, oldRules) => {
     ruleChangeSettleGate.touch();
-    latestRules = newRules;
     if (isBurstPending) {
       return;
     }
@@ -86,12 +80,11 @@ export function onRulesChanged(
       oldCount: oldRules.length,
       newCount: newRules.length,
     });
-    burstOldRules = oldRules;
     isBurstPending = true;
     void enqueue(async () => {
       await ruleChangeSettleGate.waitUntilSettled();
       isBurstPending = false;
-      await applyAndSaveTitles(burstOldRules, { rules: latestRules, titles: await titlesStore.read() });
+      await applyAndSaveTitles(oldRules, await readRulesState());
     });
   };
 }
