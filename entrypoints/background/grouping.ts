@@ -1,6 +1,6 @@
 import { browser } from "wxt/browser";
 
-import { debounceChanges } from "../../utils/grouping/debounce";
+import { createSettleGate } from "../../utils/grouping/debounce";
 import type { RulesState } from "../../utils/grouping/regroup";
 import { applyRuleChange, regroupTabs } from "../../utils/grouping/regroup";
 import type { createSerialQueue } from "../../utils/grouping/serial";
@@ -45,8 +45,14 @@ async function regroupAll(): Promise<void> {
   await applyAndSaveTitles(state.rules, state);
 }
 
-/** ウィンドウ windowId のタブ tabId を判定し直す処理を作る */
-function regroupTab(windowId: number, tabId: number): () => Promise<void> {
+/**
+ * ウィンドウ windowId のタブ tabId を判定し直す処理を作る。
+ *
+ * @param windowId - 対象のタブが属するウィンドウの ID
+ * @param tabId - 判定し直す対象のタブの ID
+ * @returns enqueue に積む処理
+ */
+export function regroupTab(windowId: number, tabId: number): () => Promise<void> {
   return async () => regroupTabs(browserTabs, await readRulesState(), { windowId, tabIds: [tabId] });
 }
 
@@ -54,19 +60,19 @@ function regroupTab(windowId: number, tabId: number): () => Promise<void> {
  * ルールの変更（storage の watch）を受け、バーストの最初の変更があった時点で反映のタスクを積む。
  *
  * @param enqueue - 積んだ処理を直列に実行する関数
- * @param ruleChangeDebounce - ルール変更のデバウンス
+ * @param ruleChangeSettleGate - ルール変更の確定待ち
  * @returns rulesReader.watch へ渡すリスナー
  * @remarks デバウンスの確定を待つのはこの反映のタスク自身で、enqueue するタイミングはバーストの最初の変更が
  * あった時点のまま動かさない。これにより、確定前にタブイベントがキューへ積まれても、この反映のタスクより
  * 後ろに並ぶため、確定した後の正しい rules・titles で判定できる（Issue #36・#81）
  */
-function onRulesChanged(
+export function onRulesChanged(
   enqueue: ReturnType<typeof createSerialQueue>,
-  ruleChangeDebounce: ReturnType<typeof debounceChanges<RulesState["rules"]>>,
+  ruleChangeSettleGate: ReturnType<typeof createSettleGate>,
 ): (newRules: RulesState["rules"], oldRules: RulesState["rules"]) => void {
   let isBurstPending = false;
   return (newRules, oldRules) => {
-    ruleChangeDebounce.onChange(newRules, oldRules);
+    ruleChangeSettleGate.touch();
     if (isBurstPending) {
       return;
     }
@@ -76,7 +82,7 @@ function onRulesChanged(
     });
     isBurstPending = true;
     void enqueue(async () => {
-      await ruleChangeDebounce.waitUntilSettled();
+      await ruleChangeSettleGate.waitUntilSettled();
       const state = await readRulesState();
       isBurstPending = false;
       await applyAndSaveTitles(oldRules, state);
@@ -91,9 +97,7 @@ function onRulesChanged(
  * @remarks タブイベントは、進行中のルール変更があっても待たずにそのまま enqueue する（onRulesChanged を参照）
  */
 export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
-  const ruleChangeDebounce = debounceChanges<RulesState["rules"]>(RULE_CHANGE_DEBOUNCE_MS, () => {
-    // 実際の反映は onRulesChanged が積むタスク自身が行うため、ここでは何もしない
-  });
+  const ruleChangeSettleGate = createSettleGate(RULE_CHANGE_DEBOUNCE_MS);
 
   browser.runtime.onInstalled.addListener(
     logListenerErrors(logger, (details) => {
@@ -127,5 +131,5 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
 
   // onRulesChanged 自体は同期の処理のため、ここで包んで例外を記録する。
   // enqueue したタスク（反映処理）の例外は createSerialQueue 自身が記録する
-  rulesReader.watch(logListenerErrors(logger, onRulesChanged(enqueue, ruleChangeDebounce)));
+  rulesReader.watch(logListenerErrors(logger, onRulesChanged(enqueue, ruleChangeSettleGate)));
 }
