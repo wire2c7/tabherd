@@ -89,7 +89,7 @@ describe("ルール変更とタブイベントの重なり（Issue #36）", () =
     expect(group).not.toHaveBeenCalled();
     // 3. デバウンスの残り時間のうちにルールの色を変える（同じバーストのまま、反映タスクは積み直さない）
     await setStoredRules([{ ...DEV, color: "red" }]);
-    onChange([{ ...DEV, color: "red" }], []);
+    onChange([{ ...DEV, color: "red" }], [DEV]);
     // 4. デバウンスが確定するまで進める
     await vi.advanceTimersByTimeAsync(300);
     await tabTask;
@@ -146,7 +146,11 @@ describe("名前が衝突するルールの編集とタブイベントの重な�
     await setStoredRules([Arenamed, C]);
     onChange([Arenamed, C], [A]);
     const tabTask = onTabEvent(1, 10);
-    await vi.advanceTimersByTimeAsync(300);
+    // タブイベントは反映タスクの後ろに積まれているため、確定前はまだ実行されない
+    // （applyRuleChange末尾のregroupAllWindowsが結果を帳尻合わせしてしまい、この順序保証自体を見落とさないため）
+    await vi.advanceTimersByTimeAsync(100);
+    expect(group).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(200);
     await tabTask;
 
     expect(group).toHaveBeenCalledWith({ createProperties: { windowId: 1 }, tabIds: [10] });
