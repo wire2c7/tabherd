@@ -77,7 +77,7 @@ function onRulesChanged(
     isBurstPending = true;
     void enqueue(async () => {
       await ruleChangeDebounce.waitUntilSettled();
-      const state = { rules: await rulesReader.read(), titles: await titlesStore.read() };
+      const state = await readRulesState();
       isBurstPending = false;
       await applyAndSaveTitles(oldRules, state);
     });
