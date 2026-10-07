@@ -1,21 +1,9 @@
-import { describe, expect, it, onTestFinished, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
+import { stub } from "../../utils/testing/mocks";
 import { browserTabs } from "./tabs";
-
-/**
- * fake-browser の tabs.group 等はモックされていないため、テストごとに差し替える。
- * テストの終わりに元の値へ戻す（.claude/rules/typescript.md）。
- * vi.spyOn ではコールバック版のオーバーロードの型になるため、Promise 版の型の関数を代入する
- */
-function stub<T, K extends keyof T>(target: T, key: K, value: T[K]): void {
-  const original = target[key];
-  target[key] = value;
-  onTestFinished(() => {
-    target[key] = original;
-  });
-}
 
 describe("browser による TabsApi", () => {
   it("タブは通常のウィンドウだけを、ウィンドウを指定したときはそのウィンドウだけを取得する", async () => {
