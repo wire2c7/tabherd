@@ -17,7 +17,7 @@ export interface DebouncedChanges<T> {
 export function debounceChanges<T>(ms: number, listener: (newValue: T, oldValue: T) => void): DebouncedChanges<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let firstOldValue: { value: T } | undefined;
-  let waiters: (() => void)[] = [];
+  let settling: PromiseWithResolvers<null> | undefined;
 
   function onChange(newValue: T, oldValue: T): void {
     firstOldValue ??= { value: oldValue };
@@ -26,14 +26,12 @@ export function debounceChanges<T>(ms: number, listener: (newValue: T, oldValue:
       const { value } = firstOldValue ?? { value: oldValue };
       firstOldValue = undefined;
       timer = undefined;
-      const settled = waiters;
-      waiters = [];
+      const resolved = settling;
+      settling = undefined;
       try {
         listener(newValue, value);
       } finally {
-        for (const resolve of settled) {
-          resolve();
-        }
+        resolved?.resolve(null);
       }
     }, ms);
   }
@@ -42,9 +40,8 @@ export function debounceChanges<T>(ms: number, listener: (newValue: T, oldValue:
     if (timer === undefined) {
       return;
     }
-    await new Promise<void>((resolve) => {
-      waiters.push(resolve);
-    });
+    settling ??= Promise.withResolvers<null>();
+    await settling.promise;
   }
 
   return { onChange, waitUntilSettled };
