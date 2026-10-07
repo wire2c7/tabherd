@@ -83,9 +83,8 @@ export function onRulesChanged(
     isBurstPending = true;
     void enqueue(async () => {
       await ruleChangeSettleGate.waitUntilSettled();
-      const state = await readRulesState();
       isBurstPending = false;
-      await applyAndSaveTitles(oldRules, state);
+      await applyAndSaveTitles(oldRules, await readRulesState());
     });
   };
 }
