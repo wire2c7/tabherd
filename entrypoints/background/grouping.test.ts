@@ -1,26 +1,14 @@
-import { describe, expect, it, onTestFinished, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
 import { createSettleGate } from "../../utils/grouping/debounce";
 import { createSerialQueue } from "../../utils/grouping/serial";
 import type { Rule } from "../../utils/rules/types";
-import { useFakeTimersInTest } from "../../utils/testing/mocks";
+import { stub, useFakeTimersInTest } from "../../utils/testing/mocks";
 import { onRulesChanged, regroupTab } from "./grouping";
 
 const DEV: Rule = { id: "dev", name: "開発", color: "blue", conditions: [{ type: "contains", value: "/dev/" }] };
-
-/**
- * fakeBrowser のメソッドをテストごとに差し替える。テストの終わりに元の値へ戻す
- * （entrypoints/platform/tabs.test.ts と同じ方法。.claude/rules/typescript.md）
- */
-function stub<T, K extends keyof T>(target: T, key: K, value: T[K]): void {
-  const original = target[key];
-  target[key] = value;
-  onTestFinished(() => {
-    target[key] = original;
-  });
-}
 
 /** テストで使う項目だけを指定した browser.tabs.Tab を作る */
 function fakeTab(tab: Pick<Browser.tabs.Tab, "id" | "windowId" | "url" | "groupId">): Browser.tabs.Tab {
@@ -130,6 +118,7 @@ describe("名前が衝突するルールの編集とタブイベントの重な�
   it("デバウンス確定前のタブイベントが名前衝突を誤判定しても、確定後は正しいグループに入る", async () => {
     // 前提: ルール「開発」(id:a, example.orgに一致)を「業務」へ改名し、新ルール「開発」(id:c, github.comに一致)を
     //       同じ保存で追加する。300ms以内に github.com のタブイベントが来る
+    // 検証: タブイベントの判定は、確定後の正しい titles（c が有効）を使って行われ、github.com のタブはグループに入る
     useFakeTimersInTest();
     fakeBrowser.reset();
     const A: Rule = { id: "a", name: "開発", color: "blue", conditions: [{ type: "contains", value: "example.org" }] };
