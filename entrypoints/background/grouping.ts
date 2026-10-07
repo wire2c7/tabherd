@@ -125,8 +125,7 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
     }),
   );
 
-  // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる。
-  // debounceChanges は処理を setTimeout の中で呼び、処理の例外は error イベントに届くため、今は包まなくても記録される。
-  // debounceChanges が処理を同期で呼ぶように変わっても記録するよう包む
+  // onRulesChanged 自体は同期の処理のため、ここで包んで例外を記録する。
+  // enqueue したタスク（反映処理）の例外は createSerialQueue 自身が記録する
   rulesReader.watch(logListenerErrors(logger, onRulesChanged(enqueue, ruleChangeDebounce)));
 }
