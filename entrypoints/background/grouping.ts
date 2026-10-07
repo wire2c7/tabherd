@@ -4,7 +4,6 @@ import { debounceChanges } from "../../utils/grouping/debounce";
 import type { RulesState } from "../../utils/grouping/regroup";
 import { applyRuleChange, regroupTabs } from "../../utils/grouping/regroup";
 import type { createSerialQueue } from "../../utils/grouping/serial";
-import type { TabsApi } from "../../utils/grouping/tabs";
 import { logListenerErrors } from "../../utils/logging/listener";
 import { getAppLogger } from "../../utils/logging/setup";
 import { browserTabs } from "../platform/tabs";
@@ -46,30 +45,41 @@ async function regroupAll(): Promise<void> {
   await applyAndSaveTitles(state.rules, state);
 }
 
-/** regroupTab が判定に使う依存先 */
-export interface RegroupTabDeps {
-  /** 操作を実行するタブの API */
-  api: TabsApi;
-  /** 進行中のルール変更のデバウンスの確定待ち（`DebouncedChanges.waitUntilSettled`） */
-  waitUntilSettled: () => Promise<void>;
-  /** ルールの一覧とグループのタイトルを読む関数 */
-  read: () => Promise<RulesState>;
+/** ウィンドウ windowId のタブ tabId を判定し直す処理を作る */
+function regroupTab(windowId: number, tabId: number): () => Promise<void> {
+  return async () => regroupTabs(browserTabs, await readRulesState(), { windowId, tabIds: [tabId] });
 }
 
 /**
- * ウィンドウ windowId のタブ tabId を判定し直す処理を作る。
+ * ルールの変更（storage の watch）を受け、バーストの最初の変更があった時点で反映のタスクを積む。
  *
- * @param deps - 判定に使う依存先
- * @param windowId - 判定するタブのウィンドウの ID
- * @param tabId - 判定するタブの ID
- * @returns enqueue に積む処理
- * @remarks 読む前に待つことで、デバウンスの途中の中間状態のルールでグループを作ってしまい、確定後の差分では
- * その中間状態を見落として直せなくなることを防ぐ（Issue #36）
+ * @param enqueue - 積んだ処理を直列に実行する関数
+ * @param ruleChangeDebounce - ルール変更のデバウンス
+ * @returns rulesReader.watch へ渡すリスナー
+ * @remarks デバウンスの確定を待つのはこの反映のタスク自身で、enqueue するタイミングはバーストの最初の変更が
+ * あった時点のまま動かさない。これにより、確定前にタブイベントがキューへ積まれても、この反映のタスクより
+ * 後ろに並ぶため、確定した後の正しい rules・titles で判定できる（Issue #36・#81）
  */
-export function regroupTab(deps: RegroupTabDeps, windowId: number, tabId: number): () => Promise<void> {
-  return async () => {
-    await deps.waitUntilSettled();
-    return regroupTabs(deps.api, await deps.read(), { windowId, tabIds: [tabId] });
+function onRulesChanged(
+  enqueue: ReturnType<typeof createSerialQueue>,
+  ruleChangeDebounce: ReturnType<typeof debounceChanges<RulesState["rules"]>>,
+): (newRules: RulesState["rules"], oldRules: RulesState["rules"]) => void {
+  let isBurstPending = false;
+  return (newRules, oldRules) => {
+    logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
+      oldCount: oldRules.length,
+      newCount: newRules.length,
+    });
+    ruleChangeDebounce.onChange(newRules, oldRules);
+    if (isBurstPending) {
+      return;
+    }
+    isBurstPending = true;
+    void enqueue(async () => {
+      await ruleChangeDebounce.waitUntilSettled();
+      isBurstPending = false;
+      await applyAndSaveTitles(oldRules, { rules: await rulesReader.read(), titles: await titlesStore.read() });
+    });
   };
 }
 
@@ -77,20 +87,12 @@ export function regroupTab(deps: RegroupTabDeps, windowId: number, tabId: number
  * タブ・ルールの変更や起動のイベントを受け、グループを作り直す処理を enqueue に積む。
  *
  * @param enqueue - 積んだ処理を直列に実行する関数
+ * @remarks タブイベントは、進行中のルール変更があっても待たずにそのまま enqueue する（onRulesChanged を参照）
  */
 export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
-  const ruleChangeDebounce = debounceChanges<RulesState["rules"]>(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
-    logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
-      oldCount: oldRules.length,
-      newCount: newRules.length,
-    });
-    void enqueue(async () => applyAndSaveTitles(oldRules, { rules: newRules, titles: await titlesStore.read() }));
+  const ruleChangeDebounce = debounceChanges<RulesState["rules"]>(RULE_CHANGE_DEBOUNCE_MS, () => {
+    // 実際の反映は onRulesChanged が積むタスク自身が行うため、ここでは何もしない
   });
-  const regroupTabDeps: RegroupTabDeps = {
-    api: browserTabs,
-    waitUntilSettled: ruleChangeDebounce.waitUntilSettled,
-    read: readRulesState,
-  };
 
   browser.runtime.onInstalled.addListener(
     logListenerErrors(logger, (details) => {
@@ -111,19 +113,19 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
     logListenerErrors(logger, (tabId, changeInfo, tab) => {
       if (changeInfo.url !== undefined) {
         logger.debug("タブ {tabId} の URL が変わりました", { tabId, windowId: tab.windowId });
-        void enqueue(regroupTab(regroupTabDeps, tab.windowId, tabId));
+        void enqueue(regroupTab(tab.windowId, tabId));
       }
     }),
   );
   browser.tabs.onAttached.addListener(
     logListenerErrors(logger, (tabId, attachInfo) => {
       logger.debug("タブ {tabId} がウィンドウ {windowId} へ移りました", { tabId, windowId: attachInfo.newWindowId });
-      void enqueue(regroupTab(regroupTabDeps, attachInfo.newWindowId, tabId));
+      void enqueue(regroupTab(attachInfo.newWindowId, tabId));
     }),
   );
 
   // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる。
   // debounceChanges は処理を setTimeout の中で呼び、処理の例外は error イベントに届くため、今は包まなくても記録される。
   // debounceChanges が処理を同期で呼ぶように変わっても記録するよう包む
-  rulesReader.watch(logListenerErrors(logger, ruleChangeDebounce.onChange));
+  rulesReader.watch(logListenerErrors(logger, onRulesChanged(enqueue, ruleChangeDebounce)));
 }
