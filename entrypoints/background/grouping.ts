@@ -3,6 +3,7 @@ import { browser } from "wxt/browser";
 import { debounceChanges } from "../../utils/grouping/debounce";
 import type { RulesState } from "../../utils/grouping/regroup";
 import { applyRuleChange, regroupTabs } from "../../utils/grouping/regroup";
+import { currentTitles } from "../../utils/grouping/rule-change";
 import type { createSerialQueue } from "../../utils/grouping/serial";
 import { logListenerErrors } from "../../utils/logging/listener";
 import { getAppLogger } from "../../utils/logging/setup";
@@ -45,17 +46,65 @@ async function regroupAll(): Promise<void> {
   await applyAndSaveTitles(state.rules, state);
 }
 
-/** ウィンドウ windowId のタブ tabId を判定し直す処理を作る */
-function regroupTab(windowId: number, tabId: number): () => Promise<void> {
-  return async () => regroupTabs(browserTabs, await readRulesState(), { windowId, tabIds: [tabId] });
+/**
+ * ウィンドウ windowId のタブ tabId を判定し直す処理を作る。
+ *
+ * @param windowId - 対象のタブが属するウィンドウの ID
+ * @param tabId - 判定し直す対象のタブの ID
+ * @returns enqueue に積む処理
+ * @remarks 判定に使ったルールの今の有効なタイトルを titlesStore にも記録する。これをしないと、このタブイベントが
+ * ルールの変更の反映より先にグループを作った場合、そのグループの存在が diffRules の記録から漏れ、
+ * 後から確定する名前・色の変更がそのグループへ届かなくなる（Issue #36）
+ */
+export function regroupTab(windowId: number, tabId: number): () => Promise<void> {
+  return async () => {
+    const state = await readRulesState();
+    await regroupTabs(browserTabs, state, { windowId, tabIds: [tabId] });
+    await titlesStore.write(currentTitles(state.rules, state.titles));
+  };
+}
+
+/**
+ * ルールの変更（storage の watch）を受け、区間の最初の変更があった時点で反映のタスクを積む。
+ *
+ * @param enqueue - 積んだ処理を直列に実行する関数
+ * @param ruleChangeDebounce - ルール変更をまとめる debounceChanges の関数
+ * @returns rulesReader.watch へ渡すリスナー
+ * @remarks 区間の確定を待つのはこの反映のタスク自身で、enqueue するタイミングは区間の最初の変更が
+ * あった時点のまま動かさない。これにより、確定前にタブイベントがキューへ積まれても、この反映のタスクより
+ * 後ろに並ぶため、確定した後の正しい rules・titles で判定できる（Issue #36・#81）。
+ * 区間の oldRules・newRules は ruleChangeDebounce 自身が確定時点の値として持つため、
+ * 反映のタスクが実行されるまでに次の区間が始まっていても、古い区間の値のまま反映してしまうことがない（Issue #36 の再発）
+ */
+export function onRulesChanged(
+  enqueue: ReturnType<typeof createSerialQueue>,
+  ruleChangeDebounce: ReturnType<typeof debounceChanges<RulesState["rules"]>>,
+): (newRules: RulesState["rules"], oldRules: RulesState["rules"]) => void {
+  return (newRules, oldRules) => {
+    const settled = ruleChangeDebounce(newRules, oldRules);
+    if (settled === undefined) {
+      return;
+    }
+    logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
+      oldCount: oldRules.length,
+      newCount: newRules.length,
+    });
+    void enqueue(async () => {
+      const { oldValue, newValue } = await settled;
+      await applyAndSaveTitles(oldValue, { rules: newValue, titles: await titlesStore.read() });
+    });
+  };
 }
 
 /**
  * タブ・ルールの変更や起動のイベントを受け、グループを作り直す処理を enqueue に積む。
  *
  * @param enqueue - 積んだ処理を直列に実行する関数
+ * @remarks タブイベントは、進行中のルール変更があっても待たずにそのまま enqueue する（onRulesChanged を参照）
  */
 export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
+  const ruleChangeDebounce = debounceChanges<RulesState["rules"]>(RULE_CHANGE_DEBOUNCE_MS);
+
   browser.runtime.onInstalled.addListener(
     logListenerErrors(logger, (details) => {
       logger.info("拡張機能がインストール・更新されました（{reason}）", { reason: details.reason });
@@ -86,19 +135,7 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
     }),
   );
 
-  // storage の変更の通知も chrome.storage.onChanged のリスナーから呼ばれる。
-  // debounceChanges は処理を setTimeout の中で呼び、処理の例外は error イベントに届くため、今は包まなくても記録される。
-  // debounceChanges が処理を同期で呼ぶように変わっても記録するよう包む
-  rulesReader.watch(
-    logListenerErrors(
-      logger,
-      debounceChanges(RULE_CHANGE_DEBOUNCE_MS, (newRules, oldRules) => {
-        logger.debug("ルールが変わりました（{oldCount} 件 → {newCount} 件）", {
-          oldCount: oldRules.length,
-          newCount: newRules.length,
-        });
-        void enqueue(async () => applyAndSaveTitles(oldRules, { rules: newRules, titles: await titlesStore.read() }));
-      }),
-    ),
-  );
+  // onRulesChanged 自体は同期の処理のため、ここで包んで例外を記録する。
+  // enqueue したタスク（反映処理）の例外は createSerialQueue 自身が記録する
+  rulesReader.watch(logListenerErrors(logger, onRulesChanged(enqueue, ruleChangeDebounce)));
 }

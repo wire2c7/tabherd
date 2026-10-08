@@ -85,6 +85,21 @@ export function diffRules(
   return { updates, retiredNames, titles: next.titles };
 }
 
+/**
+ * ルールの一覧自体は変わっていない読み直し（タブイベントの判定等）で、記録されているタイトルを
+ * 今の有効性に合わせ直す。
+ *
+ * @param rules - 判定に使うルールの一覧
+ * @param titles - 現在記録されているタイトル
+ * @returns 有効なルールが今持つべきタイトル
+ * @remarks diffRules を oldRules と newRules が同じ呼び出しとして使うため、名前・色の変更（updates）は出ない。
+ * タブイベントの素朴な判定（regroupTab）はこのタイトルの記録を更新しないため、後から来るルール変更の反映
+ * （diffRules）が、タブイベントで先に作られたグループの存在を見落とさないよう、ここで記録を追いつかせる
+ */
+export function currentTitles(rules: readonly Rule[], titles: RuleTitles): RuleTitles {
+  return diffRules(rules, rules, titles).titles;
+}
+
 /** 有効なルールのグループのタイトル・色の変更。持っていたタイトルの変更を先に決め、変更されないタイトルを引き継いだルールは色だけを変える */
 function planTitleUpdates(
   active: readonly Rule[],
