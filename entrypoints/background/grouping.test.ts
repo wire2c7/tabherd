@@ -114,6 +114,48 @@ describe("ルール変更とタブイベントの重なり（Issue #36）", () =
   });
 });
 
+describe("ルール名の打ち替え中のタブイベントの重なり（Issue #67）", () => {
+  it("打ち替えの確定前にタブイベントが来ても、入力途中の名前のグループは作られず、確定後の名前で判定される", async () => {
+    // 前提: ルール「Work」を「Job」へ改名している途中（保存値が「Jo」）に、条件に一致するタブの URL が変わる
+    // 検証: 「Jo」のグループは作られず、デバウンス確定後は「Job」のグループが1つだけ作られる
+    useFakeTimersInTest();
+    fakeBrowser.reset();
+    const WORK: Rule = { id: "w", name: "Work", color: "blue", conditions: [{ type: "contains", value: "/work/" }] };
+    const { group, updateGroup } = mockDevTabWindow();
+    stub(
+      fakeBrowser.tabs,
+      "query",
+      vi
+        .fn<(queryInfo: Browser.tabs.QueryInfo) => Promise<Browser.tabs.Tab[]>>()
+        .mockResolvedValue([fakeTab({ id: 10, url: "https://example.com/work/1", groupId: -1, windowId: 1 })]),
+    );
+    await setStoredRules([WORK]);
+    const { onRulesChanged: onChange, onTabEvent, flush } = createHarness();
+
+    // 1. 「Jo」まで打ち替えた時点で保存され、バーストが始まる（反映タスクがすぐにキューへ積まれる）
+    const Jo = { ...WORK, name: "Jo" };
+    await setStoredRules([Jo]);
+    onChange([Jo], [WORK]);
+    // 2. 300ms 以内に、条件に一致するタブの URL が変わる。反映タスクの後ろに積まれるため、まだ実行されない
+    const tabTask = onTabEvent(1, 10);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(group).not.toHaveBeenCalled();
+    // 3. デバウンスの残り時間のうちに「Job」まで打ち終える（同じバーストのまま、反映タスクは積み直さない）
+    const Job = { ...WORK, name: "Job" };
+    await setStoredRules([Job]);
+    onChange([Job], [WORK]);
+    // 4. デバウンスが確定するまで進める
+    await vi.advanceTimersByTimeAsync(300);
+    await tabTask;
+    await flush();
+
+    // タブイベントは確定後の「Job」で判定され、「Jo」のグループは作られない
+    expect(group).toHaveBeenCalledWith({ createProperties: { windowId: 1 }, tabIds: [10] });
+    expect(updateGroup).not.toHaveBeenCalledWith(100, { title: "Jo", color: "blue" });
+    expect(updateGroup).toHaveBeenCalledWith(100, { title: "Job", color: "blue" });
+  });
+});
+
 describe("名前が衝突するルールの編集とタブイベントの重なり（Issue #81）", () => {
   it("デバウンス確定前のタブイベントが名前衝突を誤判定しても、確定後は正しいグループに入る", async () => {
     // 前提: ルール「開発」(id:a, example.orgに一致)を「業務」へ改名し、新ルール「開発」(id:c, github.comに一致)を
