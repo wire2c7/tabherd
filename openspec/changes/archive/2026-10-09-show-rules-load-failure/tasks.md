@@ -25,4 +25,4 @@
 
 - [x] 4.1 `pnpm typecheck`・`pnpm lint`・`pnpm fmt:check`・`pnpm test` が通ることを確認した
 - [x] 4.2 `nix flake check` と `prek run --all-files` が通ることを確認した
-- [ ] 4.3 `openspec archive show-rules-load-failure` でこの change をアーカイブし、`openspec/specs/rule-settings-ui/spec.md` に新しい Requirement を反映する
+- [x] 4.3 `openspec archive show-rules-load-failure` でこの change をアーカイブし、`openspec/specs/rule-settings-ui/spec.md` に新しい Requirement を反映する
