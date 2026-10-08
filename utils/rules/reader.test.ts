@@ -78,6 +78,60 @@ describe("バックグラウンドの処理のルールの読み込み", () => {
   });
 });
 
+describe("壊れたルールの警告の状態の読み込みの失敗（Issue #68）", () => {
+  it("警告の状態の読み込みが一度失敗しても、read() はルールを返し続ける", async () => {
+    // 前提: 保存値が壊れている状態で、警告の状態の getValue が1回だけ失敗する
+    // 検証: 失敗した回・直った後の回のどちらも read() は直したルールを返し、失敗はログに残る
+    const storage = createStorage();
+    const records = captureLogs();
+    storage.rules.store([BROKEN_DEV]);
+    const getValue = vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
+    onTestFinished(() => getValue.mockRestore());
+    const reader = createReader(storage);
+
+    await expect(reader.read()).resolves.toStrictEqual([{ ...DEV, conditions: [] }]);
+    expect(records.some((record) => record.level === "error")).toBe(true);
+
+    await expect(reader.read()).resolves.toStrictEqual([{ ...DEV, conditions: [] }]);
+  });
+
+  it("警告の状態の読み込みが一度失敗しても、書き込み自体は行われ、ストレージが直った後に作り直した reader は正しい状態を読み直す", async () => {
+    // 前提: 保存値が壊れている状態で、警告の状態の getValue だけが1回失敗する（setValue は成功する）
+    // 検証: Service Worker が起き直した想定で作り直した reader は、持ち越した警告済みの状態を正しく読み、警告を繰り返さない
+    const storage = createStorage();
+    const records = captureLogs();
+    storage.rules.store([BROKEN_DEV]);
+    const getValue = vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
+    onTestFinished(() => getValue.mockRestore());
+
+    await createReader(storage).read();
+    expect(warnings(records)).toBe(1);
+    // 読み込みは失敗したが、警告の状態自体は書き込めている
+    expect(storage.damageWarned.stored).toBe(true);
+
+    // 作り直した reader（Service Worker の起き直し相当）は、持ち越した状態を読み直す
+    await createReader(storage).read();
+    expect(warnings(records)).toBe(1);
+  });
+});
+
+describe("壊れたルールの警告の状態の書き込みの失敗（Issue #68）", () => {
+  it("警告の状態の書き込みが失敗しても、read() はルールを返す", async () => {
+    // 前提: 保存値が壊れている状態で、警告の状態の setValue が失敗し続ける
+    // 検証: read() は書き込みの失敗に関わらず直したルールを返し、失敗はログに残る
+    const storage = createStorage();
+    const records = captureLogs();
+    storage.rules.store([BROKEN_DEV]);
+    const setValue = vi.spyOn(storage.damageWarned, "setValue").mockRejectedValue(new Error("session set failed"));
+    onTestFinished(() => setValue.mockRestore());
+    const reader = createReader(storage);
+
+    await expect(reader.read()).resolves.toStrictEqual([{ ...DEV, conditions: [] }]);
+    expect(records.some((record) => record.level === "error")).toBe(true);
+    expect(warnings(records)).toBe(1);
+  });
+});
+
 describe("壊れたルールの警告の繰り返し", () => {
   it("起動し直しても、壊れていない値を読むまでは警告を繰り返さない", async () => {
     // 前提: Service Worker が起き直した想定で、都度 createReader を作り直しながら同じ壊れた値を読み、間に正しい値を挟んで別の壊れた値を読む
