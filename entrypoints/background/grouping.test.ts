@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 
-import { createSettleGate } from "../../utils/grouping/debounce";
+import { debounceChanges } from "../../utils/grouping/debounce";
 import { createSerialQueue } from "../../utils/grouping/serial";
 import type { Rule } from "../../utils/rules/types";
 import { stub, useFakeTimersInTest } from "../../utils/testing/mocks";
@@ -61,7 +61,7 @@ async function setStoredRules(rules: readonly Rule[]): Promise<void> {
 function createHarness() {
   const enqueue = createSerialQueue();
   return {
-    onRulesChanged: onRulesChanged(enqueue, createSettleGate(300)),
+    onRulesChanged: onRulesChanged(enqueue, debounceChanges<readonly Rule[]>(300)),
     onTabEvent: async (windowId: number, tabId: number) => enqueue(regroupTab(windowId, tabId)),
     /** キューに積まれた処理がすべて終わるまで待つ */
     flush: async () =>
