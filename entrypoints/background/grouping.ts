@@ -3,6 +3,7 @@ import { browser } from "wxt/browser";
 import { debounceChanges } from "../../utils/grouping/debounce";
 import type { RulesState } from "../../utils/grouping/regroup";
 import { applyRuleChange, regroupTabs } from "../../utils/grouping/regroup";
+import { currentTitles } from "../../utils/grouping/rule-change";
 import type { createSerialQueue } from "../../utils/grouping/serial";
 import { logListenerErrors } from "../../utils/logging/listener";
 import { getAppLogger } from "../../utils/logging/setup";
@@ -51,9 +52,16 @@ async function regroupAll(): Promise<void> {
  * @param windowId - 対象のタブが属するウィンドウの ID
  * @param tabId - 判定し直す対象のタブの ID
  * @returns enqueue に積む処理
+ * @remarks 判定に使ったルールの今の有効なタイトルを titlesStore にも記録する。これをしないと、このタブイベントが
+ * ルールの変更の反映より先にグループを作った場合、そのグループの存在が diffRules の記録から漏れ、
+ * 後から確定する名前・色の変更がそのグループへ届かなくなる（Issue #36）
  */
 export function regroupTab(windowId: number, tabId: number): () => Promise<void> {
-  return async () => regroupTabs(browserTabs, await readRulesState(), { windowId, tabIds: [tabId] });
+  return async () => {
+    const state = await readRulesState();
+    await regroupTabs(browserTabs, state, { windowId, tabIds: [tabId] });
+    await titlesStore.write(currentTitles(state.rules, state.titles));
+  };
 }
 
 /**
