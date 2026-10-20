@@ -23,7 +23,7 @@
     "valibot": "1.5.0"
   },
   "devDependencies": {
-    "@fission-ai/openspec": "1.13.2",
+    "@fission-ai/openspec": "1.14.3",
     "@playwright/mcp": "0.0.82",
     "@playwright/test": "1.63.0",
     "@types/node": "24.13.6",
