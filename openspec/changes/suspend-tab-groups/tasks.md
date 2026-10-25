@@ -19,8 +19,8 @@
 
 ## 4. options の確認表示設定（components/suspend-settings/）
 
-- [ ] 4.1 `components/suspend-settings/` に、`log-settings` と同じ構成で「サスペンド前に確認する」チェックボックスのコンポーネントを実装し、Vitest で初期状態がON、トグルで設定が保存されることを確認する
-- [ ] 4.2 `entrypoints/options/app.tsx` に `SuspendSettings`（仮）を組み込み、`pnpm dev` で起動した拡張機能の options 画面でチェックボックスの表示・切り替えが機能することを目視で確認する
+- [x] 4.1 `components/suspend-settings/` に、`log-settings` と同じ構成で「サスペンド前に確認する」チェックボックスのコンポーネントを実装し、Vitest で初期状態がON、トグルで設定が保存されることを確認する
+- [x] 4.2 `entrypoints/options/app.tsx` に `SuspendSettings`（仮）を組み込み、`pnpm dev` で起動した拡張機能の options 画面でチェックボックスの表示・切り替えが機能することを目視で確認する
 
 ## 5. 仕上げ
 

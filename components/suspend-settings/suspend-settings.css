@@ -1,0 +1,19 @@
+.suspend-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.suspend-settings__title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.suspend-settings__checkbox {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
