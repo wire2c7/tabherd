@@ -66,18 +66,18 @@ function buildWindow(pinnedUrls: readonly string[], blocks: readonly BlockSpec[]
   const tabs: TabSnapshot[] = [];
   const groups: GroupSnapshot[] = [];
   for (const url of pinnedUrls) {
-    pushTab(tabs, { url, pinned: true, groupId: TAB_GROUP_ID_NONE });
+    pushTab(tabs, { url, title: "", pinned: true, groupId: TAB_GROUP_ID_NONE });
   }
   for (const [index, block] of blocks.entries()) {
     if (block.kind === "tab") {
-      pushTab(tabs, { url: block.url, pinned: false, groupId: TAB_GROUP_ID_NONE });
+      pushTab(tabs, { url: block.url, title: "", pinned: false, groupId: TAB_GROUP_ID_NONE });
     } else {
       const groupId = 100 + index;
       if (block.inSnapshot) {
         groups.push({ id: groupId, title: block.title, color: block.color });
       }
       for (const url of block.urls) {
-        pushTab(tabs, { url, pinned: false, groupId });
+        pushTab(tabs, { url, title: "", pinned: false, groupId });
       }
     }
   }

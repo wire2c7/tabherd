@@ -6,12 +6,14 @@ import { debounceChanges } from "../../utils/grouping/debounce";
 import { createSerialQueue } from "../../utils/grouping/serial";
 import type { Rule } from "../../utils/rules/types";
 import { stub, useFakeTimersInTest } from "../../utils/testing/mocks";
-import { onRulesChanged, regroupTab } from "./grouping";
+import { onRulesChanged, onTabRemoved, onTitleChanged, regroupTab } from "./grouping";
 
 const DEV: Rule = { id: "dev", name: "開発", color: "blue", conditions: [{ type: "contains", value: "/dev/" }] };
 
 /** テストで使う項目だけを指定した browser.tabs.Tab を作る */
-function fakeTab(tab: Pick<Browser.tabs.Tab, "id" | "windowId" | "url" | "groupId">): Browser.tabs.Tab {
+function fakeTab(
+  tab: Pick<Browser.tabs.Tab, "id" | "windowId" | "url" | "groupId"> & Partial<Pick<Browser.tabs.Tab, "title">>,
+): Browser.tabs.Tab {
   return {
     index: 0,
     pinned: false,
@@ -56,13 +58,16 @@ async function setStoredRules(rules: readonly Rule[]): Promise<void> {
 
 /**
  * grouping.ts の regroupOnEvents が作る処理（反映は onRulesChanged が積み、タブイベントは
- * regroupTab がそのまま積む）を、本番と同じ onRulesChanged・regroupTab で組み立てる
+ * regroupTab がそのまま積む）を、本番と同じ onRulesChanged・regroupTab・onTitleChanged・onTabRemoved で組み立てる
  */
 function createHarness() {
   const enqueue = createSerialQueue();
+  const titleChangeDebounce = new Map<number, ReturnType<typeof debounceChanges<string>>>();
   return {
     onRulesChanged: onRulesChanged(enqueue, debounceChanges<readonly Rule[]>(300)),
     onTabEvent: async (windowId: number, tabId: number) => enqueue(regroupTab(windowId, tabId)),
+    onTitleChanged: onTitleChanged(enqueue, titleChangeDebounce),
+    onTabRemoved: onTabRemoved(titleChangeDebounce),
     /** キューに積まれた処理がすべて終わるまで待つ */
     flush: async () =>
       enqueue(async () => {
@@ -196,5 +201,64 @@ describe("名前が衝突するルールの編集とタブイベントの重な�
     await tabTask;
 
     expect(group).toHaveBeenCalledWith({ createProperties: { windowId: 1 }, tabIds: [10] });
+  });
+});
+
+describe("タイトル変化のデバウンス", () => {
+  it("短い間隔で何度もタイトルが変わっても、デバウンスの確定後に1回だけ判定し直す", async () => {
+    // 前提: タイトルを対象にした条件を持つルールがあり、500ms のデバウンス中に3回タイトルが変わる
+    // 検証: 最後の変化から500ms経つまで判定し直しは起こらず、経つと1回だけ group が呼ばれる
+    useFakeTimersInTest();
+    fakeBrowser.reset();
+    const PR: Rule = {
+      id: "pr",
+      name: "レビュー",
+      color: "orange",
+      conditions: [{ target: "title", type: "contains", value: "Pull Request" }],
+    };
+    const url = "https://github.com/wire2c7/tabherd/pull/99";
+    const finalTitle = "Add title condition · Pull Request #99";
+    stub(
+      fakeBrowser.tabs,
+      "query",
+      vi
+        .fn<(queryInfo: Browser.tabs.QueryInfo) => Promise<Browser.tabs.Tab[]>>()
+        .mockResolvedValue([fakeTab({ id: 10, url, groupId: -1, windowId: 1, title: finalTitle })]),
+    );
+    stub(
+      fakeBrowser.tabGroups,
+      "query",
+      vi.fn<(queryInfo: Browser.tabGroups.QueryInfo) => Promise<Browser.tabGroups.TabGroup[]>>().mockResolvedValue([]),
+    );
+    const group = vi.fn<(options: Browser.tabs.GroupOptions) => Promise<number>>().mockResolvedValue(100);
+    stub(fakeBrowser.tabs, "group", group);
+    await setStoredRules([PR]);
+    const { onTitleChanged: onTitle, flush } = createHarness();
+    const tab = fakeTab({ id: 10, url, groupId: -1, windowId: 1 });
+
+    onTitle(10, { title: "Add title condition" }, tab);
+    await vi.advanceTimersByTimeAsync(200);
+    onTitle(10, { title: "Add title condition (2)" }, tab);
+    await vi.advanceTimersByTimeAsync(200);
+    onTitle(10, { title: finalTitle }, tab);
+    expect(group).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(500);
+    await flush();
+
+    expect(group).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("タイトル変化のデバウンスの後片付け（タブを閉じたとき）", () => {
+  it("タブを閉じると、そのタブの debounce インスタンスが Map から削除される", () => {
+    // 前提: タブ10のタイトル変化のデバウンスが進行中の状態で、タブ10が閉じられる
+    // 検証: 閉じた後、同じタブ ID はデバウンスの Map から見つからなくなる
+    const debounceByTab = new Map<number, ReturnType<typeof debounceChanges<string>>>([
+      [10, debounceChanges<string>(500)],
+    ]);
+
+    onTabRemoved(debounceByTab)(10);
+
+    expect(debounceByTab.has(10)).toBe(false);
   });
 });

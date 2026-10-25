@@ -21,7 +21,13 @@ export async function takeWindowSnapshots(api: TabsApi, windowId?: number): Prom
         window = { id: tab.windowId, tabs: [], groups: [] };
         windows.set(tab.windowId, window);
       }
-      window.tabs.push({ id: tab.id, url: tab.url ?? "", pinned: tab.pinned, groupId: tab.groupId });
+      window.tabs.push({
+        id: tab.id,
+        url: tab.url ?? "",
+        title: tab.title ?? "",
+        pinned: tab.pinned,
+        groupId: tab.groupId,
+      });
     }
   }
   for (const group of groups) {

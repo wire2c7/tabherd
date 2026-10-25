@@ -178,9 +178,9 @@ describe("無効なルールの削除・名前の重複", () => {
 const window: WindowSnapshot = {
   id: 1,
   tabs: [
-    { id: 10, url: "https://github.com/", pinned: false, groupId: 100 },
-    { id: 11, url: "https://example.com/", pinned: false, groupId: 200 },
-    { id: 12, url: "https://example.org/", pinned: false, groupId: TAB_GROUP_ID_NONE },
+    { id: 10, url: "https://github.com/", title: "", pinned: false, groupId: 100 },
+    { id: 11, url: "https://example.com/", title: "", pinned: false, groupId: 200 },
+    { id: 12, url: "https://example.org/", title: "", pinned: false, groupId: TAB_GROUP_ID_NONE },
   ],
   groups: [
     { id: 100, title: "開発", color: "blue" },

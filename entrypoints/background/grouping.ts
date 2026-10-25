@@ -1,4 +1,5 @@
 import { browser } from "wxt/browser";
+import type { Browser } from "wxt/browser";
 
 import { debounceChanges } from "../../utils/grouping/debounce";
 import type { RulesState } from "../../utils/grouping/regroup";
@@ -13,6 +14,12 @@ import { readRulesState, rulesReader, titlesStore } from "./rules";
 
 /** 設定画面は入力のたびに保存するため、入力途中の名前でグループを作り直し続けないよう待つ時間 */
 const RULE_CHANGE_DEBOUNCE_MS = 300;
+
+/** ページ読み込み中にタイトルが何度も変わり続けないよう待つ時間。ルール変更より連続して起こりやすいため、やや長くする */
+const TITLE_CHANGE_DEBOUNCE_MS = 500;
+
+/** タブ ID ごとのタイトル変化のデバウンス */
+type TitleDebounceByTab = Map<number, ReturnType<typeof debounceChanges<string>>>;
 
 const logger = getAppLogger("background");
 
@@ -97,6 +104,55 @@ export function onRulesChanged(
 }
 
 /**
+ * タブのタイトルの変化（storage ではなく browser.tabs.onUpdated）を受け、タブごとにデバウンスした上で
+ * 区間の最初の変更があった時点で判定し直しのタスクを積む。
+ *
+ * @param enqueue - 積んだ処理を直列に実行する関数
+ * @param debounceByTab - タブ ID ごとのデバウンス関数を持つ Map
+ * @returns browser.tabs.onUpdated へ渡すリスナー
+ * @remarks ページ読み込み中はタイトルが何度も変わるため、タブごとに debounceChanges でまとめる。
+ * enqueue するタイミングは区間の最初の変更があった時点のままにし、区間の確定を待つのはこの判定し直しのタスク自身にする
+ * （onRulesChanged と同じ考え方）
+ */
+export function onTitleChanged(
+  enqueue: ReturnType<typeof createSerialQueue>,
+  debounceByTab: TitleDebounceByTab,
+): (tabId: number, changeInfo: Browser.tabs.OnUpdatedInfo, tab: Browser.tabs.Tab) => void {
+  return (tabId, changeInfo, tab) => {
+    if (changeInfo.title === undefined) {
+      return;
+    }
+    let debounce = debounceByTab.get(tabId);
+    if (debounce === undefined) {
+      debounce = debounceChanges<string>(TITLE_CHANGE_DEBOUNCE_MS);
+      debounceByTab.set(tabId, debounce);
+    }
+    const settled = debounce(changeInfo.title, tab.title ?? "");
+    if (settled === undefined) {
+      return;
+    }
+    logger.debug("タブ {tabId} のタイトルが変わりました", { tabId, windowId: tab.windowId });
+    void enqueue(async () => {
+      await settled;
+      await regroupTab(tab.windowId, tabId)();
+    });
+  };
+}
+
+/**
+ * タブが閉じられたときに、そのタブのタイトル変化のデバウンスを片付ける。
+ *
+ * @param debounceByTab - タブ ID ごとのデバウンス関数を持つ Map
+ * @returns browser.tabs.onRemoved へ渡すリスナー
+ * @remarks 片付けないと、閉じたタブの分だけ Map が際限なく育ち続ける
+ */
+export function onTabRemoved(debounceByTab: TitleDebounceByTab): (tabId: number) => void {
+  return (tabId) => {
+    debounceByTab.delete(tabId);
+  };
+}
+
+/**
  * タブ・ルールの変更や起動のイベントを受け、グループを作り直す処理を enqueue に積む。
  *
  * @param enqueue - 積んだ処理を直列に実行する関数
@@ -104,6 +160,7 @@ export function onRulesChanged(
  */
 export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): void {
   const ruleChangeDebounce = debounceChanges<RulesState["rules"]>(RULE_CHANGE_DEBOUNCE_MS);
+  const titleChangeDebounce: TitleDebounceByTab = new Map();
 
   browser.runtime.onInstalled.addListener(
     logListenerErrors(logger, (details) => {
@@ -134,6 +191,8 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
       void enqueue(regroupTab(attachInfo.newWindowId, tabId));
     }),
   );
+  browser.tabs.onUpdated.addListener(logListenerErrors(logger, onTitleChanged(enqueue, titleChangeDebounce)));
+  browser.tabs.onRemoved.addListener(logListenerErrors(logger, onTabRemoved(titleChangeDebounce)));
 
   // onRulesChanged 自体は同期の処理のため、ここで包んで例外を記録する。
   // enqueue したタスク（反映処理）の例外は createSerialQueue 自身が記録する

@@ -34,7 +34,7 @@ function isTouchable(input: GroupingInput, tab: TabSnapshot): boolean {
 
 /** 操作してよいタブが入っているべきグループのタイトル。一致するルールが無ければグループに入っていない */
 function expectedTitleOf(input: GroupingInput, tab: TabSnapshot): string | null {
-  return findMatchingRule(tab.url, input.rules)?.name ?? UNGROUPED;
+  return findMatchingRule({ url: tab.url, title: tab.title }, input.rules)?.name ?? UNGROUPED;
 }
 
 /** 計画を適用した後の、所属が期待と違うタブを返す */
@@ -82,8 +82,8 @@ const EMPTIED_GROUP_EXAMPLE: GroupingInput = {
   window: {
     id: 1,
     tabs: [
-      { id: 1, url: "https://github.com/a", pinned: false, groupId: 100 },
-      { id: 2, url: "https://EXAMPLE.org/b", pinned: false, groupId: TAB_GROUP_ID_NONE },
+      { id: 1, url: "https://github.com/a", title: "", pinned: false, groupId: 100 },
+      { id: 2, url: "https://EXAMPLE.org/b", title: "", pinned: false, groupId: TAB_GROUP_ID_NONE },
     ],
     groups: [{ id: 100, title: "資料", color: "cyan" }],
   },
@@ -96,9 +96,9 @@ const EMPTIED_BY_MOVE_EXAMPLE: GroupingInput = {
   window: {
     id: 1,
     tabs: [
-      { id: 1, url: "https://github.com/a", pinned: false, groupId: 100 },
-      { id: 2, url: "https://EXAMPLE.org/b", pinned: false, groupId: TAB_GROUP_ID_NONE },
-      { id: 3, url: "https://github.com/b", pinned: false, groupId: 101 },
+      { id: 1, url: "https://github.com/a", title: "", pinned: false, groupId: 100 },
+      { id: 2, url: "https://EXAMPLE.org/b", title: "", pinned: false, groupId: TAB_GROUP_ID_NONE },
+      { id: 3, url: "https://github.com/b", title: "", pinned: false, groupId: 101 },
     ],
     groups: [
       { id: 100, title: "資料", color: "cyan" },

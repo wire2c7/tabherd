@@ -1,13 +1,27 @@
 import type { JSX } from "preact";
 
 import { isValidRegex } from "../../utils/rules/match";
-import type { Condition, ConditionType } from "../../utils/rules/types";
+import type { Condition, ConditionTarget, ConditionType } from "../../utils/rules/types";
+import { conditionTarget } from "../../utils/rules/types";
 
 const CONDITION_TYPES: readonly ConditionType[] = ["contains", "regex"];
 
 const CONDITION_TYPE_LABELS: Record<ConditionType, string> = {
   contains: "部分一致",
   regex: "正規表現",
+};
+
+const CONDITION_TARGETS: readonly ConditionTarget[] = ["url", "title"];
+
+const CONDITION_TARGET_LABELS: Record<ConditionTarget, string> = {
+  url: "URL",
+  title: "タイトル",
+};
+
+/** 対象・種類に応じた、値の入力欄のプレースホルダー */
+const PLACEHOLDERS: Record<ConditionTarget, Record<ConditionType, string>> = {
+  url: { contains: "github.com", regex: String.raw`^https://github\.com/` },
+  title: { contains: "Pull Request", regex: String.raw`^\[.+\] ` },
 };
 
 interface Props {
@@ -19,8 +33,31 @@ interface Props {
   onRemove: (index: number) => void;
 }
 
+type TargetSelectProps = Pick<Props, "condition" | "index" | "onChange"> & { number: number };
+
+/** 条件の対象（URL・タイトル）の選択欄 */
+function TargetSelect({ condition, index, number, onChange }: TargetSelectProps): JSX.Element {
+  const target = conditionTarget(condition);
+  return (
+    <select
+      aria-label={`条件 ${number} の対象`}
+      value={target}
+      onChange={(event) => {
+        const { value } = event.currentTarget;
+        onChange(index, { ...condition, target: CONDITION_TARGETS.find((t) => t === value) ?? target });
+      }}
+    >
+      {CONDITION_TARGETS.map((conditionTargetOption) => (
+        <option key={conditionTargetOption} value={conditionTargetOption}>
+          {CONDITION_TARGET_LABELS[conditionTargetOption]}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 /**
- * 1件の条件（種類・値）の編集欄。
+ * 1件の条件（対象・種類・値）の編集欄。
  *
  * @param props - 編集する条件・一覧での位置・入力欄の id の接頭辞と、変更・削除のハンドラ
  * @returns 条件の編集欄
@@ -30,10 +67,12 @@ export function ConditionEditor({ condition, index, idPrefix, onChange, onRemove
   const invalidRegex = condition.type === "regex" && condition.value !== "" && !isValidRegex(condition.value);
   const errorId = `${idPrefix}-error`;
   const number = index + 1;
+  const target = conditionTarget(condition);
 
   return (
     <li class="condition">
       <div class="condition__row">
+        <TargetSelect condition={condition} index={index} number={number} onChange={onChange} />
         <select
           aria-label={`条件 ${number} の種類`}
           value={condition.type}
@@ -55,7 +94,7 @@ export function ConditionEditor({ condition, index, idPrefix, onChange, onRemove
           aria-label={`条件 ${number} の値`}
           aria-invalid={invalidRegex}
           aria-describedby={invalidRegex ? errorId : undefined}
-          placeholder={condition.type === "regex" ? String.raw`^https://github\.com/` : "github.com"}
+          placeholder={PLACEHOLDERS[target][condition.type]}
           spellcheck={false}
           autocomplete="off"
           value={condition.value}
