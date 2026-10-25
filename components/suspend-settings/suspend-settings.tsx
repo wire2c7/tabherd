@@ -2,6 +2,7 @@ import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 import type { SuspendConfirmStore } from "../../utils/suspend/settings";
+import { watchAndLoad } from "../watch-and-load";
 
 import "./suspend-settings.css";
 
@@ -13,49 +14,42 @@ export interface SuspendSettingsProps {
 /** 設定の読み込みの状態。components/log-settings/count.ts の StoredLogCount と同じ形 */
 type ConfirmLoad = { status: "loading" } | { status: "loaded"; enabled: boolean } | { status: "failed" };
 
-/** 設定を保存する。失敗してもチェックボックスの表示は変えず、コンソールに記録するだけにする */
-async function writeSuspendConfirm(store: SuspendConfirmStore, value: boolean): Promise<void> {
-  try {
-    await store.write(value);
-  } catch (error) {
-    console.error("「サスペンド前に確認する」設定を保存できませんでした", error);
-  }
-}
-
 /** store の設定を読み込み、変更を購読し、切り替える関数を返す */
 function useSuspendConfirm(store: SuspendConfirmStore): { load: ConfirmLoad; toggle: () => void } {
   const [load, setLoad] = useState<ConfirmLoad>({ status: "loading" });
 
-  useEffect(() => {
-    // 読み込みより先に watch で受け取っていれば、そちらが新しい
-    let received = false;
-    const unwatch = store.watch((value) => {
-      received = true;
-      setLoad({ status: "loaded", enabled: value });
-    });
-    void (async () => {
-      try {
-        const value = await store.read();
-        if (!received) {
+  useEffect(
+    () =>
+      watchAndLoad<boolean>({
+        watch: store.watch,
+        read: store.read,
+        onChange: (value) => {
           setLoad({ status: "loaded", enabled: value });
-        }
-      } catch (error) {
-        console.error("「サスペンド前に確認する」設定を読み込めませんでした", error);
-        if (!received) {
+        },
+        onLoadFailed: (error) => {
+          console.error("「サスペンド前に確認する」設定を読み込めませんでした", error);
           setLoad({ status: "failed" });
-        }
-      }
-    })();
-    return unwatch;
-  }, [store]);
+        },
+      }),
+    [store],
+  );
 
   function toggle(): void {
     if (load.status !== "loaded") {
       return;
     }
-    const next = !load.enabled;
+    const previous = load.enabled;
+    const next = !previous;
     setLoad({ status: "loaded", enabled: next });
-    void writeSuspendConfirm(store, next);
+    void (async () => {
+      try {
+        await store.write(next);
+      } catch (error) {
+        console.error("「サスペンド前に確認する」設定を保存できませんでした", error);
+        // 保存できなければストレージには前の値が残っているため、表示も戻す
+        setLoad({ status: "loaded", enabled: previous });
+      }
+    })();
   }
 
   return { load, toggle };
