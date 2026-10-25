@@ -2,9 +2,9 @@
 
 ## 1. サスペンド対象の絞り込みロジック（utils/suspend/）
 
-- [ ] 1.1 `utils/suspend/tabs.ts` に `SuspendTabsApi`（`queryWindowGroups`・`discardTabs` 等、design.md の決定に沿った最小のインターフェース）と、対象タブ・グループを表す型を定義し、`pnpm typecheck` が通ることで確認する
-- [ ] 1.2 `utils/suspend/plan.ts`（仮）に、グループとそのタブ一覧からサスペンド対象（アクティブタブ・ピン留めタブを除外）を絞り込む純粋関数を実装し、Vitest の単体テストで次を確認する: アクティブタブが除外される、ピン留めタブが除外される、対象0件のとき空配列を返す
-- [ ] 1.3 `utils/suspend/settings.ts` に、確認表示設定の `StorageItemDefinition<boolean>`（キーは既存の命名規則に合わせる、fallback は `true`）と、valibot の `boolean()` スキーマで検証する読み書き関数を実装し、Vitest で「保存値が真偽値でなければ `true` を返す」ことを確認する
+- [x] 1.1 `utils/suspend/tabs.ts` に `SuspendTabsApi`（`queryWindowGroups`・`discardTabs` 等、design.md の決定に沿った最小のインターフェース）と、対象タブ・グループを表す型を定義し、`pnpm typecheck` が通ることで確認する
+- [x] 1.2 `utils/suspend/plan.ts`（仮）に、グループとそのタブ一覧からサスペンド対象（アクティブタブ・ピン留めタブを除外）を絞り込む純粋関数を実装し、Vitest の単体テストで次を確認する: アクティブタブが除外される、ピン留めタブが除外される、対象0件のとき空配列を返す
+- [x] 1.3 `utils/suspend/settings.ts` に、確認表示設定の `StorageItemDefinition<boolean>`（キーは既存の命名規則に合わせる、fallback は `true`）と、valibot の `boolean()` スキーマで検証する読み書き関数を実装し、Vitest で「保存値が真偽値でなければ `true` を返す」ことを確認する
 
 ## 2. ブラウザAPIの実装（entrypoints/platform/）
 
