@@ -16,3 +16,6 @@ engineStrict: true
 
 # pnpm add で package.json にバージョンを範囲（^）ではなく完全一致で書き込む。更新は Renovate の PR で行う
 savePrefix: ""
+minimumReleaseAgeExclude:
+  # Renovate security update: vite@8.3.3
+  - vite@8.3.3
