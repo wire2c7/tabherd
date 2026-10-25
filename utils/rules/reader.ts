@@ -24,25 +24,33 @@ interface WarnedState {
   loading: Promise<unknown> | undefined;
 }
 
+/** damageWarned.getValue() を読む。失敗したらログに残すだけで undefined を返す */
+async function loadWarnedState(damageWarned: StorageItem<boolean>, logger: Logger): Promise<unknown> {
+  try {
+    return await damageWarned.getValue();
+  } catch (error) {
+    logger.error("壊れたルールの警告の状態を読めませんでした", { error });
+    return undefined;
+  }
+}
+
 /**
  * state.hasWarned が未確認（undefined）なら、damageWarned.getValue() で読んで埋める。
  *
  * @remarks 読めなくても警告自体は続けられるよう、失敗はログに残すだけで未確認のまま進む。
- * loading を外すことで、ストレージが直った後の次の呼び出しがもう一度読み直す
+ * loading を外すことで、ストレージが直った後の次の呼び出しがもう一度読み直す。
+ * loadWarnedState が自分でログを残すため、state.loading を共有する同時呼び出しでログが多重にならない
  */
 async function syncWarnedState(damageWarned: StorageItem<boolean>, logger: Logger, state: WarnedState): Promise<void> {
   if (state.hasWarned !== undefined) {
     return;
   }
-  state.loading ??= damageWarned.getValue();
-  try {
-    const stored = await state.loading;
+  state.loading ??= loadWarnedState(damageWarned, logger);
+  const stored = await state.loading;
+  state.loading = undefined;
+  if (stored !== undefined) {
     // 読み込みを待つあいだに、先に待ち終えた呼び出しが書き換えていれば、そちらが新しい
     state.hasWarned ??= stored === true;
-  } catch (error) {
-    logger.error("壊れたルールの警告の状態を読めませんでした", { error });
-  } finally {
-    state.loading = undefined;
   }
 }
 
@@ -70,19 +78,24 @@ export function createRulesReader(rules: RulesStore, damageWarned: StorageItem<b
   async function warnIfDamaged({ damage }: ParsedRules): Promise<void> {
     await syncWarnedState(damageWarned, logger, state);
     // 判定と書き換えは await を挟まずに行い、同時に読んだ呼び出しが二重に警告しないようにする
-    const warnedBefore = state.hasWarned ?? false;
     if (damage === null) {
+      // 読み込みに失敗して確認できない（undefined のまま）場合、警告済みのまま持ち越している可能性があるため、
+      // 持ち越していない前提（false）には倒さず、念のため警告済みの状態を消す
+      const warnedBefore = state.hasWarned ?? true;
       if (warnedBefore) {
         state.hasWarned = false;
         await trySaveWarnedState(damageWarned, logger, false);
       }
-    } else if (!warnedBefore) {
-      state.hasWarned = true;
-      logger.warn(
-        "保存されたルールが壊れていたため、読める部分だけを使います（配列でない: {notArray}、除いたルール {droppedRules} 件、直したルール {repairedRules} 件）",
-        { ...damage },
-      );
-      await trySaveWarnedState(damageWarned, logger, true);
+    } else {
+      const warnedBefore = state.hasWarned ?? false;
+      if (!warnedBefore) {
+        state.hasWarned = true;
+        logger.warn(
+          "保存されたルールが壊れていたため、読める部分だけを使います（配列でない: {notArray}、除いたルール {droppedRules} 件、直したルール {repairedRules} 件）",
+          { ...damage },
+        );
+        await trySaveWarnedState(damageWarned, logger, true);
+      }
     }
   }
 
