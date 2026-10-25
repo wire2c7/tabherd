@@ -8,8 +8,8 @@
 
 ## 2. ブラウザAPIの実装（entrypoints/platform/）
 
-- [ ] 2.1 `entrypoints/platform/tabs.ts`（または新規ファイル）に `SuspendTabsApi` の実装を追加する。`queryWindowGroups` は `browser.windows.getCurrent()` で得たウィンドウIDの `tabGroups.query`・`tabs.query` を呼び、`discardTabs` は `browser.tabs.discard` を呼ぶ。WXT の `fakeBrowser` を使った Vitest で、対象ウィンドウのタブ・グループだけを返すことを確認する
-- [ ] 2.2 `entrypoints/platform/storage.ts` の `defineStorageItem` を使って確認表示設定の `StorageItem<boolean>` を組み立てられることを、既存の `defineStorageItem` のテストと同様の Vitest で確認する
+- [x] 2.1 `entrypoints/platform/tabs.ts`（または新規ファイル）に `SuspendTabsApi` の実装を追加する。`queryWindowGroups` は `browser.windows.getCurrent()` で得たウィンドウIDの `tabGroups.query`・`tabs.query` を呼び、`discardTabs` は `browser.tabs.discard` を呼ぶ。WXT の `fakeBrowser` を使った Vitest で、対象ウィンドウのタブ・グループだけを返すことを確認する
+- [x] 2.2 `entrypoints/platform/storage.ts` の `defineStorageItem` を使って確認表示設定の `StorageItem<boolean>` を組み立てられることを、既存の `defineStorageItem` のテストと同様の Vitest で確認する
 
 ## 3. popup のグループ一覧・サスペンド操作（components/suspend-groups/）
 
