@@ -1,4 +1,7 @@
-/* Chrome のポップアップは最大で幅 800px・高さ 600px。幅を固定し、ルールの一覧だけを縦にスクロールさせる */
+/*
+ * Chrome のポップアップは最大で幅 800px・高さ 600px。幅を固定し、タブグループの一覧・ルールの一覧をそれぞれ縦にスクロールさせる。
+ * どちらも min-height: 0 にして、どちらかの内容が多くても、もう一方の表示領域を奪わず両方が縮んでスクロールするようにする
+ */
 .page {
   box-sizing: border-box;
   display: flex;
@@ -11,6 +14,15 @@
 .page__title {
   margin: 0 0 6px;
   font-size: 15px;
+}
+
+.page .suspend-groups {
+  min-height: 0;
+}
+
+.page .suspend-groups__list {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .page .rule-settings {
