@@ -11,43 +11,57 @@ import { NO_TITLES } from "../../utils/rules/types";
 /** ルールの一覧を変更する関数。今の一覧を受け取り、新しい一覧を返す */
 export type RulesUpdater = (rules: readonly Rule[]) => Rule[];
 
+/** 保存されたルールの一覧の読み込みの状態。components/log-settings/count.ts の StoredLogCount と同じ形 */
+export type RulesLoad =
+  | { status: "loading" }
+  | { status: "loaded"; rules: readonly Rule[] }
+  /** 読み込みに失敗した。retry() でもう一度読み込める */
+  | { status: "failed" };
+
 /** useRules の戻り値 */
 export interface RulesState {
-  /** 保存されたルールの一覧。壊れた箇所は直してある。読み込みが終わるまでは null */
-  rules: readonly Rule[] | null;
+  /** 保存されたルールの一覧の読み込みの状態。壊れた箇所は直してある */
+  load: RulesLoad;
   /** 表示している一覧が、壊れた保存値を直したものか。変更して保存し終えると false になる */
   isDamaged: boolean;
-  /** 一覧を変更して即座に保存する */
+  /** 一覧を変更して即座に保存する。load.status が "loaded" でなければ何もしない */
   update: (updater: RulesUpdater) => void;
+  /** 読み込みをもう一度試す */
+  retry: () => void;
 }
 
 /**
  * store に保存されたルールの一覧と、それを変更して即座に保存する関数を返す。
  *
  * @param store - 保存先の RulesStore
- * @returns 保存されたルールの一覧と、変更して保存する関数
+ * @returns 保存されたルールの一覧の読み込みの状態、変更して保存する関数、読み込みをもう一度試す関数
  * @remarks 壊れた保存値は直して表示するが、書き戻すのは利用者が変更したときだけにする。ほかの画面（ポップアップとオプションページ）での変更は、ストレージの watch で受け取る。store は描画のあいだ替わらない前提（替えたいときは呼び出し側がコンポーネントに key を付けて作り直す）
  */
 export function useRules(store: RulesStore): RulesState {
-  const [rules, setRules] = useState<readonly Rule[] | null>(null);
+  const [load, setLoad] = useState<RulesLoad>({ status: "loading" });
   const [isDamaged, setIsDamaged] = useState(false);
   // 連続した入力で、前の変更の再描画・保存を待たずに次の変更を組み立てるため、最新の一覧を state とは別に持つ
   const latestRef = useRef<readonly Rule[] | null>(null);
   // 保存中の書き込みの数
   const pendingWritesRef = useRef(0);
+  // retry から呼び直すため、購読が作った読み込み関数を持っておく。エフェクトの実行前は null（retry は呼ばれない）
+  const loadRef = useRef<(() => Promise<void>) | null>(null);
 
-  useEffect(
-    () =>
-      subscribeRules(store, {
-        latest: latestRef,
-        pendingWrites: pendingWritesRef,
-        onChange: ({ rules: value, damage }) => {
-          setRules(value);
-          setIsDamaged(damage !== null);
-        },
-      }),
-    [store],
-  );
+  useEffect(() => {
+    const subscription = subscribeRules(store, {
+      latest: latestRef,
+      pendingWrites: pendingWritesRef,
+      onChange: ({ rules: value, damage }) => {
+        setLoad({ status: "loaded", rules: value });
+        setIsDamaged(damage !== null);
+      },
+      onLoadFailed: () => {
+        setLoad({ status: "failed" });
+      },
+    });
+    loadRef.current = subscription.load;
+    return subscription.unsubscribe;
+  }, [store]);
 
   const update = useCallback(
     (updater: RulesUpdater) => {
@@ -56,27 +70,56 @@ export function useRules(store: RulesStore): RulesState {
       }
       const next = updater(latestRef.current);
       latestRef.current = next;
-      setRules(next);
+      setLoad({ status: "loaded", rules: next });
       // 保存できなければ、ストレージには壊れた値が残っているため、警告を消さない
       void saveRules(store, next, { pendingWrites: pendingWritesRef, onSaved: () => setIsDamaged(false) });
     },
     [store],
   );
 
-  return { rules, isDamaged, update };
+  const retry = useCallback(() => {
+    // 読み込み済みのときに呼ぶと load() が値を上書きせず "loading" のまま戻れなくなるため、失敗時だけ呼べるようにする
+    if (latestRef.current === null) {
+      setLoad({ status: "loading" });
+      void loadRef.current?.();
+    }
+  }, []);
+
+  return { load, isDamaged, update, retry };
 }
 
-interface RulesSubscription {
+/** subscribeRules が一覧の読み込み・変更を伝える先 */
+export interface RulesSubscription {
   /** 最新の一覧。読み込み・変更の通知で書き換える */
   latest: MutableRef<readonly Rule[] | null>;
   /** 保存中の書き込みの数。0 でないあいだの通知は無視する */
   pendingWrites: MutableRef<number>;
   /** 読み込んだ・変わった一覧を受け取る */
   onChange: (parsed: ParsedRules) => void;
+  /** 読み込みが失敗したことを受け取る。latest がまだ無いときだけ呼ぶ */
+  onLoadFailed: () => void;
 }
 
-/** store の一覧を読み込み、変更を購読する。購読をやめる関数を返す */
-function subscribeRules(store: RulesStore, { latest, pendingWrites, onChange }: RulesSubscription): () => void {
+/** store の一覧の読み込みと、購読をやめる関数 */
+export interface RulesSubscribed {
+  /** store を読み込み直す。retry から呼ぶ */
+  load: () => Promise<void>;
+  unsubscribe: () => void;
+}
+
+/**
+ * store の一覧を読み込み、変更を購読する。
+ *
+ * @param store - 読み込み・購読元の RulesStore
+ * @param subscription - 読み込み・変更・失敗を伝える先
+ * @returns store の一覧の読み込みと、購読をやめる関数
+ * @remarks unsubscribe の後に load() の読み込みが終わっても、subscription には渡さない
+ */
+export function subscribeRules(
+  store: RulesStore,
+  { latest, pendingWrites, onChange, onLoadFailed }: RulesSubscription,
+): RulesSubscribed {
+  let unsubscribed = false;
   function apply(parsed: ParsedRules): void {
     latest.current = parsed.rules;
     onChange(parsed);
@@ -85,22 +128,31 @@ function subscribeRules(store: RulesStore, { latest, pendingWrites, onChange }: 
     try {
       const value = await store.read();
       // 読み込みより先に watch で受け取っていれば、そちらが新しい
-      if (latest.current === null) {
+      if (!unsubscribed && latest.current === null) {
         apply(value);
       }
     } catch (error) {
       console.error("ルールの一覧を読み込めませんでした", error);
+      if (!unsubscribed && latest.current === null) {
+        onLoadFailed();
+      }
     }
   }
   const unwatch = store.watch((value) => {
     // 自分の書き込みを待っているあいだは、手元の一覧の方が新しい。
     // 保存前の値の通知で表示を戻すと、入力中の文字が消えるため無視する
-    if (pendingWrites.current === 0) {
+    if (!unsubscribed && pendingWrites.current === 0) {
       apply(value);
     }
   });
   void load();
-  return unwatch;
+  return {
+    load,
+    unsubscribe: () => {
+      unsubscribed = true;
+      unwatch();
+    },
+  };
 }
 
 interface SaveOptions {
