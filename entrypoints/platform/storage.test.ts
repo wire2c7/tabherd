@@ -4,6 +4,7 @@ import { fakeBrowser } from "wxt/testing/fake-browser";
 import { LOGS_ITEM } from "../../utils/logging/storage";
 import { DAMAGE_WARNED_ITEM } from "../../utils/rules/reader";
 import { RULES_ITEM } from "../../utils/rules/storage";
+import { SUSPEND_CONFIRM_ITEM } from "../../utils/suspend/settings";
 import { defineStorageItem } from "./storage";
 
 describe("定義から作った StorageItem", () => {
@@ -44,5 +45,13 @@ describe("保存する値の定義", () => {
     await defineStorageItem(DAMAGE_WARNED_ITEM).setValue(true);
     await expect(fakeBrowser.storage.local.get(null)).resolves.toStrictEqual({ rules: [], logs: [] });
     await expect(fakeBrowser.storage.session.get(null)).resolves.toStrictEqual({ rulesDamageWarned: true });
+  });
+
+  it("「サスペンド前に確認する」設定を SUSPEND_CONFIRM_ITEM の定義どおりに保存する", async () => {
+    // 前提: SUSPEND_CONFIRM_ITEM の定義から作った StorageItem<boolean> に false を保存する
+    // 検証: chrome.storage.local の "suspendConfirm" キーに保存される
+    fakeBrowser.reset();
+    await defineStorageItem(SUSPEND_CONFIRM_ITEM).setValue(false);
+    await expect(fakeBrowser.storage.local.get("suspendConfirm")).resolves.toStrictEqual({ suspendConfirm: false });
   });
 });

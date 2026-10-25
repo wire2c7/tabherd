@@ -3,14 +3,17 @@ import { browser } from "wxt/browser";
 
 import { LogSettings } from "../../components/log-settings/log-settings";
 import { RuleSettings } from "../../components/rule-settings/rule-settings";
+import { SuspendSettings } from "../../components/suspend-settings/suspend-settings";
 import type { LogsRequest } from "../../utils/logging/messages";
 import { LOGS_ITEM } from "../../utils/logging/storage";
 import { RULES_ITEM, RULE_TITLES_ITEM, createRuleTitlesStore, createRulesStore } from "../../utils/rules/storage";
+import { SUSPEND_CONFIRM_ITEM, createSuspendConfirmStore } from "../../utils/suspend/settings";
 import { defineStorageItem } from "../platform/storage";
 
 const rulesStore = createRulesStore(defineStorageItem(RULES_ITEM));
 const titlesStore = createRuleTitlesStore(defineStorageItem(RULE_TITLES_ITEM));
 const logsItem = defineStorageItem(LOGS_ITEM);
+const suspendConfirmStore = createSuspendConfirmStore(defineStorageItem(SUSPEND_CONFIRM_ITEM));
 const extensionVersion = browser.runtime.getManifest().version;
 
 async function sendLogsRequest(message: LogsRequest): Promise<unknown> {
@@ -20,13 +23,14 @@ async function sendLogsRequest(message: LogsRequest): Promise<unknown> {
 /**
  * オプションページの画面。
  *
- * @returns ルール・ログの設定を並べたページ
+ * @returns ルール・サスペンド・ログの設定を並べたページ
  */
 export function App(): JSX.Element {
   return (
     <main class="page">
       <h1 class="page__title">TabHerd の設定</h1>
       <RuleSettings store={rulesStore} titlesStore={titlesStore} />
+      <SuspendSettings store={suspendConfirmStore} />
       <LogSettings logs={logsItem} send={sendLogsRequest} extensionVersion={extensionVersion} />
     </main>
   );
