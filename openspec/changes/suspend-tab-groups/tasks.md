@@ -13,9 +13,9 @@
 
 ## 3. popup のグループ一覧・サスペンド操作（components/suspend-groups/）
 
-- [ ] 3.1 `components/suspend-groups/` に、グループ一覧（グループ名・色・タブ数）を表示するコンポーネントを実装し、`utils/suspend/plan.ts` の絞り込み結果を使ってサスペンド対象のタブ数を算出する。Vitest（Preact のテスト用ユーティリティ）で、手動作成グループを含むグループ一覧が表示されることを確認する
-- [ ] 3.2 サスペンドボタンの押下時に、確認表示設定が有効なら `window.confirm()` を呼び、中止されたら `discardTabs` を呼ばないことを実装し、Vitest で「設定が無効なら確認せずに実行される」「確認で中止すると `discardTabs` が呼ばれない」ことを確認する
-- [ ] 3.3 `entrypoints/popup/app.tsx` に `SuspendGroups`（仮）を組み込み、`pnpm dev` で起動した拡張機能の popup を開いて、タブグループの一覧とサスペンドボタンが表示されることを目視で確認する
+- [x] 3.1 `components/suspend-groups/` に、グループ一覧（グループ名・色・タブ数）を表示するコンポーネントを実装し、`utils/suspend/plan.ts` の絞り込み結果を使ってサスペンド対象のタブ数を算出する。Vitest（Preact のテスト用ユーティリティ）で、手動作成グループを含むグループ一覧が表示されることを確認する
+- [x] 3.2 サスペンドボタンの押下時に、確認表示設定が有効なら `window.confirm()` を呼び、中止されたら `discardTabs` を呼ばないことを実装し、Vitest で「設定が無効なら確認せずに実行される」「確認で中止すると `discardTabs` が呼ばれない」ことを確認する
+- [x] 3.3 `entrypoints/popup/app.tsx` に `SuspendGroups`（仮）を組み込み、`pnpm dev` で起動した拡張機能の popup を開いて、タブグループの一覧とサスペンドボタンが表示されることを目視で確認する
 
 ## 4. options の確認表示設定（components/suspend-settings/）
 
