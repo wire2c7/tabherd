@@ -78,13 +78,17 @@ export function useRules(store: RulesStore): RulesState {
   );
 
   const retry = useCallback(() => {
-    setLoad({ status: "loading" });
-    void loadRef.current?.();
+    // 読み込み済みのときに呼ぶと load() が値を上書きせず "loading" のまま戻れなくなるため、失敗時だけ呼べるようにする
+    if (latestRef.current === null) {
+      setLoad({ status: "loading" });
+      void loadRef.current?.();
+    }
   }, []);
 
   return { load, isDamaged, update, retry };
 }
 
+/** subscribeRules が一覧の読み込み・変更を伝える先 */
 export interface RulesSubscription {
   /** 最新の一覧。読み込み・変更の通知で書き換える */
   latest: MutableRef<readonly Rule[] | null>;
@@ -103,11 +107,19 @@ export interface RulesSubscribed {
   unsubscribe: () => void;
 }
 
-/** store の一覧を読み込み、変更を購読する */
+/**
+ * store の一覧を読み込み、変更を購読する。
+ *
+ * @param store - 読み込み・購読元の RulesStore
+ * @param subscription - 読み込み・変更・失敗を伝える先
+ * @returns store の一覧の読み込みと、購読をやめる関数
+ * @remarks unsubscribe の後に load() の読み込みが終わっても、subscription には渡さない
+ */
 export function subscribeRules(
   store: RulesStore,
   { latest, pendingWrites, onChange, onLoadFailed }: RulesSubscription,
 ): RulesSubscribed {
+  let unsubscribed = false;
   function apply(parsed: ParsedRules): void {
     latest.current = parsed.rules;
     onChange(parsed);
@@ -116,12 +128,12 @@ export function subscribeRules(
     try {
       const value = await store.read();
       // 読み込みより先に watch で受け取っていれば、そちらが新しい
-      if (latest.current === null) {
+      if (!unsubscribed && latest.current === null) {
         apply(value);
       }
     } catch (error) {
       console.error("ルールの一覧を読み込めませんでした", error);
-      if (latest.current === null) {
+      if (!unsubscribed && latest.current === null) {
         onLoadFailed();
       }
     }
@@ -129,12 +141,18 @@ export function subscribeRules(
   const unwatch = store.watch((value) => {
     // 自分の書き込みを待っているあいだは、手元の一覧の方が新しい。
     // 保存前の値の通知で表示を戻すと、入力中の文字が消えるため無視する
-    if (pendingWrites.current === 0) {
+    if (!unsubscribed && pendingWrites.current === 0) {
       apply(value);
     }
   });
   void load();
-  return { load, unsubscribe: unwatch };
+  return {
+    load,
+    unsubscribe: () => {
+      unsubscribed = true;
+      unwatch();
+    },
+  };
 }
 
 interface SaveOptions {
