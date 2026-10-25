@@ -85,8 +85,7 @@ describe("壊れたルールの警告の状態の読み込みの失敗（Issue #
     const storage = createStorage();
     const records = captureLogs();
     storage.rules.store([BROKEN_DEV]);
-    const getValue = vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
-    onTestFinished(() => getValue.mockRestore());
+    vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
     const reader = createReader(storage);
 
     await expect(reader.read()).resolves.toStrictEqual([{ ...DEV, conditions: [] }]);
@@ -101,8 +100,7 @@ describe("壊れたルールの警告の状態の読み込みの失敗（Issue #
     const storage = createStorage();
     const records = captureLogs();
     storage.rules.store([BROKEN_DEV]);
-    const getValue = vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
-    onTestFinished(() => getValue.mockRestore());
+    vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
 
     await createReader(storage).read();
     expect(warnings(records)).toBe(1);
@@ -122,8 +120,7 @@ describe("壊れたルールの警告の状態の書き込みの失敗（Issue #
     const storage = createStorage();
     const records = captureLogs();
     storage.rules.store([BROKEN_DEV]);
-    const setValue = vi.spyOn(storage.damageWarned, "setValue").mockRejectedValue(new Error("session set failed"));
-    onTestFinished(() => setValue.mockRestore());
+    vi.spyOn(storage.damageWarned, "setValue").mockRejectedValue(new Error("session set failed"));
     const reader = createReader(storage);
 
     await expect(reader.read()).resolves.toStrictEqual([{ ...DEV, conditions: [] }]);
@@ -159,5 +156,39 @@ describe("壊れたルールの警告の繰り返し", () => {
     const reader = createReader(storage);
     await Promise.all([reader.read(), reader.read(), reader.read()]);
     expect(warnings(records)).toBe(1);
+  });
+
+  it("壊れていない値を読んだときに警告の状態の読み込みが失敗しても、次の壊れ方は警告する", async () => {
+    // 前提: 警告済みの状態を持ち越した後、壊れていない値を読んだときだけ getValue が1回失敗し、その後また別の壊れ方をする
+    // 検証: 失敗で持ち越しの警告済みフラグが残らず、次の壊れ方は正しく警告される（1→2）
+    const storage = createStorage();
+    const records = captureLogs();
+    storage.rules.store([BROKEN_DEV]);
+    await createReader(storage).read();
+    expect(warnings(records)).toBe(1);
+
+    storage.rules.store([DEV]);
+    vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
+    const reader = createReader(storage);
+    await reader.read();
+    expect(storage.damageWarned.stored).toBe(false);
+
+    storage.rules.store([BROKEN_DEV]);
+    await reader.read();
+    expect(warnings(records)).toBe(2);
+  });
+});
+
+describe("壊れたルールの警告の状態の読み込みの失敗が重なるログ（Issue #68 のフォローアップ）", () => {
+  it("同時に読んでも、読み込み失敗のログは1件だけ残る", async () => {
+    // 前提: 同じ壊れた値に対して、getValue が1回だけ失敗する状態で read() を3回同時に呼ぶ
+    // 検証: 失敗は1回しか起きていないため、エラーのログも1件だけ残る
+    const storage = createStorage();
+    const records = captureLogs();
+    storage.rules.store([BROKEN_DEV]);
+    vi.spyOn(storage.damageWarned, "getValue").mockRejectedValueOnce(new Error("session get failed"));
+    const reader = createReader(storage);
+    await Promise.all([reader.read(), reader.read(), reader.read()]);
+    expect(records.filter((record) => record.level === "error")).toHaveLength(1);
   });
 });
