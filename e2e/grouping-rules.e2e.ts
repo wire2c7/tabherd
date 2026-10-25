@@ -23,6 +23,16 @@ test.describe("保存されたルールの読み込み", () => {
     expect(await groupOf("/dev/1")).toBeNull();
   });
 
+  test("対象が読めない条件", async ({ setStoredRules, groupOf, openTab }) => {
+    // 条件の対象（target）が picklist に無い値でも、type・value が読めれば URL を対象にした条件として残る
+    const brokenTarget = { ...dev, conditions: [{ target: "body", type: "contains", value: "/dev/" }] };
+    await setStoredRules([brokenTarget, docs]);
+
+    await openTab("/dev/1");
+
+    await expect.poll(async () => groupOf("/dev/1")).toMatchObject({ title: "開発", color: "blue" });
+  });
+
   test("壊れた値を読み続ける", async ({ setStoredRules, storedLogs, groupOf, openTab }) => {
     // インストール時の判定し直しが、壊れた値を保存する前の（壊れていない）値を読み終えてから始める。
     // 後から届くと、壊れていない値を読んだとして、次に壊れた値を読んだときにもう一度警告する
