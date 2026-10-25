@@ -7,6 +7,8 @@ import type { GroupView } from "./groups";
 import { buildGroupViews } from "./groups";
 import { suspendGroup } from "./suspend";
 
+// .swatch（グループの色見本）は rule-settings.css で定義されているが、ここでも使うため明示的に import する
+import "../rule-settings/rule-settings.css";
 import "./suspend-groups.css";
 
 export interface SuspendGroupsProps {
