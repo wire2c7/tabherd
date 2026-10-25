@@ -19,7 +19,12 @@ export interface RuleListProps {
   onMove: (id: string, to: number) => void;
 }
 
-/** ルールの一覧。一覧の順が優先度とタブバー上の並びを表す。ハンドルのドラッグと「上へ」「下へ」のボタンで並び替える */
+/**
+ * ルールの一覧。一覧の順が優先度とタブバー上の並びを表す。ハンドルのドラッグと「上へ」「下へ」のボタンで並び替える
+ *
+ * @param props - RuleListProps
+ * @returns ルールの一覧を表示する要素
+ */
 export function RuleList({ rules, problems, newRuleId, onUpdate, onRemove, onMove }: RuleListProps): JSX.Element {
   const listRef = useRef<HTMLOListElement>(null);
   const ids = useMemo(() => rules.map((rule) => rule.id), [rules]);

@@ -59,7 +59,6 @@ export function RuleSettings({ store, titlesStore }: RuleSettingsProps): JSX.Ele
       <RuleWarnings isDamaged={isDamaged} rules={rules} titles={titles} problems={problems} />
       <RuleListOrStatus
         load={load}
-        rules={rules}
         retry={retry}
         problems={problems}
         newRuleId={newRuleId}
