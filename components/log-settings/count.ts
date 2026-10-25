@@ -1,6 +1,7 @@
 import type { StoredLogEntry } from "../../utils/logging/storage";
 import { isStoredLogs, readStoredLogs } from "../../utils/logging/storage";
 import type { StorageItem } from "../../utils/storage/item";
+import { watchAndLoad } from "../watch-and-load";
 
 /** 端末に保存したログの件数の状態 */
 export type StoredLogCount =
@@ -21,30 +22,21 @@ export function watchStoredLogCount(
   item: StorageItem<StoredLogEntry[]>,
   listener: (state: StoredLogCount) => void,
 ): () => void {
-  /** 読み込みの結果を listener に渡すか。変更の通知が来たら、または購読をやめたら渡さない */
-  let shouldPassLoaded = true;
-  const unwatch = item.watch((logs) => {
-    shouldPassLoaded = false;
-    listener(isStoredLogs(logs) ? { status: "loaded", count: logs.length } : { status: "failed" });
-  });
-  async function load(): Promise<void> {
-    try {
+  return watchAndLoad<StoredLogCount>({
+    watch: (onValue) =>
+      item.watch((logs) => {
+        onValue(isStoredLogs(logs) ? { status: "loaded", count: logs.length } : { status: "failed" });
+      }),
+    read: async () => {
       const logs = await readStoredLogs(item);
-      if (shouldPassLoaded) {
-        listener({ status: "loaded", count: logs.length });
-      }
-    } catch (error) {
+      return { status: "loaded", count: logs.length };
+    },
+    onChange: listener,
+    onLoadFailed: (error) => {
       console.error("保存されたログの件数を読み込めませんでした", error);
-      if (shouldPassLoaded) {
-        listener({ status: "failed" });
-      }
-    }
-  }
-  void load();
-  return () => {
-    shouldPassLoaded = false;
-    unwatch();
-  };
+      listener({ status: "failed" });
+    },
+  });
 }
 
 /**
