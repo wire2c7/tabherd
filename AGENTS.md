@@ -50,7 +50,7 @@ WXT（Vite 8）+ TypeScript 7 + Preact で構成し、パッケージ管理は p
 - Node.js・pnpm は Nix devShell から供給する。`package.json` に `packageManager` を書かない（corepack や pnpm 自身のバージョン管理と二重管理になるため）
 - `.pre-commit-config.yaml` — Gitフックのエントリポイント（prek）。フックはNix devShellのツールを使う（`language: system`）ため、devShell 外では動かない。devShell に入ると自動でインストールされる
 - `.mcp.json` の Playwright MCP — E2E の devShell の Chromium に `.output/chrome-mv3/` を読み込ませて操作する（起動は `e2e/mcp-server.sh`）
-  - ビルドは自動で行わない。`pnpm build` の後に使い、ビルドし直したら `browser_close` で閉じる（読み込み済みの拡張機能は更新されず、次のツールの呼び出しで起動し直す）
+  - ビルドは自動で行わない。`pnpm build` の後に使う。ビルドし直したら、拡張機能のページで `chrome.runtime.reload()` を呼んでから `browser_close` で閉じる（`browser_close` だけでは、読み込み済みの拡張機能の background が古いビルドのまま動き続ける）。`chrome.runtime.reload()` の直後の `browser_navigate` は `net::ERR_BLOCKED_BY_CLIENT` になることがあるため、`browser_close` を挟んでから開き直す
   - 拡張機能のページは `chrome-extension://<pnpm e2e:extension-id の出力>/popup.html` 等で開く。開けるのは `http://127.0.0.1` と拡張機能のページだけ
   - `browser_navigate` の結果にはスナップショットが含まれない（ファイルに保存される）ため、要素の ref は `browser_snapshot` で得る
   - ルール等の状態はブラウザを閉じても残り、Playwright MCP を起動し直すと消える
