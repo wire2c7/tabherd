@@ -1,6 +1,7 @@
 import type { MutableRef } from "preact/hooks";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 
+import type { ParsedRules } from "../../utils/rules/parse";
 import { RULES_ITEM, createRulesStore } from "../../utils/rules/storage";
 import type { Rule } from "../../utils/rules/types";
 import { createMemoryStorageItem } from "../../utils/testing/storage";
@@ -94,6 +95,36 @@ describe("ルールの一覧の読み込みの失敗後の retry（Issue #74）"
 
     // 検証: retry の後も { status: "failed" } が続けて渡る
     expect(loads).toStrictEqual([{ status: "failed" }, { status: "failed" }]);
+  });
+});
+
+describe("unsubscribe 後の読み込み・変更通知（Issue #74 のフォローアップ）", () => {
+  it("unsubscribe の後に読み込みが終わっても、渡さない", async () => {
+    // 前提: 読み込みが終わる前に unsubscribe する
+    const item = createMemoryStorageItem(RULES_ITEM);
+    await item.setValue([DEV]);
+    const store = createRulesStore(item);
+    const reading = Promise.withResolvers<ParsedRules>();
+    vi.spyOn(store, "read").mockReturnValueOnce(reading.promise);
+    const loads: RulesLoad[] = [];
+    const latest: MutableRef<readonly Rule[] | null> = { current: null };
+    const pendingWrites: MutableRef<number> = { current: 0 };
+    const subscription = subscribeRules(store, {
+      latest,
+      pendingWrites,
+      onChange: ({ rules }) => {
+        loads.push(loaded(rules));
+      },
+      onLoadFailed: () => {
+        loads.push({ status: "failed" });
+      },
+    });
+    subscription.unsubscribe();
+
+    // 検証: unsubscribe の後に読み込みが終わっても onChange は呼ばれない
+    reading.resolve({ rules: [DEV], damage: null });
+    await reading.promise;
+    expect(loads).toStrictEqual([]);
   });
 });
 
