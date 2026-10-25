@@ -24,6 +24,6 @@
 
 ## 5. 仕上げ
 
-- [ ] 5.1 `pnpm typecheck`・`pnpm lint`・`pnpm test`・`pnpm fmt:check` がすべて通ることを確認する
-- [ ] 5.2 `nix flake check` と `prek run --all-files` が通ることを確認する
-- [ ] 5.3 design.md の決定（`TabsApi` を拡張せず新しいインターフェースを分けたこと）を `docs/adr/` に ADR として記録し、`openspec validate suspend-tab-groups --strict` が通ることを確認する
+- [x] 5.1 `pnpm typecheck`・`pnpm lint`・`pnpm test`・`pnpm fmt:check` がすべて通ることを確認する
+- [x] 5.2 `nix flake check` と `prek run --all-files` が通ることを確認する
+- [x] 5.3 design.md の決定（`TabsApi` を拡張せず新しいインターフェースを分けたこと）を `docs/adr/` に ADR として記録し、`openspec validate suspend-tab-groups --strict` が通ることを確認する
