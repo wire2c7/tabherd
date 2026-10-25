@@ -24,7 +24,7 @@
 
 ## Impact
 
-- `entrypoints/platform/tabs.ts`: `discard` 操作と、タブグループ一覧取得の実装を追加
+- `entrypoints/platform/suspend-tabs.ts`: `discard` 操作と、タブグループ一覧取得の実装を追加（ADR 0026 により `entrypoints/platform/tabs.ts` とは別ファイルにする）
 - `entrypoints/popup/app.tsx`: グループ一覧・サスペンド操作のUIを追加
 - `entrypoints/options/app.tsx`: 新しい設定セクションを追加
 - `components/`: popup 用の新規コンポーネントと、options 用の新規設定コンポーネントを追加
