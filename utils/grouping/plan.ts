@@ -28,8 +28,12 @@ function decideTab(tab: TabSnapshot, context: DecisionContext): TabDecision {
     return { type: "keep" };
   }
   const currentGroup = tab.groupId === TAB_GROUP_ID_NONE ? null : context.groupsById.get(tab.groupId);
-  // スナップショットにない（undefined）・管理対象でないグループのタブには触れない
-  if (currentGroup === undefined || (currentGroup !== null && !context.managedTitles.has(currentGroup.title))) {
+  // スナップショットにない（undefined）・管理対象でないグループのタブには触れない。
+  // タイトルが空のグループは、create-group でタイトル・色の設定に失敗して残ったものとみなし、管理対象に含める
+  if (
+    currentGroup === undefined ||
+    (currentGroup !== null && currentGroup.title !== "" && !context.managedTitles.has(currentGroup.title))
+  ) {
     return { type: "keep" };
   }
   const rule = context.activeRules.find((candidate) => matchesRule(tab.url, candidate));

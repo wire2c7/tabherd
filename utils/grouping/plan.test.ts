@@ -83,12 +83,20 @@ describe("管理対象のグループ", () => {
     expect(planGrouping(window, RULES)).toStrictEqual([]);
   });
 
-  it("タイトルが空のグループは管理対象にしない（グループ名が空のルールは無効）", () => {
-    // 前提: ルールの名前が空（無効）で、タブはタイトルが空のグループに入っている
-    // 検証: 操作が出ない（空配列）
-    const rules: Rule[] = [{ ...DEV, name: "" }];
+  it("タイトルが空のグループは管理対象にする（create-group のタイトル設定の失敗等で残ったグループとみなす）", () => {
+    // 前提: github.com に一致するタブが、タイトルの空のグループに入っている
+    // 検証: 一致するルール「開発」の名前・色でグループを作り直して入れる操作が出る
+    const window = windowOf([tab(10, "https://github.com/", 100)], [group(100, "")]);
+    expect(planGrouping(window, RULES)).toStrictEqual([
+      { type: "create-group", windowId: 1, title: "開発", color: "blue", tabIds: [10] },
+    ]);
+  });
+
+  it("タイトルが空のグループのタブが、どのルールにも一致しなければ外す", () => {
+    // 前提: タイトルが空のグループに、どのルールにも一致しない URL のタブが入っている
+    // 検証: そのタブを ungroup する操作が出る
     const window = windowOf([tab(10, "https://example.org/", 100)], [group(100, "")]);
-    expect(planGrouping(window, rules)).toStrictEqual([]);
+    expect(planGrouping(window, RULES)).toStrictEqual([{ type: "ungroup", tabIds: [10] }]);
   });
 
   it("別のウィンドウのグループは使わず、ウィンドウごとにグループを作る", () => {

@@ -18,7 +18,10 @@ function groupTitleOf(window: WindowSnapshot, tab: TabSnapshot): string | null |
   return window.groups.find((group) => group.id === tab.groupId)?.title;
 }
 
-/** planGrouping が操作してよいタブか。ピン留め・判定の対象外・管理対象でないグループ・スナップショットに無いグループのタブは触れない */
+/**
+ * planGrouping が操作してよいタブか。ピン留め・判定の対象外・管理対象でないグループ・スナップショットに無いグループのタブは触れない。
+ * タイトルが空のグループは、タイトル・色の設定に失敗して残ったものとみなし管理対象に含める
+ */
 function isTouchable(input: GroupingInput, tab: TabSnapshot): boolean {
   const { window, rules, options } = input;
   if (tab.pinned || !(options.targetTabIds?.has(tab.id) ?? true)) {
@@ -26,7 +29,7 @@ function isTouchable(input: GroupingInput, tab: TabSnapshot): boolean {
   }
   const title = groupTitleOf(window, tab);
   const managedTitles = new Set([...validRules(rules).map((rule) => rule.name), ...(options.retiredNames ?? [])]);
-  return title === UNGROUPED || (title !== undefined && managedTitles.has(title));
+  return title === UNGROUPED || (title !== undefined && (title === "" || managedTitles.has(title)));
 }
 
 /** 操作してよいタブが入っているべきグループのタイトル。一致するルールが無ければグループに入っていない */
