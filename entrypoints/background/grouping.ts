@@ -113,14 +113,15 @@ export function onRulesChanged(
  * @remarks ページ読み込み中はタイトルが何度も変わるため、タブごとに debounceChanges でまとめる。
  * enqueue するタイミングは区間の最初の変更があった時点のままにし、区間の確定を待つのはこの判定し直しのタスク自身にする
  * （onRulesChanged と同じ考え方）。確定後に判定するウィンドウは、区間の最初に来たイベントの windowId ではなく、
- * そのときの browser.tabs.get で取り直す。デバウンス中にタブが別ウィンドウへ移ることがあるため
+ * そのときの browser.tabs.get で取り直す。デバウンス中にタブが別ウィンドウへ移ることがあるため。
+ * changeInfo.url も変わったイベントは、URL 変化のリスナーがすでに判定し直しを積むため、ここでは無視する
  */
 export function onTitleChanged(
   enqueue: ReturnType<typeof createSerialQueue>,
   debounceByTab: TitleDebounceByTab,
 ): (tabId: number, changeInfo: Browser.tabs.OnUpdatedInfo, tab: Browser.tabs.Tab) => void {
   return (tabId, changeInfo, tab) => {
-    if (changeInfo.title === undefined) {
+    if (changeInfo.title === undefined || changeInfo.url !== undefined) {
       return;
     }
     let debounce = debounceByTab.get(tabId);

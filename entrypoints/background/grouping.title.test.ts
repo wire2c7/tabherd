@@ -106,7 +106,7 @@ describe("タイトル変化のデバウンス", () => {
   });
 });
 
-describe("タイトル変化のデバウンス中のウィンドウ移動", () => {
+describe("タイトル変化のデバウンス中のウィンドウ移動・URL変化の重なり", () => {
   it("デバウンス中にタブが別ウィンドウへ移っても、確定後はそのときの（移動後の）ウィンドウで判定される", async () => {
     // 前提: タイトル変化のデバウンス中（最初のイベントはウィンドウ1）に、タブがウィンドウ2へ移る
     // 検証: 確定後の判定は、デバウンス開始時点のウィンドウ1ではなく、そのとき browser.tabs.get が返すウィンドウ2で行われる
@@ -123,6 +123,23 @@ describe("タイトル変化のデバウンス中のウィンドウ移動", () =
     await flush();
 
     expect(group).toHaveBeenCalledWith({ createProperties: { windowId: 2 }, tabIds: [10] });
+  });
+
+  it("url と title が同時に変わったイベントは無視する（URL 変化のリスナーがすでに判定し直しを積むため）", async () => {
+    // 前提: タイトルを対象にした条件を持つルールがあり、url と title が同時に変わったイベントが来る
+    // 検証: 判定し直しのタスクは積まれず、デバウンスが確定しても group は呼ばれない
+    useFakeTimersInTest();
+    fakeBrowser.reset();
+    const { group } = mockPrTabWindow(1);
+    await setStoredRules([PR]);
+    const { onTitleChanged: onTitle, flush } = createHarness();
+    const tab = fakeTab({ id: 10, url: PR_URL, groupId: -1, windowId: 1, title: PR_TITLE });
+
+    onTitle(10, { url: PR_URL, title: PR_TITLE }, tab);
+    await vi.advanceTimersByTimeAsync(500);
+    await flush();
+
+    expect(group).not.toHaveBeenCalled();
   });
 });
 
