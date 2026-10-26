@@ -112,7 +112,8 @@ export function onRulesChanged(
  * @returns browser.tabs.onUpdated へ渡すリスナー
  * @remarks ページ読み込み中はタイトルが何度も変わるため、タブごとに debounceChanges でまとめる。
  * enqueue するタイミングは区間の最初の変更があった時点のままにし、区間の確定を待つのはこの判定し直しのタスク自身にする
- * （onRulesChanged と同じ考え方）
+ * （onRulesChanged と同じ考え方）。確定後に判定するウィンドウは、区間の最初に来たイベントの windowId ではなく、
+ * そのときの browser.tabs.get で取り直す。デバウンス中にタブが別ウィンドウへ移ることがあるため
  */
 export function onTitleChanged(
   enqueue: ReturnType<typeof createSerialQueue>,
@@ -134,7 +135,13 @@ export function onTitleChanged(
     logger.debug("タブ {tabId} のタイトルが変わりました", { tabId, windowId: tab.windowId });
     void enqueue(async () => {
       await settled;
-      await regroupTab(tab.windowId, tabId)();
+      const current = await browser.tabs.get(tabId).catch(() => {
+        // タブがすでに閉じられていれば、判定し直さない
+      });
+      if (current === undefined) {
+        return;
+      }
+      await regroupTab(current.windowId, tabId)();
     });
   };
 }
