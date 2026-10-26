@@ -1,4 +1,4 @@
-import { is, object, record, safeParse, string, unknown } from "valibot";
+import { is, object, picklist, record, safeParse, string, unknown } from "valibot";
 
 import type { Condition, GroupColor, Rule, RuleTitles } from "./types";
 import { ConditionSchema, GroupColorSchema, RuleSchema } from "./types";
@@ -84,11 +84,31 @@ function parseRule(value: unknown): { rule: Rule; repaired: boolean } | null {
   };
 }
 
-/** 読める条件だけを残す */
+/**
+ * type・value は読めるが target が読めない条件。
+ *
+ * @remarks ConditionSchema が失敗してここに来る時点で target は不正と決まっている
+ * （ConditionSchema の target は optional(ConditionTargetSchema) で、有効な値か未指定なら ConditionSchema 自体が
+ * 成功するため）。target は読み捨て、対象を省略した（URL を対象にした）条件として直して残す
+ */
+const RepairableConditionSchema = object({
+  type: picklist(["contains", "regex"]),
+  value: string(),
+});
+
+/** 読める条件だけを残す。target が不正な条件は、対象を省略した（URL を対象にした）条件として直して残す */
 function parseConditions(values: readonly unknown[]): Condition[] {
   return values.flatMap((value) => {
     const parsed = safeParse(ConditionSchema, value);
-    return parsed.success ? [parsed.output] : [];
+    if (parsed.success) {
+      return [parsed.output];
+    }
+    const repairable = safeParse(RepairableConditionSchema, value);
+    if (!repairable.success) {
+      return [];
+    }
+    const { type, value: conditionValue } = repairable.output;
+    return [{ type, value: conditionValue } satisfies Condition];
   });
 }
 

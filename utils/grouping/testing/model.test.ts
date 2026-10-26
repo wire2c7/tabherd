@@ -12,7 +12,7 @@ function exampleRule(name: string): Rule {
 }
 
 function exampleTab(id: number, groupId = TAB_GROUP_ID_NONE): TabSnapshot {
-  return { id, url: `https://example.com/${id}`, pinned: false, groupId };
+  return { id, url: `https://example.com/${id}`, title: "", pinned: false, groupId };
 }
 
 function exampleGroup(id: number, title: string): GroupSnapshot {

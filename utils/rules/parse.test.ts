@@ -98,6 +98,18 @@ describe("ルールの項目の読み込み", () => {
   });
 });
 
+describe("条件の対象（target）の読み込み", () => {
+  it("target が不正な値のときは、URL を対象にした条件として残す", () => {
+    // 前提: 1件目の条件の target が picklist に無い値、type・value は正しい
+    // 検証: 条件は target を持たない（URL を対象にした）ものとして残り、damage.repairedRules が1になる
+    const conditions = [{ target: "body", type: "contains", value: "/dev/" }];
+    expect(parseRules([{ ...DEV, conditions }])).toStrictEqual({
+      rules: [DEV],
+      damage: { notArray: false, droppedRules: 0, repairedRules: 1 },
+    });
+  });
+});
+
 describe("ルールが持っているグループのタイトルの読み込み", () => {
   it("ルールの ID からタイトルへの対応として読む", () => {
     // 前提: キーがルール ID、値が文字列のオブジェクト

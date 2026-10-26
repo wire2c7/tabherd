@@ -13,7 +13,7 @@ const WORK = rule("業務");
 const DEV = rule("開発");
 
 function tab(id: number, groupId = TAB_GROUP_ID_NONE): TabSnapshot {
-  return { id, url: `https://example.com/${id}`, pinned: false, groupId };
+  return { id, url: `https://example.com/${id}`, title: "", pinned: false, groupId };
 }
 
 function group(id: number, title: string): GroupSnapshot {

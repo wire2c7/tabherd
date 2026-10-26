@@ -36,7 +36,7 @@ function decideTab(tab: TabSnapshot, context: DecisionContext): TabDecision {
   ) {
     return { type: "keep" };
   }
-  const rule = context.activeRules.find((candidate) => matchesRule(tab.url, candidate));
+  const rule = context.activeRules.find((candidate) => matchesRule({ url: tab.url, title: tab.title }, candidate));
   if (rule === undefined) {
     return currentGroup === null ? { type: "keep" } : { type: "ungroup" };
   }

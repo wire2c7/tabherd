@@ -14,7 +14,7 @@ const DOCS: Rule = {
 const RULES = [DEV, DOCS];
 
 function tab(id: number, url: string, groupId = TAB_GROUP_ID_NONE): TabSnapshot {
-  return { id, url, pinned: false, groupId };
+  return { id, url, title: "", pinned: false, groupId };
 }
 
 function group(id: number, title: string): GroupSnapshot {
@@ -240,6 +240,29 @@ describe("無効なルールが持ち続けるタイトルのグループ", () =
     const window = windowOf([tab(10, "https://github.com/"), tab(11, "https://example.com/")]);
     expect(planGrouping(window, [renamed, DOCS], { titles })).toStrictEqual([
       { type: "create-group", windowId: 1, title: "資料", color: "green", tabIds: [11] },
+    ]);
+  });
+});
+
+describe("タイトルを対象にした条件での判定", () => {
+  it("タイトルを対象にした条件に一致すれば、ルールのグループに入れる", () => {
+    // 前提: タイトルを対象にした部分一致 Pull Request を持つルールに、該当するタイトルのタブを判定する
+    const rule: Rule = {
+      id: "pr",
+      name: "レビュー",
+      color: "orange",
+      conditions: [{ target: "title", type: "contains", value: "Pull Request" }],
+    };
+    const tabWithTitle: TabSnapshot = {
+      id: 10,
+      url: "https://github.com/wire2c7/tabherd/pull/99",
+      title: "Add title condition · Pull Request #99",
+      pinned: false,
+      groupId: TAB_GROUP_ID_NONE,
+    };
+    // 検証: タブがルール「レビュー」の名前・色でグループを作って入る
+    expect(planGrouping(windowOf([tabWithTitle]), [rule])).toStrictEqual([
+      { type: "create-group", windowId: 1, title: "レビュー", color: "orange", tabIds: [10] },
     ]);
   });
 });

@@ -113,6 +113,15 @@ test.describe("ルールの追加・編集・削除", () => {
       ]);
   });
 
+  test("条件の対象をタイトルに変える", async ({ setRules, storedRules, openSettings }) => {
+    await setRules([dev]);
+    const page = await openSettings("popup");
+    await page.getByLabel("条件 1 の対象").selectOption("タイトル");
+    await expect
+      .poll(async () => storedRules())
+      .toMatchObject([{ conditions: [{ target: "title", type: "contains", value: "/dev/" }] }]);
+  });
+
   test("条件を削除する", async ({ setRules, storedRules, openSettings }) => {
     await setRules([
       {

@@ -1,5 +1,15 @@
 import type { Condition, Rule, RuleTitles } from "./types";
-import { NO_TITLES } from "./types";
+import { NO_TITLES, conditionTarget } from "./types";
+
+/**
+ * 条件の判定に使う、タブの URL・タイトル。
+ *
+ * @remarks title はタイトルが未確定のときに空文字列になる
+ */
+export interface MatchTarget {
+  url: string;
+  title: string;
+}
 
 /**
  * u フラグ付きの正規表現として解釈できるかを確かめる。
@@ -25,23 +35,24 @@ function compileRegex(pattern: string): RegExp | null {
 }
 
 /**
- * URL が条件に一致するかを確かめる。
+ * タブが条件に一致するかを確かめる。
  *
- * @param url - 確かめる URL
+ * @param target - 確かめるタブの URL・タイトル
  * @param condition - 確かめる条件
  * @returns 一致すれば true
- * @remarks 値が空・正規表現の構文が不正な条件はどの URL にも一致しない
+ * @remarks 値が空・正規表現の構文が不正な条件はどの対象にも一致しない。条件の target に応じて URL・タイトルのどちらを見るか切り替える
  */
-export function matchesCondition(url: string, condition: Condition): boolean {
+export function matchesCondition(target: MatchTarget, condition: Condition): boolean {
   if (condition.value === "") {
     return false;
   }
+  const subject = conditionTarget(condition) === "title" ? target.title : target.url;
   switch (condition.type) {
     case "contains": {
-      return url.toLowerCase().includes(condition.value.toLowerCase());
+      return subject.toLowerCase().includes(condition.value.toLowerCase());
     }
     case "regex": {
-      return compileRegex(condition.value)?.test(url) ?? false;
+      return compileRegex(condition.value)?.test(subject) ?? false;
     }
     default: {
       return false;
@@ -50,14 +61,14 @@ export function matchesCondition(url: string, condition: Condition): boolean {
 }
 
 /**
- * URL がルールの条件のいずれかに一致するかを確かめる。
+ * タブがルールの条件のいずれかに一致するかを確かめる。
  *
- * @param url - 確かめる URL
+ * @param target - 確かめるタブの URL・タイトル
  * @param rule - 確かめるルール
  * @returns いずれかの条件に一致すれば true
  */
-export function matchesRule(url: string, rule: Rule): boolean {
-  return rule.conditions.some((condition) => matchesCondition(url, condition));
+export function matchesRule(target: MatchTarget, rule: Rule): boolean {
+  return rule.conditions.some((condition) => matchesCondition(target, condition));
 }
 
 /** ルールが無効になる理由。empty-name は空のグループ名、duplicate-name はほかのルールが使っているグループ名 */
@@ -201,13 +212,17 @@ export function groupTitlesInOrder(rules: readonly Rule[], titles: RuleTitles = 
 }
 
 /**
- * URL が一致するルールを返す。
+ * タブに一致するルールを返す。
  *
- * @param url - 一致するルールを探す URL
+ * @param target - 一致するルールを探すタブの URL・タイトル
  * @param rules - 探す対象のルールの一覧
  * @param titles - ルールの ID から、そのルールが持っているグループのタイトルへのマップ
  * @returns 一致するルール。複数に一致するときは一覧で最も上のもの、どれにも一致しなければ null
  */
-export function findMatchingRule(url: string, rules: readonly Rule[], titles: RuleTitles = NO_TITLES): Rule | null {
-  return validRules(rules, titles).find((rule) => matchesRule(url, rule)) ?? null;
+export function findMatchingRule(
+  target: MatchTarget,
+  rules: readonly Rule[],
+  titles: RuleTitles = NO_TITLES,
+): Rule | null {
+  return validRules(rules, titles).find((rule) => matchesRule(target, rule)) ?? null;
 }

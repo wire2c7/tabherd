@@ -9,6 +9,8 @@ export interface BrowserTab {
   /** タブバーでの位置 */
   index: number;
   url?: string | undefined;
+  /** 未確定のときは undefined */
+  title?: string | undefined;
   pinned: boolean;
   /** 所属するタブグループの ID。どのグループにも入っていなければ -1 */
   groupId: number;

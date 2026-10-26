@@ -6,12 +6,14 @@ import { debounceChanges } from "../../utils/grouping/debounce";
 import { createSerialQueue } from "../../utils/grouping/serial";
 import type { Rule } from "../../utils/rules/types";
 import { stub, useFakeTimersInTest } from "../../utils/testing/mocks";
-import { onRulesChanged, regroupTab } from "./grouping";
+import { onRulesChanged, onTabRemoved, onTitleChanged, regroupTab } from "./grouping";
 
 const DEV: Rule = { id: "dev", name: "開発", color: "blue", conditions: [{ type: "contains", value: "/dev/" }] };
 
 /** テストで使う項目だけを指定した browser.tabs.Tab を作る */
-function fakeTab(tab: Pick<Browser.tabs.Tab, "id" | "windowId" | "url" | "groupId">): Browser.tabs.Tab {
+function fakeTab(
+  tab: Pick<Browser.tabs.Tab, "id" | "windowId" | "url" | "groupId"> & Partial<Pick<Browser.tabs.Tab, "title">>,
+): Browser.tabs.Tab {
   return {
     index: 0,
     pinned: false,
@@ -56,13 +58,16 @@ async function setStoredRules(rules: readonly Rule[]): Promise<void> {
 
 /**
  * grouping.ts の regroupOnEvents が作る処理（反映は onRulesChanged が積み、タブイベントは
- * regroupTab がそのまま積む）を、本番と同じ onRulesChanged・regroupTab で組み立てる
+ * regroupTab がそのまま積む）を、本番と同じ onRulesChanged・regroupTab・onTitleChanged・onTabRemoved で組み立てる
  */
 function createHarness() {
   const enqueue = createSerialQueue();
+  const titleChangeDebounce = new Map<number, ReturnType<typeof debounceChanges<string>>>();
   return {
     onRulesChanged: onRulesChanged(enqueue, debounceChanges<readonly Rule[]>(300)),
     onTabEvent: async (windowId: number, tabId: number) => enqueue(regroupTab(windowId, tabId)),
+    onTitleChanged: onTitleChanged(enqueue, titleChangeDebounce),
+    onTabRemoved: onTabRemoved(titleChangeDebounce),
     /** キューに積まれた処理がすべて終わるまで待つ */
     flush: async () =>
       enqueue(async () => {

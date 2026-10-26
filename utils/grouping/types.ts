@@ -4,6 +4,8 @@ import type { GroupColor } from "../rules/types";
 export interface TabSnapshot {
   id: number;
   url: string;
+  /** 未確定のときは空文字列 */
+  title: string;
   pinned: boolean;
   /** 所属するタブグループの ID。どのグループにも入っていなければ -1（tabGroups.TAB_GROUP_ID_NONE） */
   groupId: number;
