@@ -29,7 +29,7 @@
     "@types/node": "24.19.2",
     "fast-check": "4.10.2",
     "happy-dom": "21.0.4",
-    "oxfmt": "0.70.0",
+    "oxfmt": "0.74.0",
     "oxlint": "1.85.0",
     "oxlint-tsgolint": "7.0.2004",
     "typescript": "7.0.2",
