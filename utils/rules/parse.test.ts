@@ -4,7 +4,12 @@ import { parseRuleTitles, parseRules } from "./parse";
 import type { Rule } from "./types";
 
 const DEV: Rule = { id: "a", name: "開発", color: "blue", conditions: [{ type: "contains", value: "/dev/" }] };
-const DOCS: Rule = { id: "b", name: "資料", color: "green", conditions: [{ type: "regex", value: "\\.org/" }] };
+const DOCS: Rule = {
+  id: "b",
+  name: "資料",
+  color: "green",
+  conditions: [{ type: "regex", value: String.raw`\.org/` }],
+};
 
 describe("保存値の読み込み", () => {
   it("壊れていない一覧はそのまま返す", () => {

@@ -24,7 +24,12 @@ describe("ルールの一覧の保存", () => {
     const { store } = createStore();
     const rules: Rule[] = [
       { id: "a", name: "業務", color: "red", conditions: [{ type: "contains", value: "example.com" }] },
-      { id: "b", name: "開発", color: "blue", conditions: [{ type: "regex", value: "^https://github\\.com/" }] },
+      {
+        id: "b",
+        name: "開発",
+        color: "blue",
+        conditions: [{ type: "regex", value: String.raw`^https://github\.com/` }],
+      },
     ];
     await store.write(rules);
     await expect(store.read()).resolves.toStrictEqual({ rules, damage: null });
