@@ -4,7 +4,7 @@ import path from "node:path";
 
 import type { BrowserContext, Page, Worker } from "@playwright/test";
 import { test as base, chromium, expect } from "@playwright/test";
-
+import { waitForFirstInstallSettled } from "./rule-titles";
 import type { GroupColor, Rule } from "../utils/rules/types";
 
 export { expect } from "@playwright/test";
@@ -159,7 +159,7 @@ export const test = base.extend<Options & Fixtures>({
   },
   serviceWorker: async ({ context }, provide) => {
     const [worker] = context.serviceWorkers();
-    await provide(worker ?? (await context.waitForEvent("serviceworker")));
+    await provide(await waitForFirstInstallSettled(worker ?? (await context.waitForEvent("serviceworker"))));
   },
   extensionId: async ({ serviceWorker }, provide) => {
     await provide(new URL(serviceWorker.url()).host);

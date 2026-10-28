@@ -61,8 +61,8 @@ test.describe("設定画面の表示場所", () => {
 
 test.describe("ルールの一覧", () => {
   for (const name of pageNames) {
-    test(`ルールがない（${name}）`, async ({ openSettings }) => {
-      const page = await openSettings(name);
+    test(`ルールがない（${name}）`, async ({ setRules, openSettings }) => {
+      const [page] = await Promise.all([openSettings(name), setRules([])]);
 
       await expect(page.getByText("ルールがありません。「ルールを追加」からルールを作ってください。")).toBeVisible();
       await expect(page.getByRole("button", { name: "＋ ルールを追加" })).toBeVisible();
