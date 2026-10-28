@@ -13,8 +13,8 @@
 
 ## 3. 仕様・ドキュメントの反映
 
-- [ ] 3.1 `pnpm lint` と `pnpm fmt:check`（または `pnpm fmt`）を実行し、問題が無いことを確認する
-- [ ] 3.2 `docs/adr/0027-seed-sample-rules-on-install.md`（番号は作成時点の最新連番+1）を `docs/adr/_template.md` から作成し、本設計判断（投入タイミング・書き込み用ストアの公開場所・サンプルルールの内容）を記録する
+- [x] 3.1 `pnpm lint` と `pnpm fmt:check`（または `pnpm fmt`）を実行し、問題が無いことを確認する
+- [x] 3.2 `docs/adr/0027-seed-sample-rules-on-install.md`（番号は作成時点の最新連番+1）を `docs/adr/_template.md` から作成し、本設計判断（投入タイミング・書き込み用ストアの公開場所・サンプルルールの内容）を記録する
 - [ ] 3.3 `nix flake check` と `prek run --all-files` が通ることを確認する
 
 ## Workflow follow-up
