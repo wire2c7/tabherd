@@ -1,4 +1,4 @@
-import type { MutableRef } from "preact/hooks";
+import type { RefObject } from "preact";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 
 import type { RuleProblem } from "../../utils/rules/match";
@@ -92,9 +92,9 @@ export function useRules(store: RulesStore): RulesState {
 /** subscribeRules が一覧の読み込み・変更を伝える先 */
 export interface RulesSubscription {
   /** 最新の一覧。読み込み・変更の通知で書き換える */
-  latest: MutableRef<readonly Rule[] | null>;
+  latest: RefObject<readonly Rule[] | null>;
   /** 保存中の書き込みの数。0 でないあいだの通知は無視する */
-  pendingWrites: MutableRef<number>;
+  pendingWrites: RefObject<number>;
   /** 読み込んだ・変わった一覧を受け取る */
   onChange: (parsed: ParsedRules) => void;
   /** 読み込みが失敗したことを受け取る。latest がまだ無いときだけ呼ぶ */
@@ -158,7 +158,7 @@ export function subscribeRules(
 
 interface SaveOptions {
   /** 保存中の書き込みの数。保存が終わるまで増やしておく */
-  pendingWrites: MutableRef<number>;
+  pendingWrites: RefObject<number>;
   /** 保存できたときに、pendingWrites を戻した後で呼ぶ */
   onSaved: () => void;
 }

@@ -1,4 +1,4 @@
-import type { MutableRef } from "preact/hooks";
+import type { RefObject } from "preact";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 
 import type { ParsedRules } from "../../utils/rules/parse";
@@ -17,8 +17,8 @@ function loaded(rules: readonly Rule[]): RulesLoad {
 /** subscribeRules を始め、渡された読み込みの状態を順に入れた配列と、もう一度読み込む関数を返す。購読はテストの終わりにやめる */
 function subscribe(store: ReturnType<typeof createRulesStore>): { loads: RulesLoad[]; retry: () => Promise<void> } {
   const loads: RulesLoad[] = [];
-  const latest: MutableRef<readonly Rule[] | null> = { current: null };
-  const pendingWrites: MutableRef<number> = { current: 0 };
+  const latest: RefObject<readonly Rule[] | null> = { current: null };
+  const pendingWrites: RefObject<number> = { current: 0 };
   const subscription = subscribeRules(store, {
     latest,
     pendingWrites,
@@ -107,8 +107,8 @@ describe("unsubscribe 後の読み込み・変更通知（Issue #74 のフォロ
     const reading = Promise.withResolvers<ParsedRules>();
     vi.spyOn(store, "read").mockReturnValueOnce(reading.promise);
     const loads: RulesLoad[] = [];
-    const latest: MutableRef<readonly Rule[] | null> = { current: null };
-    const pendingWrites: MutableRef<number> = { current: 0 };
+    const latest: RefObject<readonly Rule[] | null> = { current: null };
+    const pendingWrites: RefObject<number> = { current: 0 };
     const subscription = subscribeRules(store, {
       latest,
       pendingWrites,

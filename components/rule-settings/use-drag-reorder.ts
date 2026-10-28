@@ -28,7 +28,7 @@ export interface DragReorder {
  * @remarks 一覧（listRef）の直下の要素をルールの並びとみなし、ポインターの位置から差し込み先を決める。ルールの間の隙間でもドロップできるよう、dragover・drop は各ルールではなく一覧で受ける
  */
 export function useDragReorder(
-  listRef: RefObject<HTMLOListElement>,
+  listRef: RefObject<HTMLOListElement | null>,
   ids: readonly string[],
   onMove: (id: string, to: number) => void,
 ): DragReorder {

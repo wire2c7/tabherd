@@ -102,7 +102,7 @@ function itemClass({ index, count, isDragging, dropSlot }: ItemState): string {
  * 先頭・末尾に着いてそのボタンが無効になったときは、もう一方のボタンにフォーカスを移す
  */
 function useStepWithFocus(
-  listRef: RefObject<HTMLOListElement>,
+  listRef: RefObject<HTMLOListElement | null>,
   ids: readonly string[],
   onMove: (id: string, to: number) => void,
 ): (id: string, direction: MoveDirection) => void {
