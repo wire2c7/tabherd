@@ -7,9 +7,9 @@
 
 ## 2. 初回インストール時の投入
 
-- [ ] 2.1 `entrypoints/background/rules.ts` に書き込み用の `rulesStore`（`createRulesStore(defineStorageItem(RULES_ITEM))`）をエクスポートする
-- [ ] 2.2 `entrypoints/background/grouping.ts` の `onInstalled` リスナーで、`details.reason === "install"` かつ `rulesReader.read()` が空配列のときだけ `rulesStore.write(createSampleRules())` を `await` してから `enqueue(regroupAll)` を呼ぶよう変更する
-- [ ] 2.3 `grouping.test.ts`（または新規テストファイル）に、(a) 初回インストールでサンプルルールが保存されること、(b) `reason === "update"` では投入されないこと、(c) 既にルールがある状態の `install` イベントでは投入されないこと、の3シナリオのテストを追加し、`pnpm test` で通ることを確認する
+- [x] 2.1 `entrypoints/background/rules.ts` に書き込み用の `rulesStore`（`createRulesStore(defineStorageItem(RULES_ITEM))`）をエクスポートする
+- [x] 2.2 `entrypoints/background/grouping.ts` の `onInstalled` リスナーで、`details.reason === "install"` かつ `rulesReader.read()` が空配列のときだけ `rulesStore.write(createSampleRules())` を `await` してから `enqueue(regroupAll)` を呼ぶよう変更する（`max-dependencies` の lint に抵触したため、投入処理自体は `seedSampleRulesOnFirstInstall` として `rules.ts` に実装し、`grouping.ts` からはそれを呼ぶだけにした。design.md を実装に合わせて更新済み）
+- [x] 2.3 `entrypoints/background/rules.test.ts` に、(a) 初回インストールでサンプルルールが保存されること、(b) `reason === "update"` では投入されないこと、(c) 既にルールがある状態の `install` イベントでは投入されないこと、の3シナリオのテストを追加し、`pnpm test` で通ることを確認した
 
 ## 3. 仕様・ドキュメントの反映
 

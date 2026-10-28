@@ -23,7 +23,7 @@
 
 - **書き込み用ストアの公開場所**: `entrypoints/background/rules.ts` に、既存の `rulesReader` と同様の構成で書き込み用の `rulesStore`（`createRulesStore(defineStorageItem(RULES_ITEM))`）をエクスポートする。理由: ストレージの実体（`RULES_ITEM`）とコンストラクタ（`createRulesStore`）は既にこのファイルが把握しており、重複した `StorageItem` を作らずに済む
 - **サンプルルールの定義場所**: `utils/rules/seed.ts` に `createSampleRules(): Rule[]` を追加する。`utils/` はブラウザ API を使わない純粋なロジックを置く場所という ADR 0021 の方針に合わせ、ID 生成（`crypto.randomUUID()`）と色の割り当て（既存の `pickNewRuleColor`）をこの関数の中で行う
-- **投入のタイミングと順序保証**: `grouping.ts` の `onInstalled` リスナー内で、`details.reason === "install"` のときに `rulesReader.read()` でルールを読み、0件なら `rulesStore.write(createSampleRules())` を `await` してから `enqueue(regroupAll)` を呼ぶ。`enqueue` 自体は直列実行を保証するキューだが、投入処理をキューに積む設計にすると「投入が完了するまで `regroupAll` を呼ばない」という順序をキューの実装に依存させてしまうため、同じリスナー内で素直に `await` してから `enqueue(regroupAll)` を呼ぶ方が読みやすく、依存も増えない
+- **投入のタイミングと順序保証**: `grouping.ts` の `onInstalled` リスナーから、「`details.reason === "install"` のときにルールが空ならサンプルルールを書き込んでから `regroupAll` を呼ぶ」処理を1つの関数にまとめ、`enqueue` へ1回だけ積む（`void enqueue(async () => { ...seed...; await regroupAll(); })`）。`onInstalled` リスナー自体は既存のほかのリスナーと同じく同期のコールバックのまま保ち、`logListenerErrors` が同期的な例外しか捕まえない（`try/catch` のみで、返り値の Promise の reject は待たない）ことと整合させる。投入とその後の `regroupAll` を同じキュー項目にすることで、両者の順序は `enqueue` の直列実行にそのまま委ね、キューの実装詳細に依存した前提を増やさない
 - **「既にルールがあるか」の判定**: `rulesReader.read()`（壊れた保存値を直してから返す、既存の壊れたルール検出の仕組みをそのまま使う）の結果が空配列かどうかで判定する。これにより、壊れたルールが保存されている状態を「0件」と誤判定しない
 
 ## Risks / Trade-offs
