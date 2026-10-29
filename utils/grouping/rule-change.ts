@@ -86,18 +86,27 @@ export function diffRules(
 }
 
 /**
- * ルールの一覧自体は変わっていない読み直し（タブイベントの判定等）で、記録されているタイトルを
- * 今の有効性に合わせ直す。
+ * ルールの一覧自体は変わっていない読み直し（タブイベントの判定等）で、まだ記録に無いルールの分だけ
+ * タイトルを足す。
  *
  * @param rules - 判定に使うルールの一覧
  * @param titles - 現在記録されているタイトル
- * @returns 有効なルールが今持つべきタイトル
- * @remarks diffRules を oldRules と newRules が同じ呼び出しとして使うため、名前・色の変更（updates）は出ない。
- * タブイベントの素朴な判定（regroupTab）はこのタイトルの記録を更新しないため、後から来るルール変更の反映
- * （diffRules）が、タブイベントで先に作られたグループの存在を見落とさないよう、ここで記録を追いつかせる
+ * @returns 記録に無かった分だけタイトルを足した記録
+ * @remarks 足すのは、タブイベントがルール変更の反映より先にグループを新規作成した場合に、そのグループの存在が
+ * diffRules の記録から漏れ、後から来るルール変更の反映がそのグループへ届かなくなるのを防ぐため（Issue #36）。
+ * 記録済みのルールのタイトルは、ルールの今の名前と違っていても上書きしない。タブイベントの素朴な判定
+ * （regroupTab）は実際の改名を行わないため、ここで記録だけ新しい名前に進めてしまうと、まだ実行していない
+ * ルール変更の反映（diffRules・applyRuleChange）が「すでに変更済み」と誤認し、実際のグループの改名を
+ * 永久にスキップしてしまう（Issue #110）
  */
-export function currentTitles(rules: readonly Rule[], titles: RuleTitles): RuleTitles {
-  return diffRules(rules, rules, titles).titles;
+export function titlesForNewRules(rules: readonly Rule[], titles: RuleTitles): RuleTitles {
+  const result = new Map(titles);
+  for (const rule of validRules(rules, titles)) {
+    if (!result.has(rule.id)) {
+      result.set(rule.id, rule.name);
+    }
+  }
+  return result;
 }
 
 /** 有効なルールのグループのタイトル・色の変更。持っていたタイトルの変更を先に決め、変更されないタイトルを引き継いだルールは色だけを変える */
