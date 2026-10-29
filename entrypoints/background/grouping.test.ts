@@ -7,6 +7,7 @@ import { createSerialQueue } from "../../utils/grouping/serial";
 import type { Rule } from "../../utils/rules/types";
 import { stub, useFakeTimersInTest } from "../../utils/testing/mocks";
 import { onRulesChanged, onTabRemoved, onTitleChanged, regroupTab } from "./grouping";
+import { titlesStore } from "./rules";
 
 const DEV: Rule = { id: "dev", name: "開発", color: "blue", conditions: [{ type: "contains", value: "/dev/" }] };
 
@@ -45,6 +46,29 @@ function mockDevTabWindow() {
     vi.fn<(queryInfo: Browser.tabGroups.QueryInfo) => Promise<Browser.tabGroups.TabGroup[]>>().mockResolvedValue([]),
   );
   const group = vi.fn<(options: Browser.tabs.GroupOptions) => Promise<number>>().mockResolvedValue(100);
+  stub(fakeBrowser.tabs, "group", group);
+  const updateGroup = vi.fn<(groupId: number, properties: Browser.tabGroups.UpdateProperties) => Promise<undefined>>();
+  stub(fakeBrowser.tabGroups, "update", updateGroup);
+  return { group, updateGroup };
+}
+
+/** ウィンドウ1にタブ10（/dev/を含むURL）があり、すでにグループ100（タイトル「開発」）に入っている状態にする */
+function mockDevTabInGroup() {
+  stub(
+    fakeBrowser.tabs,
+    "query",
+    vi
+      .fn<(queryInfo: Browser.tabs.QueryInfo) => Promise<Browser.tabs.Tab[]>>()
+      .mockResolvedValue([fakeTab({ id: 10, url: "https://example.com/dev/1", groupId: 100, windowId: 1 })]),
+  );
+  stub(
+    fakeBrowser.tabGroups,
+    "query",
+    vi
+      .fn<(queryInfo: Browser.tabGroups.QueryInfo) => Promise<Browser.tabGroups.TabGroup[]>>()
+      .mockResolvedValue([{ id: 100, windowId: 1, title: "開発", color: "blue", collapsed: false, shared: false }]),
+  );
+  const group = vi.fn<(options: Browser.tabs.GroupOptions) => Promise<number>>();
   stub(fakeBrowser.tabs, "group", group);
   const updateGroup = vi.fn<(groupId: number, properties: Browser.tabGroups.UpdateProperties) => Promise<undefined>>();
   stub(fakeBrowser.tabGroups, "update", updateGroup);
@@ -201,5 +225,34 @@ describe("名前が衝突するルールの編集とタブイベントの重な�
     await tabTask;
 
     expect(group).toHaveBeenCalledWith({ createProperties: { windowId: 1 }, tabIds: [10] });
+  });
+});
+
+describe("ルール名の打ち直し中のタブイベントとの競合（Issue #110）", () => {
+  it("反映前のタブイベントが記録を先に進めても、確定後に実際のグループを改名する", async () => {
+    // 前提: ルール「開発」はすでにグループ100（タイトル「開発」）を持っており、titlesStore にも記録済み。
+    //       このルールを「Dev」に改名する。ストレージの書き込み自体はすぐ終わるが、onRulesChanged
+    //       （storage の watch 通知）が届くのは、別経路のタブイベントより後になることがある
+    // 検証: 反映タスクがキューへ積まれる前に、そのタブイベントが先に新しい名前「Dev」を読み、
+    //       titlesStore の記録だけを先に「Dev」へ進めてしまっても、通知が届いた後の反映は
+    //       実際のグループ100を「開発」から「Dev」へ改名する（先回りした記録のせいでスキップされない）
+    useFakeTimersInTest();
+    fakeBrowser.reset();
+    const { updateGroup } = mockDevTabInGroup();
+    await setStoredRules([DEV]);
+    await titlesStore.write(new Map([["dev", "開発"]]));
+    const { onRulesChanged: onChange, onTabEvent, flush } = createHarness();
+
+    const renamed = { ...DEV, name: "Dev" };
+    await setStoredRules([renamed]);
+    await onTabEvent(1, 10);
+    expect(updateGroup).not.toHaveBeenCalled();
+
+    // ここでようやく storage の watch 通知が届き、反映タスクがキューへ積まれる
+    onChange([renamed], [DEV]);
+    await vi.advanceTimersByTimeAsync(300);
+    await flush();
+
+    expect(updateGroup).toHaveBeenCalledWith(100, { title: "Dev", color: "blue" });
   });
 });
