@@ -10,7 +10,7 @@ import { logListenerErrors } from "../../utils/logging/listener";
 import { getAppLogger } from "../../utils/logging/setup";
 import { browserTabs } from "../platform/tabs";
 import { showUnusedRules } from "./badge";
-import { readRulesState, rulesReader, titlesStore } from "./rules";
+import { readRulesState, rulesReader, seedSampleRulesOnFirstInstall, titlesStore } from "./rules";
 
 /** 設定画面は入力のたびに保存するため、入力途中の名前でグループを作り直し続けないよう待つ時間 */
 const RULE_CHANGE_DEBOUNCE_MS = 300;
@@ -173,7 +173,10 @@ export function regroupOnEvents(enqueue: ReturnType<typeof createSerialQueue>): 
   browser.runtime.onInstalled.addListener(
     logListenerErrors(logger, (details) => {
       logger.info("拡張機能がインストール・更新されました（{reason}）", { reason: details.reason });
-      void enqueue(regroupAll);
+      void enqueue(async () => {
+        await seedSampleRulesOnFirstInstall(details.reason);
+        await regroupAll();
+      });
     }),
   );
   browser.runtime.onStartup.addListener(
